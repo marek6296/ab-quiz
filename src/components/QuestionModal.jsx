@@ -97,9 +97,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
     // Timer Logic - Unified for both phases (High Precision 100ms)
     useEffect(() => {
-        const isBotAuto = phase === 'currentPlayer' ? isBotPrimaryTurn : isBotSecondaryTurn;
-
-        if ((phase === 'currentPlayer' || phase === 'opponent') && !isBotAuto) {
+        if (phase === 'currentPlayer' || phase === 'opponent') {
             const step = 0.1;
             const timer = setInterval(() => {
                 setTimeLeft((prev) => {
@@ -132,7 +130,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             }, 100);
             return () => clearInterval(timer);
         }
-    }, [phase, isBotPrimaryTurn, isBotSecondaryTurn, isLocalPrimary, isLocalSecondary, onResolve]);
+    }, [phase, onResolve]);
 
     if (!question) return null;
 
