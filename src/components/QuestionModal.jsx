@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 
 export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve, localPlayerNum, playerNames }) => {
-    const [phase, setPhase] = useState('currentPlayer');
+    const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState(10);
@@ -53,6 +53,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         // Auto transition after reveal animation
         const timer = setTimeout(() => {
             setPhase('currentPlayer');
+            // Explicitly ensure 10 seconds starts NOW
+            setTimeLeft(10);
         }, 1800);
         return () => clearTimeout(timer);
     }, [question]);
@@ -70,6 +72,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
                         setPhase('opponent'); // CPU didn't know, pass
+                        setInputValue('');
+                        setErrorMsg('');
                         setTimeLeft(10);
                     }, 2500);
                 }
