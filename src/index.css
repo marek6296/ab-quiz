@@ -1001,7 +1001,7 @@ button.small {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10rem;
+  gap: 12rem;
   animation: vsPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   width: 100%;
 }
@@ -1032,16 +1032,23 @@ button.small {
 .vs-text {
   font-size: 8rem;
   font-weight: 950;
-  font-style: italic;
-  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  display: inline-block;
+  padding: 0 2rem;
+  /* Add breathing room for glow/italics */
+  transform: skewX(-15deg);
+  /* Use transform instead of font-style:italic to prevent clipping */
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(0, 0, 0, 1), 0 0 10px rgba(255, 255, 255, 0.3);
+  color: transparent;
+  text-shadow: 10px 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 500;
   position: relative;
   letter-spacing: -2px;
-  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 30px rgba(0, 0, 0, 0.8));
+  margin: 0 -1rem;
+  /* Adjust for padding */
 }
 
 .vs-title {
