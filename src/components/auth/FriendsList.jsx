@@ -10,6 +10,8 @@ export const FriendsList = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [outgoingInvite, setOutgoingInvite] = useState(null);
+
     // Fetch friends and pending requests
     const fetchFriends = async () => {
         if (!user) return;
@@ -130,12 +132,49 @@ export const FriendsList = () => {
         else fetchFriends();
     };
 
+    const handleChallenge = async (partner) => {
+        const { data, error } = await supabase.from('games').insert({
+            player1_id: user.id,
+            player2_id: partner.id,
+            current_turn: user.id, // Challenger starts first
+            board_state: Array.from({ length: 28 }, (_, i) => ({ id: i + 1, owner: 'unowned' }))
+        }).select().single();
+
+        if (error) {
+            console.error('Error creating game invite:', error);
+            alert('Nepodarilo sa vytvoriť hru.');
+        } else {
+            setOutgoingInvite({ gameId: data.id, partnerName: partner.username });
+        }
+    };
+
+    const cancelChallenge = async () => {
+        if (outgoingInvite) {
+            await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
+            setOutgoingInvite(null);
+        }
+    };
+
     // Helper to categorize relationships
     const pendingReceived = friends.filter(f => f.status === 'pending' && f.friend_id === user.id);
     const acceptedFriends = friends.filter(f => f.status === 'accepted');
 
     return (
         <div className="friends-list-container">
+
+            {/* Outgoing Invite Modal */}
+            {outgoingInvite && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <h2>Čaká sa na prijatie...</h2>
+                        <div className="spinner"></div>
+                        <p className="question-text" style={{ fontSize: '1.2rem', margin: '2rem 0' }}>
+                            Vyzvali ste hráča <strong>{outgoingInvite.partnerName}</strong>
+                        </p>
+                        <button className="neutral" onClick={cancelChallenge}>Zrušiť výzvu</button>
+                    </div>
+                </div>
+            )}
 
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="friend-search-form">
@@ -203,22 +242,7 @@ export const FriendsList = () => {
                                         <button
                                             className="primary small"
                                             disabled={partner.online_status !== 'online'}
-                                            onClick={async () => {
-                                                const { error } = await supabase.from('games').insert({
-                                                    player1_id: user.id,
-                                                    player2_id: partner.id,
-                                                    current_turn: user.id, // Challenger starts first
-                                                    board_state: Array.from({ length: 28 }, (_, i) => ({ id: i + 1, owner: 'unowned' }))
-                                                }).select().single();
-
-                                                if (error) {
-                                                    console.error('Error creating game invite:', error);
-                                                    alert('Nepodarilo sa vytvoriť hru.');
-                                                } else {
-                                                    alert(`Výzva odoslaná pre ${partner.username}. Čaká sa kým prijme...`);
-                                                    // Normally we would redirect or show a waiting lobby here!
-                                                }
-                                            }}
+                                            onClick={() => handleChallenge(partner)}
                                         >
                                             Vyzvať
                                         </button>

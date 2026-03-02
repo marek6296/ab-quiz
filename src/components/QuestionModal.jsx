@@ -1,44 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 
-export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve }) => {
+export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve, localPlayerNum }) => {
     const [phase, setPhase] = useState('currentPlayer');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
+    const [timeLeft, setTimeLeft] = useState(10);
 
     const opponent = currentPlayer === 1 ? 2 : 1;
-    const isCpuTurn = gameMode === '1vcpu' && currentPlayer === 2 && phase === 'currentPlayer';
-    const isCpuOpponentTurn = gameMode === '1vcpu' && opponent === 2 && phase === 'opponent';
-
-    useEffect(() => {
-        let timeout;
-        if (isCpuTurn) {
-            // CPU tries to answer the question originally
-            timeout = setTimeout(() => {
-                const isCorrect = Math.random() > 0.3; // 70% chance to know the answer
-                if (isCorrect) {
-                    onResolve('player2');
-                } else {
-                    setPhase('opponent'); // CPU didn't know, pass to Player 1
-                    setInputValue('');
-                    setErrorMsg('');
-                }
-            }, 2500);
-        } else if (isCpuOpponentTurn) {
-            // CPU gets a chance because Player 1 didn't know
-            timeout = setTimeout(() => {
-                const isCorrect = Math.random() > 0.5; // 50% chance to steal the answer
-                if (isCorrect) {
-                    onResolve('player2');
-                } else {
-                    onResolve('black'); // CPU didn't know either
-                }
-            }, 2500);
-        }
-        return () => clearTimeout(timeout);
-    }, [isCpuTurn, isCpuOpponentTurn, onResolve]);
-
-    if (!question) return null;
+    const isCpuPrimaryTurn = gameMode === '1vcpu' && currentPlayer === 2 && phase === 'currentPlayer';
+    const isCpuSecondaryTurn = gameMode === '1vcpu' && opponent === 2 && phase === 'opponent';
 
     const currentPlayerName = currentPlayer === 1 ? 'Hráč 1' : (gameMode === '1vcpu' ? 'CPU' : 'Hráč 2');
     const opponentName = opponent === 1 ? 'Hráč 1' : (gameMode === '1vcpu' ? 'CPU' : 'Hráč 2');
@@ -46,18 +17,80 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     const currentPlayerColor = currentPlayer === 1 ? 'Modrý' : 'Oranžový';
     const opponentColor = opponent === 1 ? 'Modrý' : 'Oranžový';
 
+    // Reset state on new question
+    useEffect(() => {
+        setPhase('currentPlayer');
+        setInputValue('');
+        setErrorMsg('');
+        setTimeLeft(10);
+    }, [question]);
+
+    // CPU Logic
+    useEffect(() => {
+        let timeout;
+        if (isCpuPrimaryTurn) {
+            timeout = setTimeout(() => {
+                const isCorrect = Math.random() > 0.3; // 70% chance to know
+                if (isCorrect) {
+                    setPhase('feedbackPrimaryCorrect');
+                    setTimeout(() => onResolve('player2'), 2500);
+                } else {
+                    setPhase('feedbackPrimaryIncorrect');
+                    setTimeout(() => {
+                        setPhase('opponent'); // CPU didn't know, pass
+                        setTimeLeft(10);
+                    }, 2500);
+                }
+            }, 2500);
+        } else if (isCpuSecondaryTurn) {
+            timeout = setTimeout(() => {
+                const isCorrect = Math.random() > 0.5; // 50% chance to steal
+                if (isCorrect) {
+                    setPhase('feedbackSecondaryCorrect');
+                    setTimeout(() => onResolve('player2'), 2500);
+                } else {
+                    setPhase('feedbackSecondaryBlack');
+                    setTimeout(() => onResolve('black'), 2500);
+                }
+            }, 2500);
+        }
+        return () => clearTimeout(timeout);
+    }, [isCpuPrimaryTurn, isCpuSecondaryTurn, onResolve]);
+
+    // Timer Logic for Opponent
+    useEffect(() => {
+        if (phase === 'opponent' && !isCpuSecondaryTurn) {
+            const timer = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        setPhase('feedbackSecondaryBlackTime');
+                        setTimeout(() => onResolve('black'), 2500);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [phase, isCpuSecondaryTurn, onResolve]);
+
+    if (!question) return null;
+
     const handleSubmitPrimary = () => {
         if (!inputValue.trim()) return;
 
         if (isAnswerCorrect(inputValue, question.answer)) {
-            onResolve(`player${currentPlayer}`);
+            setPhase('feedbackPrimaryCorrect');
+            setTimeout(() => onResolve(`player${currentPlayer}`), 2500);
         } else {
-            setErrorMsg('Nesprávna odpoveď!');
+            setPhase('feedbackPrimaryIncorrect');
             setTimeout(() => {
                 setPhase('opponent');
                 setInputValue('');
                 setErrorMsg('');
-            }, 1500);
+                setTimeLeft(10);
+            }, 2500);
         }
     };
 
@@ -65,13 +98,17 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         if (!inputValue.trim()) return;
 
         if (isAnswerCorrect(inputValue, question.answer)) {
-            onResolve(`player${opponent}`);
+            setPhase('feedbackSecondaryCorrect');
+            setTimeout(() => onResolve(`player${opponent}`), 2500);
         } else {
-            setErrorMsg('Nesprávna odpoveď!');
-            setTimeout(() => {
-                onResolve('black');
-            }, 1500);
+            setPhase('feedbackSecondaryBlackIncorrect');
+            setTimeout(() => onResolve('black'), 2500);
         }
+    };
+
+    const handleDeclineSecondary = () => {
+        setPhase('feedbackSecondaryBlack');
+        setTimeout(() => onResolve('black'), 2500);
     };
 
     const handleKeyDown = (e, callback) => {
@@ -95,61 +132,94 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         </div>
     );
 
+    const renderFeedback = (title, message, isSuccess) => (
+        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+            <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
+            <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
+            {!isSuccess && <p style={{ fontSize: '1.2rem', color: '#94a3b8', marginTop: '1rem' }}>Správna odpoveď: <strong>{question.answer}</strong></p>}
+        </div>
+    );
+
+    // If online mode, check if we are allowed to type
+    const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
+    const isLocalSecondary = gameMode !== '1v1_online' || opponent === localPlayerNum;
+
     return (
         <div className="modal-overlay">
             <div className="modal-content">
                 <h2>Udelenie poľa číslo {hexId}</h2>
-                <div className="question-text">{question.text}</div>
 
-                {phase === 'currentPlayer' ? (
+                {/* Primary Guess Phase */}
+                {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div className="question-text">{question.text}</div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
 
-                        {isCpuTurn ? (
+                        {isCpuPrimaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>CPU premýšľa nad odpoveďou...</p>
-                        ) : (
+                        ) : isLocalPrimary ? (
                             <>
                                 {renderInput(handleSubmitPrimary)}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                     <button className="primary" onClick={handleSubmitPrimary}>
                                         Odoslať odpoveď
                                     </button>
-                                    <button className="neutral" onClick={() => onClose()}>Zrušiť</button>
                                 </div>
                             </>
+                        ) : (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {currentPlayerName} odpovie...</p>
                         )}
                     </div>
-                ) : (
+                )}
+
+                {/* Feedback Primary Correct */}
+                {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true)}
+
+                {/* Feedback Primary Incorrect */}
+                {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false)}
+
+                {/* Secondary Guess Phase (Opponent Chance) */}
+                {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div className="question-text">{question.text}</div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Šanca pre súpera: {opponentName} ({opponentColor})
                         </h3>
 
-                        {isCpuOpponentTurn ? (
+                        {/* Timer Bar */}
+                        <div className="timer-bar-container">
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
+                        </div>
+                        <p style={{ marginBottom: '1rem' }}>{timeLeft} sekúnd do konca!</p>
+
+                        {isCpuSecondaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>CPU sa snaží využiť šancu a premýšľa...</p>
-                        ) : (
+                        ) : isLocalSecondary ? (
                             <>
-                                {errorMsg ? (
-                                    <div style={{ color: '#ef4444', fontWeight: 'bold', marginBottom: '1rem' }}>{errorMsg}</div>
-                                ) : (
-                                    renderInput(handleSubmitSecondary)
-                                )}
+                                {renderInput(handleSubmitSecondary)}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                    {!errorMsg && (
-                                        <button className="secondary" onClick={handleSubmitSecondary}>
-                                            Odoslať odpoveď
-                                        </button>
-                                    )}
-                                    <button className="danger" onClick={() => onResolve('black')}>
+                                    <button className="secondary" onClick={handleSubmitSecondary}>
+                                        Odoslať odpoveď
+                                    </button>
+                                    <button className="danger" onClick={handleDeclineSecondary}>
                                         Nechcem odpovedať
                                     </button>
                                 </div>
                             </>
+                        ) : (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {opponentName} využije šancu...</p>
                         )}
                     </div>
                 )}
+
+                {/* Feedback Secondary */}
+                {phase === 'feedbackSecondaryCorrect' && renderFeedback('Správne!', `${opponentName} využil šancu a získava pole!`, true)}
+                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole sa zafarbí na čierno.', false)}
+                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole bude čierne.`, false)}
+                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole bude čierne.`, false)}
+
             </div>
         </div>
     );
