@@ -260,7 +260,11 @@ const GameApp = () => {
       </div>
 
       <div className="game-container game-entrance">
-        <h1>{gameMode === '1vbot' ? '1vBOT Tréning' : 'AB Kvíz (Online)'}</h1>
+        <h1 className="game-title">
+          {profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}
+          <span className="vs">VS</span>
+          {gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}
+        </h1>
 
         {winner && (
           <div className="winner-banner">
