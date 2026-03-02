@@ -9,6 +9,29 @@ import { getRandomQuestion } from './data/questions';
 import { GameInviteModal } from './components/GameInviteModal';
 import { supabase } from './lib/supabase';
 
+const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="modal-overlay" style={{ zIndex: 10001 }}>
+      <div className="modal-content glass-panel" style={{ textAlign: 'center', padding: '2.5rem', maxWidth: '450px' }}>
+        <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Opustiť hru?</h2>
+        <p style={{ fontSize: '1.1rem', margin: '0 0 2.5rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+          Ste si istý, že chcete ukončiť aktuálny súboj? <br />
+          <strong>Váš postup bude stratený.</strong>
+        </p>
+        <div className="modal-actions" style={{ gap: '1rem' }}>
+          <button className="danger" onClick={onConfirm} style={{ minWidth: '140px' }}>
+            Áno, skončiť
+          </button>
+          <button className="primary" onClick={onCancel} style={{ minWidth: '140px' }}>
+            Zostať v hre
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Wrapper component to use the Auth context
 const GameApp = () => {
   const { user } = useAuth();
@@ -17,6 +40,7 @@ const GameApp = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Fetch current user profile
   useEffect(() => {
@@ -145,7 +169,7 @@ const GameApp = () => {
 
   // BOT Turn automation
   useEffect(() => {
-    if (gameMode === '1vbot' && currentPlayer === 2 && !winner && !activeModal) {
+    if (gameMode === '1vbot' && currentPlayer === 2 && !winner && !activeModal && !showExitConfirm) {
       // Pick a random available hex after a short delay
       const availableHexes = board.filter(h => h.owner !== 'player1' && h.owner !== 'player2');
       if (availableHexes.length > 0) {
@@ -157,7 +181,7 @@ const GameApp = () => {
         return () => clearTimeout(timeout);
       }
     }
-  }, [currentPlayer, gameMode, board, winner, activeModal]);
+  }, [currentPlayer, gameMode, board, winner, activeModal, showExitConfirm]);
 
   const handleResolveQuestion = (targetOwner) => {
     if (activeModal) {
@@ -173,6 +197,7 @@ const GameApp = () => {
     }
     setGameMode(null);
     setActiveGameId(null);
+    setShowExitConfirm(false);
     resetGame();
   };
 
@@ -258,7 +283,7 @@ const GameApp = () => {
             </span>
           </div>
 
-          <button className="neutral" onClick={handleRestart}>Opustiť Hru</button>
+          <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
 
           {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
@@ -297,6 +322,12 @@ const GameApp = () => {
             }}
           />
         )}
+
+        <ConfirmExitModal
+          isOpen={showExitConfirm}
+          onConfirm={handleRestart}
+          onCancel={() => setShowExitConfirm(false)}
+        />
 
         <GameInviteModal
           invite={incomingInvite}
