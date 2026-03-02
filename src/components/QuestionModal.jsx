@@ -62,6 +62,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     // CPU Logic
     useEffect(() => {
         let timeout;
+        const thinkTime = Math.floor(Math.random() * 3000) + 4000; // 4 to 7 seconds
+
         if (isCpuPrimaryTurn) {
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
@@ -77,7 +79,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         setTimeLeft(10);
                     }, 2500);
                 }
-            }, 2500);
+            }, thinkTime);
         } else if (isCpuSecondaryTurn) {
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
@@ -88,7 +90,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                     setPhase('feedbackSecondaryBlack');
                     setTimeout(() => onResolve('black'), 2500);
                 }
-            }, 2500);
+            }, thinkTime);
         }
         return () => clearTimeout(timeout);
     }, [isCpuPrimaryTurn, isCpuSecondaryTurn, onResolve]);
