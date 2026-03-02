@@ -63,15 +63,29 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         return () => clearTimeout(timeout);
     }, [isCpuPrimaryTurn, isCpuSecondaryTurn, onResolve]);
 
-    // Timer Logic for Opponent
+    // Timer Logic - Unified for both phases
     useEffect(() => {
-        if (phase === 'opponent' && !isCpuSecondaryTurn) {
+        // Skip timer for CPU turns
+        const isSelfTurn = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
+        const isCpuAuto = phase === 'currentPlayer' ? isCpuPrimaryTurn : isCpuSecondaryTurn;
+
+        if ((phase === 'currentPlayer' || phase === 'opponent') && !isCpuAuto) {
             const timer = setInterval(() => {
                 setTimeLeft((prev) => {
                     if (prev <= 1) {
                         clearInterval(timer);
-                        setPhase('feedbackSecondaryBlackTime');
-                        setTimeout(() => onResolve('black'), 2500);
+                        if (phase === 'currentPlayer') {
+                            setPhase('feedbackPrimaryTime');
+                            setTimeout(() => {
+                                setPhase('opponent');
+                                setInputValue('');
+                                setErrorMsg('');
+                                setTimeLeft(10);
+                            }, 2500);
+                        } else {
+                            setPhase('feedbackSecondaryBlackTime');
+                            setTimeout(() => onResolve('black'), 2500);
+                        }
                         return 0;
                     }
                     return prev - 1;
@@ -79,7 +93,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [phase, isCpuSecondaryTurn, onResolve]);
+    }, [phase, isCpuPrimaryTurn, isCpuSecondaryTurn, isLocalPrimary, isLocalSecondary, onResolve]);
 
     if (!question) return null;
 
@@ -168,6 +182,11 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
+                        {/* Timer Bar for primary player */}
+                        <div className="timer-bar-container">
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
+                        </div>
+                        <p style={{ marginBottom: '1rem' }}>{timeLeft} sekúnd zostáva!</p>
 
                         {isCpuPrimaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>CPU premýšľa nad odpoveďou...</p>
@@ -186,11 +205,10 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                     </div>
                 )}
 
-                {/* Feedback Primary Correct */}
+                {/* Feedback Phases for Primary Player */}
                 {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true)}
-
-                {/* Feedback Primary Incorrect */}
                 {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false)}
+                {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false)}
 
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
