@@ -869,7 +869,7 @@ button.small {
 
 .timer-bar {
   height: 100%;
-  transition: width 1s linear, background-color 0.3s ease;
+  transition: width 0.1s linear, background-color 0.3s ease;
 }
 
 @keyframes flipIn {

@@ -93,33 +93,41 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         return () => clearTimeout(timeout);
     }, [isCpuPrimaryTurn, isCpuSecondaryTurn, onResolve]);
 
-    // Timer Logic - Unified for both phases
+    // Timer Logic - Unified for both phases (High Precision 100ms)
     useEffect(() => {
-        // Skip timer for CPU turns
         const isCpuAuto = phase === 'currentPlayer' ? isCpuPrimaryTurn : isCpuSecondaryTurn;
 
         if ((phase === 'currentPlayer' || phase === 'opponent') && !isCpuAuto) {
+            const step = 0.1;
             const timer = setInterval(() => {
                 setTimeLeft((prev) => {
-                    if (prev <= 1) {
+                    const next = Math.max(0, prev - step);
+
+                    // Use a slightly lower threshold to avoid float precision issues during decrement
+                    if (next < 0.01) {
                         clearInterval(timer);
-                        if (phase === 'currentPlayer') {
-                            setPhase('feedbackPrimaryTime');
-                            setTimeout(() => {
-                                setPhase('opponent');
-                                setInputValue('');
-                                setErrorMsg('');
-                                setTimeLeft(10);
-                            }, 2500);
-                        } else {
-                            setPhase('feedbackSecondaryBlackTime');
-                            setTimeout(() => onResolve('black'), 2500);
-                        }
+
+                        // Small delay so the bar hits actually 0 before overlay pops
+                        setTimeout(() => {
+                            if (phase === 'currentPlayer') {
+                                setPhase('feedbackPrimaryTime');
+                                setTimeout(() => {
+                                    setPhase('opponent');
+                                    setInputValue('');
+                                    setErrorMsg('');
+                                    setTimeLeft(10);
+                                }, 2500);
+                            } else {
+                                setPhase('feedbackSecondaryBlackTime');
+                                setTimeout(() => onResolve('black'), 2500);
+                            }
+                        }, 100);
+
                         return 0;
                     }
-                    return prev - 1;
+                    return next;
                 });
-            }, 1000);
+            }, 100);
             return () => clearInterval(timer);
         }
     }, [phase, isCpuPrimaryTurn, isCpuSecondaryTurn, isLocalPrimary, isLocalSecondary, onResolve]);
@@ -188,7 +196,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         <div className="timer-bar-container">
                             <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                         </div>
-                        <p style={{ marginBottom: '1rem' }}>{timeLeft} sekúnd zostáva!</p>
+                        <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
 
                         {isCpuPrimaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>CPU premýšľa nad odpoveďou...</p>
@@ -224,7 +232,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         <div className="timer-bar-container">
                             <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                         </div>
-                        <p style={{ marginBottom: '1rem' }}>{timeLeft} sekúnd do konca!</p>
+                        <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd do konca!</p>
 
                         {isCpuSecondaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>CPU sa snaží využiť šancu a premýšľa...</p>
