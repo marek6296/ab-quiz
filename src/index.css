@@ -212,6 +212,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   padding: 0.25rem 0.5rem;
+  margin-top: 1.25rem;
   position: relative;
   /* Ensure it doesn't push too far */
   display: flex;
@@ -740,7 +741,7 @@ input:focus {
 @media (min-width: 769px) {
   h1 {
     font-size: 2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0.75rem;
   }
 }
 
