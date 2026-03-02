@@ -194,8 +194,9 @@ h2 {
 .hex-row {
   display: flex;
   justify-content: center;
-  margin-top: -26px;
-  /* Balance horizontal and diagonal gaps */
+  margin-top: -27px;
+  /* Increased overlap slightly to ensure no gaps */
+  gap: 0;
 }
 
 .hex-row:first-child {
@@ -208,7 +209,8 @@ h2 {
   /* width / Math.sqrt(3) * 2 */
   background: var(--hex-bg);
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  margin: 0 3px;
+  margin: 0 -1px;
+  /* Slightly negative margin to overlap edges and hide gaps */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -611,11 +613,12 @@ input:focus {
     width: 45px;
     height: 52px;
     font-size: 14px;
-    margin: 0 1px;
+    margin: 0 -0.5px;
   }
 
   .hex-row {
-    margin-top: -13px;
+    margin-top: -14px;
+    gap: 0;
   }
 
   .board {
