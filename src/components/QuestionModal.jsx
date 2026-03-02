@@ -6,6 +6,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState(10);
+    const [lastAnswer, setLastAnswer] = useState('');
 
     const opponent = currentPlayer === 1 ? 2 : 1;
     const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
@@ -39,7 +40,16 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
             <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
-            {!isSuccess && <p style={{ fontSize: '1.2rem', color: '#94a3b8', marginTop: '1rem' }}>Správna odpoveď: <strong>{question.answer}</strong></p>}
+            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', width: '100%', maxWidth: '400px' }}>
+                <p style={{ fontSize: '1.1rem', color: '#cbd5e1' }}>
+                    Zadaná odpoveď: <strong style={{ color: '#fff' }}>{lastAnswer || '—'}</strong>
+                </p>
+                {!isSuccess && (
+                    <p style={{ fontSize: '1.1rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+                        Správna odpoveď: <strong style={{ color: '#4ade80' }}>{question.answer}</strong>
+                    </p>
+                )}
+            </div>
         </div>
     );
 
@@ -49,6 +59,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         setInputValue('');
         setErrorMsg('');
         setTimeLeft(10);
+        setLastAnswer('');
 
         // Auto transition after reveal animation
         const timer = setTimeout(() => {
@@ -68,15 +79,18 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
+                    setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
                     setTimeout(() => onResolve('player2'), 2500);
                 } else {
+                    setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
                         setPhase('opponent'); // BOT didn't know, pass
                         setInputValue('');
                         setErrorMsg('');
                         setTimeLeft(10);
+                        setLastAnswer(''); // Clear for next phase
                     }, 2500);
                 }
             }, thinkTime);
@@ -84,9 +98,11 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
+                    setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
                     setTimeout(() => onResolve('player2'), 2500);
                 } else {
+                    setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
                     setTimeout(() => onResolve('black'), 2500);
                 }
@@ -136,6 +152,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
     const handleSubmitPrimary = () => {
         if (!inputValue.trim()) return;
+        setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
             setPhase('feedbackPrimaryCorrect');
@@ -147,12 +164,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 setInputValue('');
                 setErrorMsg('');
                 setTimeLeft(10);
+                setLastAnswer(''); // Ready for opponent guess
             }, 2500);
         }
     };
 
     const handleSubmitSecondary = () => {
         if (!inputValue.trim()) return;
+        setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
             setPhase('feedbackSecondaryCorrect');

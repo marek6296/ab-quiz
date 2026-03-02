@@ -740,7 +740,7 @@ input:focus {
 @media (min-width: 769px) {
   h1 {
     font-size: 2rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 2rem;
   }
 }
 
@@ -950,7 +950,7 @@ button.small {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding-top: 0.5rem;
+  padding-top: 2rem;
   align-items: center;
   overflow: hidden;
   position: relative;
