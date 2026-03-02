@@ -45,6 +45,12 @@ h3 {
   gap: 2rem;
 }
 
+.start-screen {
+  justify-content: center;
+  text-align: center;
+  min-height: 50vh;
+}
+
 .status-board {
   display: flex;
   justify-content: space-between;
