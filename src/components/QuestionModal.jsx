@@ -19,10 +19,16 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
     // Reset state on new question
     useEffect(() => {
-        setPhase('currentPlayer');
+        setPhase('reveal');
         setInputValue('');
         setErrorMsg('');
         setTimeLeft(10);
+
+        // Auto transition after reveal animation
+        const timer = setTimeout(() => {
+            setPhase('currentPlayer');
+        }, 1800);
+        return () => clearTimeout(timer);
     }, [question]);
 
     // CPU Logic
@@ -147,7 +153,13 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <h2>Udelenie poľa číslo {hexId}</h2>
+                {/* Reveal Phase Animation */}
+                {phase === 'reveal' && (
+                    <div className="reveal-animation">
+                        <div className="reveal-hex">{hexId}</div>
+                        <h2 className="reveal-text">Pripravte sa na otázku...</h2>
+                    </div>
+                )}
 
                 {/* Primary Guess Phase */}
                 {phase === 'currentPlayer' && (
