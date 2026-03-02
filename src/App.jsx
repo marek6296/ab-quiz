@@ -205,7 +205,7 @@ const GameApp = () => {
 
   // Game is active
   return (
-    <div className="game-container game-entrance">
+    <>
       {/* Versus Animation Overlay */}
       <div className="versus-overlay">
         <div className="versus-content">
@@ -234,73 +234,75 @@ const GameApp = () => {
         <div className="vs-title">Bitka začína!</div>
       </div>
 
-      <h1>{gameMode === '1vbot' ? '1vBOT Tréning' : 'AB Kvíz (Online)'}</h1>
+      <div className="game-container game-entrance">
+        <h1>{gameMode === '1vbot' ? '1vBOT Tréning' : 'AB Kvíz (Online)'}</h1>
 
-      {winner && (
-        <div className="winner-banner">
-          {winner === localPlayerNum
-            ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
-            : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
-          }
-        </div>
-      )}
-
-      <div className="status-board">
-        <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
-          <span className="player1-text">
-            {gameMode === '1v1_online'
-              ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-              : `(Vy) ${profile?.username || 'Ja'}`
+        {winner && (
+          <div className="winner-banner">
+            {winner === localPlayerNum
+              ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
+              : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
             }
-          </span>
-          <div className="dot player1-bg" />
+          </div>
+        )}
+
+        <div className="status-board">
+          <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
+            <span className="player1-text">
+              {gameMode === '1v1_online'
+                ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                : `(Vy) ${profile?.username || 'Ja'}`
+              }
+            </span>
+            <div className="dot player1-bg" />
+          </div>
+
+          <button className="neutral" onClick={handleRestart}>Opustiť Hru</button>
+
+          <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
+            <span className="player2-text">
+              {gameMode === '1vbot'
+                ? 'BOT'
+                : (gameMode === '1v1_online'
+                  ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                  : 'Hráč 2')
+              }
+            </span>
+            <div className="dot player2-bg" />
+          </div>
         </div>
 
-        <button className="neutral" onClick={handleRestart}>Opustiť Hru</button>
+        <GameBoard board={board} onHexClick={handleHexClick} />
 
-        <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
-          <span className="player2-text">
-            {gameMode === '1vbot'
-              ? 'BOT'
-              : (gameMode === '1v1_online'
-                ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                : 'Hráč 2')
-            }
-          </span>
-          <div className="dot player2-bg" />
-        </div>
-      </div>
+        {activeModal && (
+          <QuestionModal
+            hexId={activeModal.hexId}
+            question={activeModal.question}
+            currentPlayer={currentPlayer}
+            gameMode={gameMode}
+            onResolve={handleResolveQuestion}
+            onClose={() => setActiveModal(null)}
+            localPlayerNum={localPlayerNum}
+            playerNames={{
+              player1: gameMode === '1v1_online'
+                ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                : `(Vy) ${profile?.username || 'Ja'}`,
+              player2: gameMode === '1vbot'
+                ? 'BOT'
+                : (gameMode === '1v1_online'
+                  ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                  : 'Hráč 2')
+            }}
+          />
+        )}
 
-      <GameBoard board={board} onHexClick={handleHexClick} />
-
-      {activeModal && (
-        <QuestionModal
-          hexId={activeModal.hexId}
-          question={activeModal.question}
-          currentPlayer={currentPlayer}
-          gameMode={gameMode}
-          onResolve={handleResolveQuestion}
-          onClose={() => setActiveModal(null)}
-          localPlayerNum={localPlayerNum}
-          playerNames={{
-            player1: gameMode === '1v1_online'
-              ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-              : `(Vy) ${profile?.username || 'Ja'}`,
-            player2: gameMode === '1vbot'
-              ? 'BOT'
-              : (gameMode === '1v1_online'
-                ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                : 'Hráč 2')
-          }}
+        <GameInviteModal
+          invite={incomingInvite}
+          onAccept={handleAcceptInvite}
+          onDecline={handleDeclineInvite}
         />
-      )}
-
-      <GameInviteModal
-        invite={incomingInvite}
-        onAccept={handleAcceptInvite}
-        onDecline={handleDeclineInvite}
-      />
-    </div>
+      </div>
+    </>
   );
 };
 
