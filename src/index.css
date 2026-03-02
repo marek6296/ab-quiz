@@ -41,8 +41,8 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  /* Default lock, will handle scroll in specific panels if needed */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 #root {
@@ -585,12 +585,12 @@ input:focus {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   background: var(--panel-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--panel-border);
   border-radius: 20px;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
@@ -674,7 +674,7 @@ input:focus {
 .lobby-panel {
   background: var(--panel-bg);
   backdrop-filter: blur(16px);
-  padding: 2.5rem;
+  padding: 1.5rem 2rem;
   border: 1px solid var(--panel-border);
   border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
@@ -683,11 +683,11 @@ input:focus {
 }
 
 .lobby-panel h2 {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1rem;
+  padding-bottom: 0.75rem;
 }
 
 .placeholder-text {
@@ -934,8 +934,21 @@ button.small {
 .game-entrance {
   animation: gameEntranceScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-  padding-bottom: 2rem;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+@media (min-width: 769px) {
+
+  /* Prevent background scrolling when in game on PC */
+  body:has(.game-entrance) {
+    overflow: hidden;
+  }
 }
 
 @media (max-width: 768px) {
@@ -947,6 +960,7 @@ button.small {
     height: auto;
     min-height: 100vh;
     padding-bottom: 3rem;
+    overflow-y: visible;
   }
 }
 
