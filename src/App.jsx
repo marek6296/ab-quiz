@@ -261,9 +261,9 @@ const GameApp = () => {
 
       <div className="game-container game-entrance">
         <h1 className="game-title">
-          {profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}
+          <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
           <span className="vs">VS</span>
-          {gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}
+          <span>{gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}</span>
         </h1>
 
         {winner && (
