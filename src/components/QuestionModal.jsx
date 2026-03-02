@@ -115,7 +115,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
-                    setTimeout(() => onResolve('black'), 5000);
+                    setTimeout(() => onResolve('unowned'), 5000);
                 }
             }, thinkTime);
         }
@@ -149,7 +149,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                             } else {
                                 setLastAnswer('Čas vypršal');
                                 setPhase('feedbackSecondaryBlackTime');
-                                setTimeout(() => onResolve('black'), 5000);
+                                setTimeout(() => onResolve('unowned'), 5000);
                             }
                         }, 100);
 
@@ -192,14 +192,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             setTimeout(() => onResolve(`player${opponent}`), 5000);
         } else {
             setPhase('feedbackSecondaryBlackIncorrect');
-            setTimeout(() => onResolve('black'), 5000);
+            setTimeout(() => onResolve('unowned'), 5000);
         }
     };
 
     const handleDeclineSecondary = () => {
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
-        setTimeout(() => onResolve('black'), 5000);
+        setTimeout(() => onResolve('unowned'), 5000);
     };
 
     const handleKeyDown = (e, callback) => {
@@ -290,9 +290,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
                 {/* Feedback Secondary - Final States show correct answer for 5s */}
                 {phase === 'feedbackSecondaryCorrect' && renderFeedback('Správne!', `${opponentName} využil šancu a získava pole!`, true, true)}
-                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole sa zafarbí na čierno.', false, true)}
-                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole bude čierne.`, false, true)}
-                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole bude čierne.`, false, true)}
+                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole zostáva voľné pre ďalšie ťahy.', false, true)}
+                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole zostáva voľné.`, false, true)}
+                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole zostáva voľné.`, false, true)}
 
             </div>
         </div>

@@ -57,8 +57,8 @@ export const useGameState = ({ userId, gameMode, activeGameId }) => {
         const player2Nodes = board.filter(h => h.owner === 'player2').map(h => h.id);
 
         let newWinner = null;
-        if (checkWin(player1Nodes)) newWinner = 1;
-        else if (checkWin(player2Nodes)) newWinner = 2;
+        if (checkWin(player1Nodes, 1)) newWinner = 1;
+        else if (checkWin(player2Nodes, 2)) newWinner = 2;
 
         if (newWinner) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,7 +80,7 @@ export const useGameState = ({ userId, gameMode, activeGameId }) => {
             // 3. Early Win check for the DB
             let finalWinnerId = null;
             const targetNodes = newBoard.filter(h => h.owner === targetOwner).map(h => h.id);
-            if (checkWin(targetNodes)) {
+            if (checkWin(targetNodes, targetOwner === 'player1' ? 1 : 2)) {
                 finalWinnerId = userId; // current player won
             }
 

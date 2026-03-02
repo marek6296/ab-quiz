@@ -30,17 +30,23 @@ export const adjacencyList = {
 };
 
 export const SIDES = {
-    LEFT: [1, 2, 4, 7, 11, 16, 22],
-    RIGHT: [1, 3, 6, 10, 15, 21, 28],
-    BOTTOM: [22, 23, 24, 25, 26, 27, 28]
+    TOP: [1],
+    BOTTOM: [22, 23, 24, 25, 26, 27, 28],
+    LEFT: [2, 4, 7, 11, 16, 22],
+    RIGHT: [3, 6, 10, 15, 21, 28]
 };
 
-// Checks if a given array of nodes (owned by a player) connects all 3 sides
-export const checkWin = (ownedNodes) => {
-    if (ownedNodes.length < 3) return false;
+// Checks if a given array of nodes (owned by a player) connects their designated sides.
+// Player 1 (Top to Bottom)
+// Player 2 (Left to Right)
+export const checkWin = (ownedNodes, playerId) => {
+    if (!ownedNodes || ownedNodes.length < 1) return false;
 
     const nodeSet = new Set(ownedNodes);
     const visited = new Set();
+
+    const targetA = playerId === 1 ? SIDES.TOP : SIDES.LEFT;
+    const targetB = playerId === 1 ? SIDES.BOTTOM : SIDES.RIGHT;
 
     for (const startNode of ownedNodes) {
         if (visited.has(startNode)) continue;
@@ -50,20 +56,18 @@ export const checkWin = (ownedNodes) => {
         const queue = [startNode];
         visited.add(startNode);
 
-        let touchesLeft = false;
-        let touchesRight = false;
-        let touchesBottom = false;
+        let touchesA = false;
+        let touchesB = false;
 
         while (queue.length > 0) {
             const curr = queue.shift();
             component.push(curr);
 
-            if (SIDES.LEFT.includes(curr)) touchesLeft = true;
-            if (SIDES.RIGHT.includes(curr)) touchesRight = true;
-            if (SIDES.BOTTOM.includes(curr)) touchesBottom = true;
+            if (targetA.includes(curr)) touchesA = true;
+            if (targetB.includes(curr)) touchesB = true;
 
-            // If this single component touches all 3, they win
-            if (touchesLeft && touchesRight && touchesBottom) {
+            // If this single component touches both required sides, they win
+            if (touchesA && touchesB) {
                 return true;
             }
 
