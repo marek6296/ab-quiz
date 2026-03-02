@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 
-export const Lobby = ({ onStart1vCPU, onStartOnline }) => {
+export const Lobby = ({ onStart1vCPU }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
 

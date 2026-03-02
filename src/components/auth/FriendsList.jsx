@@ -36,7 +36,7 @@ export const FriendsList = () => {
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchFriends();
 
         // Subscribe to realtime changes on the friends table for this user

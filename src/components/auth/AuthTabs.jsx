@@ -54,9 +54,10 @@ export const AuthTabs = ({ onLoginSuccess }) => {
             <form onSubmit={handleAuth} className="auth-form">
                 {!isLogin && (
                     <div className="form-group">
+                        <label>Užívateľské meno</label>
                         <input
                             type="text"
-                            placeholder="Užívateľské meno"
+                            placeholder="Zadaj prezývku"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required={!isLogin}
@@ -64,24 +65,26 @@ export const AuthTabs = ({ onLoginSuccess }) => {
                     </div>
                 )}
                 <div className="form-group">
+                    <label>Emailová adresa</label>
                     <input
                         type="email"
-                        placeholder="Email"
+                        placeholder="napr. hrac@email.sk"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
                     />
                 </div>
                 <div className="form-group">
+                    <label>Heslo</label>
                     <input
                         type="password"
-                        placeholder="Heslo (min. 6 znakov)"
+                        placeholder="Minimálne 6 znakov"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                     />
                 </div>
-                <button type="submit" disabled={loading} className="primary">
+                <button type="submit" disabled={loading} className="primary" style={{ marginTop: '0.5rem' }}>
                     {loading ? 'Spracovávam...' : (isLogin ? 'Prihlásiť sa' : 'Zaregistrovať sa')}
                 </button>
             </form>
