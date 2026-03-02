@@ -178,7 +178,23 @@ const GameApp = () => {
 
   // Game is active
   return (
-    <div className="game-container">
+    <div className="game-container game-entrance">
+      {/* Versus Animation Overlay */}
+      <div className="versus-overlay">
+        <div className="versus-content">
+          <div className="vs-player">
+            <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
+            <span style={{ fontWeight: 700 }}>Hráč 1</span>
+          </div>
+          <div className="vs-text">VS</div>
+          <div className="vs-player">
+            <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
+            <span style={{ fontWeight: 700 }}>{gameMode === '1vcpu' ? 'Počítač' : 'Hráč 2'}</span>
+          </div>
+        </div>
+        <div className="vs-title">Bitka začína!</div>
+      </div>
+
       <h1>{gameMode === '1vcpu' ? '1vCPU Tréning' : 'AB Kvíz (Online)'}</h1>
 
       {winner && (
