@@ -36,20 +36,31 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         </div>
     );
 
-    const renderFeedback = (title, message, isSuccess) => (
+    const renderFeedback = (title, message, isSuccess, showAnswer = false) => (
         <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
             <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', width: '100%', maxWidth: '400px' }}>
-                <p style={{ fontSize: '1.1rem', color: '#cbd5e1' }}>
-                    Zadaná odpoveď: <strong style={{ color: '#fff' }}>{lastAnswer || '—'}</strong>
-                </p>
-                {!isSuccess && (
-                    <p style={{ fontSize: '1.1rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-                        Správna odpoveď: <strong style={{ color: '#4ade80' }}>{question.answer}</strong>
-                    </p>
-                )}
-            </div>
+
+            {(showAnswer || lastAnswer) && (
+                <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.08)', borderRadius: '16px', width: '100%', maxWidth: '500px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {lastAnswer && (
+                        <p style={{ fontSize: '1.1rem', color: '#cbd5e1', marginBottom: showAnswer ? '1rem' : 0 }}>
+                            Zadaná odpoveď: <strong style={{ color: '#fff' }}>{lastAnswer}</strong>
+                        </p>
+                    )}
+                    {showAnswer && (
+                        <div style={{ borderTop: lastAnswer ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: lastAnswer ? '1rem' : 0 }}>
+                            <p style={{ fontSize: '1.1rem', color: '#94a3b8' }}>
+                                Správna odpoveď bola:
+                            </p>
+                            <p style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: 800, marginTop: '0.25rem' }}>
+                                {question.answer}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+            {showAnswer && <p style={{ marginTop: '2rem', color: '#64748b', fontSize: '0.9rem' }}>Okno sa zavrie o chvíľu...</p>}
         </div>
     );
 
@@ -81,7 +92,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 if (isCorrect) {
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
-                    setTimeout(() => onResolve('player2'), 2500);
+                    setTimeout(() => onResolve('player2'), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
@@ -100,16 +111,16 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 if (isCorrect) {
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
-                    setTimeout(() => onResolve('player2'), 2500);
+                    setTimeout(() => onResolve('player2'), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
-                    setTimeout(() => onResolve('black'), 2500);
+                    setTimeout(() => onResolve('black'), 5000);
                 }
             }, thinkTime);
         }
         return () => clearTimeout(timeout);
-    }, [isBotPrimaryTurn, isBotSecondaryTurn, onResolve]);
+    }, [isBotPrimaryTurn, isBotSecondaryTurn, onResolve, question.answer]);
 
     // Timer Logic - Unified for both phases (High Precision 100ms)
     useEffect(() => {
@@ -126,16 +137,19 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         // Small delay so the bar hits actually 0 before overlay pops
                         setTimeout(() => {
                             if (phase === 'currentPlayer') {
+                                setLastAnswer('Čas vypršal');
                                 setPhase('feedbackPrimaryTime');
                                 setTimeout(() => {
                                     setPhase('opponent');
                                     setInputValue('');
                                     setErrorMsg('');
                                     setTimeLeft(10);
+                                    setLastAnswer('');
                                 }, 2500);
                             } else {
+                                setLastAnswer('Čas vypršal');
                                 setPhase('feedbackSecondaryBlackTime');
-                                setTimeout(() => onResolve('black'), 2500);
+                                setTimeout(() => onResolve('black'), 5000);
                             }
                         }, 100);
 
@@ -156,7 +170,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
         if (isAnswerCorrect(inputValue, question.answer)) {
             setPhase('feedbackPrimaryCorrect');
-            setTimeout(() => onResolve(`player${currentPlayer}`), 2500);
+            setTimeout(() => onResolve(`player${currentPlayer}`), 5000);
         } else {
             setPhase('feedbackPrimaryIncorrect');
             setTimeout(() => {
@@ -175,16 +189,17 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
         if (isAnswerCorrect(inputValue, question.answer)) {
             setPhase('feedbackSecondaryCorrect');
-            setTimeout(() => onResolve(`player${opponent}`), 2500);
+            setTimeout(() => onResolve(`player${opponent}`), 5000);
         } else {
             setPhase('feedbackSecondaryBlackIncorrect');
-            setTimeout(() => onResolve('black'), 2500);
+            setTimeout(() => onResolve('black'), 5000);
         }
     };
 
     const handleDeclineSecondary = () => {
+        setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
-        setTimeout(() => onResolve('black'), 2500);
+        setTimeout(() => onResolve('black'), 5000);
     };
 
     const handleKeyDown = (e, callback) => {
@@ -235,9 +250,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 )}
 
                 {/* Feedback Phases for Primary Player */}
-                {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true)}
-                {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false)}
-                {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false)}
+                {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true, true)}
+                {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false, false)}
+                {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false, false)}
 
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
@@ -273,11 +288,11 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                     </div>
                 )}
 
-                {/* Feedback Secondary */}
-                {phase === 'feedbackSecondaryCorrect' && renderFeedback('Správne!', `${opponentName} využil šancu a získava pole!`, true)}
-                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole sa zafarbí na čierno.', false)}
-                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole bude čierne.`, false)}
-                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole bude čierne.`, false)}
+                {/* Feedback Secondary - Final States show correct answer for 5s */}
+                {phase === 'feedbackSecondaryCorrect' && renderFeedback('Správne!', `${opponentName} využil šancu a získava pole!`, true, true)}
+                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole sa zafarbí na čierno.', false, true)}
+                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole bude čierne.`, false, true)}
+                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole bude čierne.`, false, true)}
 
             </div>
         </div>
