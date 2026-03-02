@@ -125,8 +125,8 @@ const GameApp = () => {
   };
 
   const handleHexClick = (hexId) => {
-    // If it's CPU's turn, ignore manual clicks
-    if (gameMode === '1vcpu' && currentPlayer === 2) return;
+    // If it's BOT's turn, ignore manual clicks
+    if (gameMode === '1vbot' && currentPlayer === 2) return;
 
     // Online: if it's not your turn, ignore clicks
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
@@ -143,9 +143,9 @@ const GameApp = () => {
     setActiveModal({ hexId, question: q });
   };
 
-  // CPU Turn automation
+  // BOT Turn automation
   useEffect(() => {
-    if (gameMode === '1vcpu' && currentPlayer === 2 && !winner && !activeModal) {
+    if (gameMode === '1vbot' && currentPlayer === 2 && !winner && !activeModal) {
       // Pick a random available hex after a short delay
       const availableHexes = board.filter(h => h.owner !== 'player1' && h.owner !== 'player2');
       if (availableHexes.length > 0) {
@@ -191,7 +191,7 @@ const GameApp = () => {
     return (
       <>
         <Lobby
-          onStart1vCPU={() => handleStartGame('1vcpu')}
+          onStart1vBot={() => handleStartGame('1vbot')}
           onStartOnline={() => { }} // We trigger online by clicking "Vyzvat" now
         />
         <GameInviteModal
@@ -222,8 +222,8 @@ const GameApp = () => {
           <div className="vs-player">
             <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
             <span style={{ fontWeight: 700 }}>
-              {gameMode === '1vcpu'
-                ? 'Počítač'
+              {gameMode === '1vbot'
+                ? 'BOT'
                 : (gameMode === '1v1_online'
                   ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
                   : 'Hráč 2')
@@ -234,13 +234,13 @@ const GameApp = () => {
         <div className="vs-title">Bitka začína!</div>
       </div>
 
-      <h1>{gameMode === '1vcpu' ? '1vCPU Tréning' : 'AB Kvíz (Online)'}</h1>
+      <h1>{gameMode === '1vbot' ? '1vBOT Tréning' : 'AB Kvíz (Online)'}</h1>
 
       {winner && (
         <div className="winner-banner">
           {winner === localPlayerNum
             ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
-            : `${opponentName || (gameMode === '1vcpu' ? 'CPU' : 'Súper')} Vyhráva!`
+            : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
           }
         </div>
       )}
@@ -260,8 +260,8 @@ const GameApp = () => {
 
         <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
           <span className="player2-text">
-            {gameMode === '1vcpu'
-              ? 'CPU'
+            {gameMode === '1vbot'
+              ? 'BOT'
               : (gameMode === '1v1_online'
                 ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
                 : 'Hráč 2')
@@ -286,8 +286,8 @@ const GameApp = () => {
             player1: gameMode === '1v1_online'
               ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
               : `(Vy) ${profile?.username || 'Ja'}`,
-            player2: gameMode === '1vcpu'
-              ? 'CPU'
+            player2: gameMode === '1vbot'
+              ? 'BOT'
               : (gameMode === '1v1_online'
                 ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
                 : 'Hráč 2')

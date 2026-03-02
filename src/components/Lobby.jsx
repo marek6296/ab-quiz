@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 
-export const Lobby = ({ onStart1vCPU }) => {
+export const Lobby = ({ onStart1vBot }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
 
@@ -28,8 +28,8 @@ export const Lobby = ({ onStart1vCPU }) => {
                 <div className="lobby-panel">
                     <h2>Herné Módy</h2>
                     <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                        <button className="primary" onClick={onStart1vCPU}>
-                            Hrať proti Počítaču (CPU)
+                        <button className="primary" onClick={onStart1vBot}>
+                            Hrať proti BOT-ovi
                         </button>
                         <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
                             Pre **Online Multiplayer** si vyhľadajte priateľa v paneli napravo a kliknite na "Vyzvať".

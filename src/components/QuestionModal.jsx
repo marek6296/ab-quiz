@@ -11,8 +11,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
     const isLocalSecondary = gameMode !== '1v1_online' || opponent === localPlayerNum;
 
-    const isCpuPrimaryTurn = gameMode === '1vcpu' && currentPlayer === 2 && phase === 'currentPlayer';
-    const isCpuSecondaryTurn = gameMode === '1vcpu' && opponent === 2 && phase === 'opponent';
+    const isBotPrimaryTurn = gameMode === '1vbot' && currentPlayer === 2 && phase === 'currentPlayer';
+    const isBotSecondaryTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponent';
 
     const currentPlayerName = currentPlayer === 1 ? playerNames.player1 : playerNames.player2;
     const opponentName = opponent === 1 ? playerNames.player1 : playerNames.player2;
@@ -59,12 +59,12 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         return () => clearTimeout(timer);
     }, [question]);
 
-    // CPU Logic
+    // BOT Logic
     useEffect(() => {
         let timeout;
         const thinkTime = Math.floor(Math.random() * 3000) + 4000; // 4 to 7 seconds
 
-        if (isCpuPrimaryTurn) {
+        if (isBotPrimaryTurn) {
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
@@ -73,14 +73,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                 } else {
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
-                        setPhase('opponent'); // CPU didn't know, pass
+                        setPhase('opponent'); // BOT didn't know, pass
                         setInputValue('');
                         setErrorMsg('');
                         setTimeLeft(10);
                     }, 2500);
                 }
             }, thinkTime);
-        } else if (isCpuSecondaryTurn) {
+        } else if (isBotSecondaryTurn) {
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
@@ -93,13 +93,13 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             }, thinkTime);
         }
         return () => clearTimeout(timeout);
-    }, [isCpuPrimaryTurn, isCpuSecondaryTurn, onResolve]);
+    }, [isBotPrimaryTurn, isBotSecondaryTurn, onResolve]);
 
     // Timer Logic - Unified for both phases (High Precision 100ms)
     useEffect(() => {
-        const isCpuAuto = phase === 'currentPlayer' ? isCpuPrimaryTurn : isCpuSecondaryTurn;
+        const isBotAuto = phase === 'currentPlayer' ? isBotPrimaryTurn : isBotSecondaryTurn;
 
-        if ((phase === 'currentPlayer' || phase === 'opponent') && !isCpuAuto) {
+        if ((phase === 'currentPlayer' || phase === 'opponent') && !isBotAuto) {
             const step = 0.1;
             const timer = setInterval(() => {
                 setTimeLeft((prev) => {
@@ -132,7 +132,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             }, 100);
             return () => clearInterval(timer);
         }
-    }, [phase, isCpuPrimaryTurn, isCpuSecondaryTurn, isLocalPrimary, isLocalSecondary, onResolve]);
+    }, [phase, isBotPrimaryTurn, isBotSecondaryTurn, isLocalPrimary, isLocalSecondary, onResolve]);
 
     if (!question) return null;
 
@@ -200,8 +200,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         </div>
                         <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
 
-                        {isCpuPrimaryTurn ? (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>CPU premýšľa nad odpoveďou...</p>
+                        {isBotPrimaryTurn ? (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
                         ) : isLocalPrimary ? (
                             <>
                                 {renderInput(handleSubmitPrimary)}
@@ -236,8 +236,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                         </div>
                         <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd do konca!</p>
 
-                        {isCpuSecondaryTurn ? (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>CPU sa snaží využiť šancu a premýšľa...</p>
+                        {isBotSecondaryTurn ? (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT sa snaží využiť šancu a premýšľa...</p>
                         ) : isLocalSecondary ? (
                             <>
                                 {renderInput(handleSubmitSecondary)}

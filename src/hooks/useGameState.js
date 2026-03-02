@@ -119,7 +119,7 @@ export const useGameState = ({ userId, gameMode, activeGameId }) => {
     // For App.jsx, we need a way to know WHICH player the local user is to restrict clicks
     const localPlayerNum = gameMode === '1v1_online' && gameData
         ? (gameData.player1_id === userId ? 1 : 2)
-        : 1; // if local CPU, local user is always player 1 
+        : 1; // if local BOT, local user is always player 1 
 
     return {
         board,
