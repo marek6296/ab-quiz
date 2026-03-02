@@ -142,27 +142,18 @@ h2 {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  /* Center names in their bubbles */
   gap: 1rem;
   font-size: 1rem;
   font-weight: 700;
-  padding: 0.6rem 1.5rem;
+  padding: 0.6rem 1rem;
   border-radius: 50px;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   background: transparent;
   border: 1px solid transparent;
   opacity: 0.35;
   min-width: 0;
-}
-
-/* Align contents to frame the center button */
-.player-status:first-child {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.player-status:last-child {
-  justify-content: flex-start;
-  text-align: left;
 }
 
 .player-status span {
