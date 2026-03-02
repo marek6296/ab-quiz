@@ -31,7 +31,9 @@ body {
   padding: 2rem;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   text-align: center;
   margin-bottom: 1rem;
 }
@@ -51,7 +53,7 @@ h1, h2, h3 {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .player-status {
@@ -77,10 +79,21 @@ h1, h2, h3 {
   margin-top: 0.5rem;
 }
 
-.player1-text { color: var(--player1-color); }
-.player2-text { color: var(--player2-color); }
-.player1-bg { background-color: var(--player1-color); }
-.player2-bg { background-color: var(--player2-color); }
+.player1-text {
+  color: var(--player1-color);
+}
+
+.player2-text {
+  color: var(--player2-color);
+}
+
+.player1-bg {
+  background-color: var(--player1-color);
+}
+
+.player2-bg {
+  background-color: var(--player2-color);
+}
 
 .board {
   display: flex;
@@ -92,7 +105,8 @@ h1, h2, h3 {
 .hex-row {
   display: flex;
   justify-content: center;
-  margin-top: -26px; /* Pulls this row up into the previous row. 104 * 0.25 = 26 */
+  margin-top: -23px;
+  /* Adjusted to balance horizontal and diagonal gaps */
 }
 
 .hex-row:first-child {
@@ -101,10 +115,12 @@ h1, h2, h3 {
 
 .hexagon {
   width: 90px;
-  height: 104px; /* width / Math.sqrt(3) * 2 */
+  height: 104px;
+  /* width / Math.sqrt(3) * 2 */
   background-color: var(--hex-bg);
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  margin: 0 4px;
+  margin: 0 2px;
+  /* 4px total horizontal gap */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,12 +157,12 @@ h1, h2, h3 {
 
 .hexagon.player1 {
   background-color: var(--player1-color);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .hexagon.player2 {
   background-color: var(--player2-color);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .hexagon.black {
@@ -157,7 +173,10 @@ h1, h2, h3 {
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
@@ -223,10 +242,25 @@ button:active {
   transform: scale(0.95);
 }
 
-button.primary { background: var(--player1-color); color: white; }
-button.secondary { background: var(--player2-color); color: white; }
-button.danger { background: #ef4444; color: white; }
-button.neutral { background: #475569; color: white; }
+button.primary {
+  background: var(--player1-color);
+  color: white;
+}
+
+button.secondary {
+  background: var(--player2-color);
+  color: white;
+}
+
+button.danger {
+  background: #ef4444;
+  color: white;
+}
+
+button.neutral {
+  background: #475569;
+  color: white;
+}
 
 .winner-banner {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
@@ -241,7 +275,15 @@ button.neutral { background: #475569; color: white; }
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
