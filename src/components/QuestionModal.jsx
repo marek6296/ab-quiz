@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 
-export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve, localPlayerNum }) => {
+export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve, localPlayerNum, playerNames }) => {
     const [phase, setPhase] = useState('currentPlayer');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -11,8 +11,8 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     const isCpuPrimaryTurn = gameMode === '1vcpu' && currentPlayer === 2 && phase === 'currentPlayer';
     const isCpuSecondaryTurn = gameMode === '1vcpu' && opponent === 2 && phase === 'opponent';
 
-    const currentPlayerName = currentPlayer === 1 ? 'Hráč 1' : (gameMode === '1vcpu' ? 'CPU' : 'Hráč 2');
-    const opponentName = opponent === 1 ? 'Hráč 1' : (gameMode === '1vcpu' ? 'CPU' : 'Hráč 2');
+    const currentPlayerName = currentPlayer === 1 ? playerNames.player1 : playerNames.player2;
+    const opponentName = opponent === 1 ? playerNames.player1 : playerNames.player2;
 
     const currentPlayerColor = currentPlayer === 1 ? 'Modrý' : 'Oranžový';
     const opponentColor = opponent === 1 ? 'Modrý' : 'Oranžový';

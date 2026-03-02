@@ -15,6 +15,16 @@ const GameApp = () => {
   const [gameMode, setGameMode] = useState(null);
   const [activeGameId, setActiveGameId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [opponentName, setOpponentName] = useState(null);
+
+  // Fetch current user profile
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from('profiles').select('username').eq('id', user.id).single()
+        .then(({ data }) => setProfile(data));
+    }
+  }, [user]);
 
   // Pass necessary info down to the game engine
   const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum } = useGameState({
@@ -82,6 +92,23 @@ const GameApp = () => {
       if (user) supabase.from('profiles').update({ online_status: 'offline' }).eq('id', user.id).then();
     };
   }, [user, activeGameId, handleStartGame]);
+
+  // Fetch opponent name when in online game
+  useEffect(() => {
+    if (gameMode === '1v1_online' && activeGameId) {
+      const fetchOpponent = async () => {
+        const { data: game } = await supabase.from('games').select('player1_id, player2_id').eq('id', activeGameId).single();
+        if (game) {
+          const opponentId = game.player1_id === user.id ? game.player2_id : game.player1_id;
+          const { data: oppProfile } = await supabase.from('profiles').select('username').eq('id', opponentId).single();
+          if (oppProfile) setOpponentName(oppProfile.username);
+        }
+      };
+      fetchOpponent();
+    } else {
+      setOpponentName(null);
+    }
+  }, [gameMode, activeGameId, user.id]);
 
   const handleAcceptInvite = async (gameId) => {
     // Update game status to active
@@ -184,12 +211,24 @@ const GameApp = () => {
         <div className="versus-content">
           <div className="vs-player">
             <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
-            <span style={{ fontWeight: 700 }}>Hráč 1</span>
+            <span style={{ fontWeight: 700 }}>
+              {gameMode === '1v1_online'
+                ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                : profile?.username || 'Vy'
+              }
+            </span>
           </div>
           <div className="vs-text">VS</div>
           <div className="vs-player">
             <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
-            <span style={{ fontWeight: 700 }}>{gameMode === '1vcpu' ? 'Počítač' : 'Hráč 2'}</span>
+            <span style={{ fontWeight: 700 }}>
+              {gameMode === '1vcpu'
+                ? 'Počítač'
+                : (gameMode === '1v1_online'
+                  ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                  : 'Hráč 2')
+              }
+            </span>
           </div>
         </div>
         <div className="vs-title">Bitka začína!</div>
@@ -199,20 +238,35 @@ const GameApp = () => {
 
       {winner && (
         <div className="winner-banner">
-          {winner === 1 ? 'Hráč 1 Vyhráva!' : 'Hráč 2 Vyhráva!'}
+          {winner === localPlayerNum
+            ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
+            : `${opponentName || (gameMode === '1vcpu' ? 'CPU' : 'Súper')} Vyhráva!`
+          }
         </div>
       )}
 
       <div className="status-board">
         <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
-          <span className="player1-text">{gameMode === '1v1_online' ? 'Hráč 1' : 'Vy (Hráč 1)'}</span>
+          <span className="player1-text">
+            {gameMode === '1v1_online'
+              ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+              : `(Vy) ${profile?.username || 'Ja'}`
+            }
+          </span>
           <div className="dot player1-bg" />
         </div>
 
         <button className="neutral" onClick={handleRestart}>Opustiť Hru</button>
 
         <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
-          <span className="player2-text">{gameMode === '1vcpu' ? 'CPU' : 'Hráč 2'}</span>
+          <span className="player2-text">
+            {gameMode === '1vcpu'
+              ? 'CPU'
+              : (gameMode === '1v1_online'
+                ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                : 'Hráč 2')
+            }
+          </span>
           <div className="dot player2-bg" />
         </div>
       </div>
@@ -227,6 +281,17 @@ const GameApp = () => {
           gameMode={gameMode}
           onResolve={handleResolveQuestion}
           onClose={() => setActiveModal(null)}
+          localPlayerNum={localPlayerNum}
+          playerNames={{
+            player1: gameMode === '1v1_online'
+              ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+              : `(Vy) ${profile?.username || 'Ja'}`,
+            player2: gameMode === '1vcpu'
+              ? 'CPU'
+              : (gameMode === '1v1_online'
+                ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                : 'Hráč 2')
+          }}
         />
       )}
 
