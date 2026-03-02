@@ -8,6 +8,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     const [timeLeft, setTimeLeft] = useState(10);
 
     const opponent = currentPlayer === 1 ? 2 : 1;
+    const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
+    const isLocalSecondary = gameMode !== '1v1_online' || opponent === localPlayerNum;
+
     const isCpuPrimaryTurn = gameMode === '1vcpu' && currentPlayer === 2 && phase === 'currentPlayer';
     const isCpuSecondaryTurn = gameMode === '1vcpu' && opponent === 2 && phase === 'opponent';
 
@@ -16,6 +19,29 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
     const currentPlayerColor = currentPlayer === 1 ? 'Modrý' : 'Oranžový';
     const opponentColor = opponent === 1 ? 'Modrý' : 'Oranžový';
+
+    const renderInput = (onSubmit) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+            <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, onSubmit)}
+                placeholder="Zadajte odpoveď..."
+                autoFocus
+                style={{ textAlign: 'center', fontSize: '1.2rem' }}
+            />
+            {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMsg}</div>}
+        </div>
+    );
+
+    const renderFeedback = (title, message, isSuccess) => (
+        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+            <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
+            <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
+            {!isSuccess && <p style={{ fontSize: '1.2rem', color: '#94a3b8', marginTop: '1rem' }}>Správna odpoveď: <strong>{question.answer}</strong></p>}
+        </div>
+    );
 
     // Reset state on new question
     useEffect(() => {
@@ -66,7 +92,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     // Timer Logic - Unified for both phases
     useEffect(() => {
         // Skip timer for CPU turns
-        const isSelfTurn = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
         const isCpuAuto = phase === 'currentPlayer' ? isCpuPrimaryTurn : isCpuSecondaryTurn;
 
         if ((phase === 'currentPlayer' || phase === 'opponent') && !isCpuAuto) {
@@ -136,33 +161,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             callback();
         }
     };
-
-    const renderInput = (onSubmit) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-            <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, onSubmit)}
-                placeholder="Zadajte odpoveď..."
-                autoFocus
-                style={{ textAlign: 'center', fontSize: '1.2rem' }}
-            />
-            {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMsg}</div>}
-        </div>
-    );
-
-    const renderFeedback = (title, message, isSuccess) => (
-        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-            <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
-            <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
-            {!isSuccess && <p style={{ fontSize: '1.2rem', color: '#94a3b8', marginTop: '1rem' }}>Správna odpoveď: <strong>{question.answer}</strong></p>}
-        </div>
-    );
-
-    // If online mode, check if we are allowed to type
-    const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
-    const isLocalSecondary = gameMode !== '1v1_online' || opponent === localPlayerNum;
 
     return (
         <div className="modal-overlay">
