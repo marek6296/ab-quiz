@@ -57,6 +57,7 @@ function App() {
         <QuestionModal
           hexId={activeModal.hexId}
           question={activeModal.question}
+          currentPlayer={currentPlayer}
           onResolve={handleResolveQuestion}
           onClose={() => setActiveModal(null)}
         />
