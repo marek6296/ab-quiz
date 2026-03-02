@@ -84,6 +84,7 @@ h1 {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+  margin-top: 0;
   margin-bottom: 2rem;
 }
 
@@ -107,7 +108,7 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 100%;
   height: 100%;
 }
@@ -210,10 +211,9 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  padding: 0.25rem 0.5rem;
   position: relative;
   /* Ensure it doesn't push too far */
-  flex: 1;
   display: flex;
   justify-content: center;
 }
@@ -740,7 +740,7 @@ input:focus {
 @media (min-width: 769px) {
   h1 {
     font-size: 2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 }
 
@@ -949,7 +949,8 @@ button.small {
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 0.5rem;
   align-items: center;
   overflow: hidden;
   position: relative;
