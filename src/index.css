@@ -106,7 +106,7 @@ h2 {
 .start-screen {
   justify-content: center;
   align-items: center;
-  min-height: 70vh;
+  min-height: 80vh;
 }
 
 /* Status Board */
@@ -605,6 +605,21 @@ input:focus {
 
   .user-info {
     padding: 0.75rem 1.5rem;
+  }
+
+  .hexagon {
+    width: 45px;
+    height: 52px;
+    font-size: 14px;
+    margin: 0 1px;
+  }
+
+  .hex-row {
+    margin-top: -13px;
+  }
+
+  .board {
+    padding: 1.5rem 0.5rem;
   }
 }
 
