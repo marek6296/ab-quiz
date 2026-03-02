@@ -247,18 +247,20 @@ const GameApp = () => {
         )}
 
         <div className="status-board">
+          {/* Player 1: Dot on the left */}
           <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
+            <div className="dot player1-bg" />
             <span className="player1-text">
               {gameMode === '1v1_online'
                 ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
                 : `(Vy) ${profile?.username || 'Ja'}`
               }
             </span>
-            <div className="dot player1-bg" />
           </div>
 
           <button className="neutral" onClick={handleRestart}>Opustiť Hru</button>
 
+          {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
             <span className="player2-text">
               {gameMode === '1vbot'
