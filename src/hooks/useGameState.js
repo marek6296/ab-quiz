@@ -22,7 +22,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         if (gameMode !== '1v1_online' || !activeGameId) return;
 
         const fetchGame = async () => {
-            const { data } = await supabase.from('games').select('*').eq('id', activeGameId).single();
+            const { data, error } = await supabase.from('games').select('*').eq('id', activeGameId).single();
             if (data) {
                 setGameData(data);
                 setBoard(data.board_state);
@@ -33,6 +33,10 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 // determine current player 1 or 2 based on ID
                 setCurrentPlayer(data.current_turn === data.player1_id ? 1 : 2);
                 if (data.winner_id) setWinner(data.winner_id === data.player1_id ? 1 : 2);
+            } else if (error && error.code === 'PGRST116') {
+                // Hra uz neexistuje (0 rows returned)
+                alert('Túto hru už server neeviduje (ukončená).');
+                useGameStore.getState().resetToLobby();
             }
         };
 
@@ -49,7 +53,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 if (payload.eventType === 'DELETE') {
                     // Game was abandoned by the other player or deleted
                     alert("Hra bola ukončená druhým hráčom.");
-                    window.location.reload();
+                    useGameStore.getState().resetToLobby();
                     return;
                 }
                 if (payload.eventType === 'UPDATE') {
