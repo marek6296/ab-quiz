@@ -55,6 +55,17 @@ export const useAudio = () => {
             console.warn('Audio play error:', e);
         }
     }, []);
+    const stopSound = useCallback((soundName) => {
+        try {
+            const audio = audioCache[soundName];
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        } catch (e) {
+            console.warn('Audio stop error:', e);
+        }
+    }, []);
 
-    return { playSound };
+    return { playSound, stopSound };
 };

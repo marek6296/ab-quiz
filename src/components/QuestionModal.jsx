@@ -9,7 +9,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
     const [timeLeft, setTimeLeft] = useState(10);
     const [lastAnswer, setLastAnswer] = useState('');
 
-    const { playSound } = useAudio();
+    const { playSound, stopSound } = useAudio();
     const tickPlayedRef = useRef(false);
 
     const opponent = currentPlayer === 1 ? 2 : 1;
@@ -112,6 +112,13 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         }, 1800);
         return () => clearTimeout(timer);
     }, [question]);
+
+    // Ensure ticking stops when phase changes
+    useEffect(() => {
+        if (phase !== 'currentPlayer' && phase !== 'opponent') {
+            stopSound('tick');
+        }
+    }, [phase, stopSound]);
 
     // BOT Logic
     useEffect(() => {
