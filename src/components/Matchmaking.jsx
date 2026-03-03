@@ -27,10 +27,12 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
     }, [gameMode]);
 
     const findQuickMatch = async () => {
+        const { addDebugLog } = useGameStore.getState();
+        addDebugLog(`Hľadám rýchlu hru: User=${user.id}, Rules=${gameRules}`);
         setStatusText('Hľadám kamoša na hru...');
 
         // Try to find a waiting public game WITH THE SAME RULES (optional but safer)
-        const { data: qGames } = await supabase.from('games')
+        const { data: qGames, error: searchError } = await supabase.from('games')
             .select('*')
             .eq('status', 'waiting')
             .eq('is_public', true)
@@ -38,6 +40,10 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
             .is('player2_id', null)
             .neq('player1_id', user.id)
             .limit(1);
+
+        if (searchError) {
+            addDebugLog(`Chyba pri hľadaní: ${searchError.message}`);
+        }
 
         if (qGames && qGames.length > 0) {
             const targetGame = qGames[0];
@@ -80,6 +86,7 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
             .single();
 
         if (newGame) {
+            addDebugLog(`Miestnosť vytvorená: ${newGame.id}`);
             listenForOpponent(newGame.id);
             // Backup retry in case someone else also created a game simultaneously:
             // Check again in 5 seconds if someone joined, if not, try searching one more time
@@ -92,6 +99,10 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
                         }
                     });
             }, 5000);
+        } else if (error) {
+            addDebugLog(`Chyba INSERT: ${error.message}`);
+            console.error('Insert Error:', error);
+            setStatusText(`Chyba pri vytváraní hry: ${error.message}`);
         }
     };
 
@@ -99,7 +110,7 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
         setStatusText('Vytváram tvoj kód...');
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        const { data: newGame } = await supabase.from('games')
+        const { data: newGame, error } = await supabase.from('games')
             .insert({
                 player1_id: user.id,
                 status: 'waiting',
@@ -118,6 +129,9 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
             setStatusText(`Kód miestnosti: ${code}`);
             setIsCreatingPrivate(true);
             listenForOpponent(newGame.id);
+        } else if (error) {
+            console.error('Private Room Error:', error);
+            setStatusText(`Chyba pri vytváraní miestnosti: ${error.message}`);
         }
     };
 
