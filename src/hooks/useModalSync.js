@@ -17,12 +17,12 @@ export const useModalSync = ({
                 const dbModalStr = JSON.stringify(gameData.active_modal || null);
                 const locModalStr = JSON.stringify(prev || null);
                 if (dbModalStr !== locModalStr) {
-                    // Check if local is already in feedback but DB is trailing behind
+                    // Check if local is already in feedback but DB is trailing behind (trying to set currentPlayer again)
                     const isLocalFeedback = prev?.phase?.startsWith('feedback');
-                    const isDbPhaseActive = gameData.active_modal?.phase === 'currentPlayer' || gameData.active_modal?.phase === 'opponent';
+                    const isDbReverting = gameData.active_modal?.phase === 'currentPlayer';
 
-                    if (isLocalFeedback && isDbPhaseActive) {
-                        return prev; // Keep local feedback, don't revert to active question
+                    if (isLocalFeedback && isDbReverting) {
+                        return prev; // Keep local feedback, don't let DB revert us back to original question input
                     }
 
                     if (!prev && gameData.active_modal && currentPlayer !== localPlayerNum) {
