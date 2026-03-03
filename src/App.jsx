@@ -110,12 +110,29 @@ const ABQuizApp = ({ onBackToPortal }) => {
     }
     query = query.eq('difficulty', diff);
 
-    const { data: pool } = await query.limit(100);
+    const { data: pool, error } = await query.limit(100);
 
-    if (!pool || pool.length === 0) {
+    if (error || !pool || pool.length === 0) {
       console.warn("No questions match config! Falling back to any available question.");
-      const { data: fallback } = await supabase.from('questions').select('*').limit(1);
-      return fallback?.[0] || { id: 1, question_text: "Otázky sa nepodarilo načítať...", answer: "..." };
+
+      // Fallback 1: Just the categories without difficulty constraint
+      let fallbackQuery = supabase.from('questions').select('*');
+      if (cats.length > 0) {
+        fallbackQuery = fallbackQuery.in('category', cats);
+      }
+      let { data: fallbackPool } = await fallbackQuery.limit(50);
+
+      // Fallback 2: Any question at all from DB
+      if (!fallbackPool || fallbackPool.length === 0) {
+        const { data: globalFallback } = await supabase.from('questions').select('*').limit(50);
+        fallbackPool = globalFallback;
+      }
+
+      if (fallbackPool && fallbackPool.length > 0) {
+        return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+      }
+
+      return { id: 1, question_text: "Otázky pre túto kombináciu sa nenašli...", answer: "Žiadna" };
     }
 
     return pool[Math.floor(Math.random() * pool.length)];
