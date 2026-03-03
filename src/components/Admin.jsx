@@ -24,6 +24,58 @@ export const Admin = ({ onBack }) => {
         );
     };
 
+    // --- RESTORED FUNCTIONS ---
+    // Form for manual add
+    const [newQuestion, setNewQuestion] = useState({
+        question_text: '',
+        answer: '',
+        category: '',
+        difficulty: 1
+    });
+
+    useEffect(() => {
+        fetchStats();
+        fetchQuestions();
+    }, []);
+
+    const fetchStats = async () => {
+        const { data, error } = await supabase.from('questions').select('category');
+        if (data) {
+            const counts = data.reduce((acc, q) => {
+                acc[q.category] = (acc[q.category] || 0) + 1;
+                return acc;
+            }, {});
+            setStats({ total: data.length, byCategory: counts });
+        }
+    };
+
+    const fetchQuestions = async () => {
+        setLoading(true);
+        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(50);
+
+        if (searchTerm) {
+            query = query.ilike('question_text', `%${searchTerm}%`);
+        }
+
+        const { data, error } = await query;
+        if (data) setQuestions(data);
+        setLoading(false);
+    };
+
+    const handleAddQuestion = async (e) => {
+        e.preventDefault();
+        const { error } = await supabase.from('questions').insert([newQuestion]);
+        if (!error) {
+            setNewQuestion({ question_text: '', answer: '', category: '', difficulty: 1 });
+            fetchQuestions();
+            fetchStats();
+            alert('Otázka pridaná!');
+        } else {
+            alert('Chyba: ' + error.message);
+        }
+    };
+    // --------------------------
+
     return (
         <div className="game-container lobby admin-panel" style={{ overflowY: 'auto', padding: '2rem' }}>
             <div className="lobby-header" style={{ marginBottom: '2rem' }}>
