@@ -169,7 +169,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
     setAppState(APP_STATES.IN_GAME);
     setShowVersus(true); // Trigger animation
-    setTimeout(() => setShowVersus(false), 3500); // Auto hide after 3.5s
+    setTimeout(() => setShowVersus(false), 4800); // 4.8s to allow full epic fade out
 
     addDebugLog(`Hra začala (${mode} - ${rules})`);
 

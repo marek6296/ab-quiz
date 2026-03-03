@@ -1256,8 +1256,10 @@ button.small {
   z-index: 10000;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  animation: fadeOut 0.8s ease-in 4.5s forwards;
-  pointer-events: none;
+  animation: fadeOut 0.8s ease-in 4.0s forwards;
+  pointer-events: auto;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .versus-content {
