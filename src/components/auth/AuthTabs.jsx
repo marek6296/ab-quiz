@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAudio } from '../../hooks/useAudio';
 
 export const AuthTabs = ({ onLoginSuccess }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -9,9 +10,11 @@ export const AuthTabs = ({ onLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
+    const { playSound } = useAudio();
 
     const handleAuth = async (e) => {
         e.preventDefault();
+        playSound('click');
         setLoading(true);
         setError(null);
         setMessage(null);
@@ -90,7 +93,7 @@ export const AuthTabs = ({ onLoginSuccess }) => {
             </form>
 
             <div className="auth-toggle">
-                <button type="button" className="text-button" onClick={() => setIsLogin(!isLogin)}>
+                <button type="button" className="text-button" onClick={() => { playSound('click'); setIsLogin(!isLogin); }}>
                     {isLogin ? 'Ešte nemáš účet? Zaregistruj sa kliknutím sem.' : 'Už máš účet? Prihlás sa kliknutím sem.'}
                 </button>
             </div>

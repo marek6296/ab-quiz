@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
+import { useAudio } from '../hooks/useAudio';
 
 export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames }) => {
     const [phase, setPhase] = useState('reveal');
@@ -7,6 +8,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
     const [errorMsg, setErrorMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState(10);
     const [lastAnswer, setLastAnswer] = useState('');
+
+    const { playSound } = useAudio();
+    const tickPlayedRef = useRef(false);
 
     const opponent = currentPlayer === 1 ? 2 : 1;
     const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
@@ -98,6 +102,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         setErrorMsg('');
         setTimeLeft(10);
         setLastAnswer('');
+        tickPlayedRef.current = false;
 
         // Auto transition after reveal animation
         const timer = setTimeout(() => {
@@ -135,6 +140,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                         setErrorMsg('');
                         setTimeLeft(10);
                         setLastAnswer(''); // Clear for next phase
+                        tickPlayedRef.current = false;
                     }, 2500);
                 }
             }, thinkTime);
@@ -165,6 +171,11 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 setTimeLeft((prev) => {
                     const next = Math.max(0, prev - step);
 
+                    if (next <= 3.0 && !tickPlayedRef.current) {
+                        playSound('tick');
+                        tickPlayedRef.current = true;
+                    }
+
                     // Use a slightly lower threshold to avoid float precision issues during decrement
                     if (next < 0.01) {
                         clearInterval(timer);
@@ -180,6 +191,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                                     setErrorMsg('');
                                     setTimeLeft(10);
                                     setLastAnswer('');
+                                    tickPlayedRef.current = false;
                                 }, 2500);
                             } else {
                                 setLastAnswer('Čas vypršal');
@@ -204,11 +216,13 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
+            playSound('correct');
             const pts = calculatePoints(currentPlayer, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
             setTimeout(() => onResolve(`player${currentPlayer}`, pts, false), 5000);
         } else {
+            playSound('wrong');
             setPhase('feedbackPrimaryIncorrect');
             setTimeout(() => {
                 setPhase('opponent');
@@ -216,6 +230,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 setErrorMsg('');
                 setTimeLeft(10);
                 setLastAnswer(''); // Ready for opponent guess
+                tickPlayedRef.current = false;
             }, 2500);
         }
     };
@@ -225,17 +240,20 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
+            playSound('correct');
             const pts = calculatePoints(opponent, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
             setTimeout(() => onResolve(`player${opponent}`, pts, false), 5000);
         } else {
+            playSound('wrong');
             setPhase('feedbackSecondaryBlackIncorrect');
             setTimeout(() => onResolve('unowned', 0, true), 5000);
         }
     };
 
     const handleDeclineSecondary = () => {
+        playSound('click');
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
         setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -275,9 +293,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                             <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
                         ) : isLocalPrimary ? (
                             <>
-                                {renderInput(handleSubmitPrimary)}
+                                {renderInput(() => { playSound('click'); handleSubmitPrimary(); })}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                    <button className="primary" onClick={handleSubmitPrimary}>
+                                    <button className="primary" onClick={() => { playSound('click'); handleSubmitPrimary(); }}>
                                         Odoslať odpoveď
                                     </button>
                                 </div>
@@ -311,9 +329,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                             <p style={{ width: '100%', color: '#94a3b8' }}>BOT sa snaží využiť šancu a premýšľa...</p>
                         ) : isLocalSecondary ? (
                             <>
-                                {renderInput(handleSubmitSecondary)}
+                                {renderInput(() => { playSound('click'); handleSubmitSecondary(); })}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                    <button className="secondary" onClick={handleSubmitSecondary}>
+                                    <button className="secondary" onClick={() => { playSound('click'); handleSubmitSecondary(); }}>
                                         Odoslať odpoveď
                                     </button>
                                     <button className="danger" onClick={handleDeclineSecondary}>

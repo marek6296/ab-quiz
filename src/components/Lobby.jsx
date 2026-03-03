@@ -2,11 +2,13 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
+import { useAudio } from '../hooks/useAudio';
 
 export const Lobby = ({ onStart1vBot }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
+    const { playSound } = useAudio();
 
     const audioRef = React.useRef(null);
 
@@ -47,7 +49,7 @@ export const Lobby = ({ onStart1vBot }) => {
                 <h1>AB Kvíz</h1>
                 <div className="user-info">
                     <span>Prihlásený ako: <strong>{profile?.username || user?.email}</strong></span>
-                    <button className="text-button" onClick={signOut}>Odhlásiť sa</button>
+                    <button className="text-button" onClick={() => { playSound('click'); signOut(); }}>Odhlásiť sa</button>
                 </div>
             </div>
 
@@ -60,21 +62,21 @@ export const Lobby = ({ onStart1vBot }) => {
                         <button
                             className={`secondary ${gameRules === 'hex' ? 'active' : ''}`}
                             style={{ flex: 1, margin: 0, opacity: gameRules === 'hex' ? 1 : 0.5, border: gameRules === 'hex' ? '1px solid var(--player1-color)' : 'none' }}
-                            onClick={() => setGameRules('hex')}
+                            onClick={() => { playSound('click'); setGameRules('hex'); }}
                         >
                             Hex (Cesta)
                         </button>
                         <button
                             className={`secondary ${gameRules === 'points' ? 'active' : ''}`}
                             style={{ flex: 1, margin: 0, opacity: gameRules === 'points' ? 1 : 0.5, border: gameRules === 'points' ? '1px solid var(--player2-color)' : 'none' }}
-                            onClick={() => setGameRules('points')}
+                            onClick={() => { playSound('click'); setGameRules('points'); }}
                         >
                             Body (Rýchlosť)
                         </button>
                     </div>
 
                     <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                        <button className="primary" onClick={() => onStart1vBot(gameRules)}>
+                        <button className="primary" onClick={() => { playSound('click'); onStart1vBot(gameRules); }}>
                             Hrať proti BOT-ovi
                         </button>
                         <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>

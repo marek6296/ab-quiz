@@ -8,6 +8,7 @@ import { QuestionModal } from './components/QuestionModal';
 import { getRandomQuestion } from './data/questions';
 import { GameInviteModal } from './components/GameInviteModal';
 import { supabase } from './lib/supabase';
+import { useAudio } from './hooks/useAudio';
 
 const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
   if (!isOpen) return null;
@@ -42,6 +43,7 @@ const GameApp = () => {
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const { playSound } = useAudio();
 
   // Fetch current user profile
   useEffect(() => {
@@ -148,6 +150,7 @@ const GameApp = () => {
   };
 
   const handleDeclineInvite = async (gameId) => {
+    playSound('click');
     await supabase.from('games').delete().eq('id', gameId);
     setIncomingInvite(null);
   };
@@ -167,6 +170,7 @@ const GameApp = () => {
       return;
     }
 
+    playSound('click');
     const q = getRandomQuestion();
     setActiveModal({ hexId, question: q });
   };
@@ -304,7 +308,7 @@ const GameApp = () => {
             </div>
           </div>
 
-          <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
+          <button className="neutral" onClick={() => { playSound('click'); setShowExitConfirm(true); }}>Opustiť Hru</button>
 
           {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
@@ -356,8 +360,8 @@ const GameApp = () => {
 
         <ConfirmExitModal
           isOpen={showExitConfirm}
-          onConfirm={handleRestart}
-          onCancel={() => setShowExitConfirm(false)}
+          onConfirm={() => { playSound('click'); handleRestart(); }}
+          onCancel={() => { playSound('click'); setShowExitConfirm(false); }}
         />
 
         <GameInviteModal
