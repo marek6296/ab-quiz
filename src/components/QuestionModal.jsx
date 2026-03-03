@@ -353,11 +353,25 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     // BOT Logic
     useEffect(() => {
         let timeout;
-        // In Points mode, the BOT tries to answer slightly faster to get bonuses (2 to 5s)
-        // In Hex mode, it takes its time (4 to 7s)
-        const thinkTimeBase = gameRules === 'points' ? 2000 : 4000;
-        const thinkTimeVar = gameRules === 'points' ? 3000 : 3000;
+
+        // Zabezpečíme, že bot bude odpovedať maximálne do cca 6 sekúnd
+        const thinkTimeBase = 1500;
+        const thinkTimeVar = 4500; // max dokopy 6000ms
         const thinkTime = Math.floor(Math.random() * thinkTimeVar) + thinkTimeBase;
+
+        // Pomocná funkcia na vygenerovanie náhodnej zlej odpovede ("hlúposti")
+        const generateNonsense = (length) => {
+            const consonants = 'bcdfghjklmnprstvz';
+            const vowels = 'aeiouy';
+            let res = '';
+            // Aspoň 4 písmená
+            const targetLength = Math.max(4, length + Math.floor(Math.random() * 3) - 1);
+            for (let i = 0; i < targetLength; i++) {
+                if (i % 2 === 0) res += consonants[Math.floor(Math.random() * consonants.length)];
+                else res += vowels[Math.floor(Math.random() * vowels.length)];
+            }
+            return res.toUpperCase();
+        };
 
         if (isBotPrimaryTurn) {
             timeout = setTimeout(() => {
@@ -369,7 +383,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setPhase('feedbackPrimaryCorrect');
                     setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
                 } else {
-                    setLastAnswer('BOT nevedel odpovedať');
+                    setLastAnswer(generateNonsense(question.answer?.length || 5));
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
                         setPhase('opponentChoice'); // BOT didn't know, pass
@@ -393,8 +407,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                         setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
                     }
                 } else {
-                    setLastAnswer('BOT nevedel odpovedať');
-                    setPhase('feedbackSecondaryBlack');
+                    setLastAnswer(generateNonsense(question.answer?.length || 5));
+                    setPhase('feedbackSecondaryBlackIncorrect');
                     if (!resolvedRef.current) {
                         resolvedRef.current = true;
                         setTimeout(() => onResolveRef.current('black', 0, true), 5000);
