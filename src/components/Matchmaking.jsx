@@ -13,6 +13,8 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
     const [roomCodeInput, setRoomCodeInput] = useState('');
     const [isCreatingPrivate, setIsCreatingPrivate] = useState(false);
     const searchTimeoutRef = useRef(null);
+    const activeChannels = useRef([]);
+    const checkIntervals = useRef([]);
 
     useEffect(() => {
         if (gameMode === '1v1_quick') {
@@ -23,6 +25,8 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
 
         return () => {
             if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+            activeChannels.current.forEach(ch => supabase.removeChannel(ch));
+            checkIntervals.current.forEach(int => clearInterval(int));
         };
     }, [gameMode]);
 
@@ -166,6 +170,7 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
     };
 
     const listenForOpponent = (gameId) => {
+        let localInterval;
         const channel = supabase.channel(`wait_${gameId}`)
             .on('postgres_changes', {
                 event: 'UPDATE',
@@ -175,12 +180,34 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
             }, (payload) => {
                 if (payload.new.status === 'active' && payload.new.player2_id) {
                     supabase.removeChannel(channel);
+                    clearInterval(localInterval);
                     let cat = [];
                     try { cat = JSON.parse(payload.new.category); } catch (e) { }
                     onMatchFound(gameId, payload.new.game_type || gameRules, cat, payload.new.difficulty || 1);
                 }
             })
-            .subscribe();
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Backup check in case the realtime event fired before we fully subscribed (race condition)
+                    localInterval = setInterval(async () => {
+                        const { data } = await supabase.from('games')
+                            .select('status, player2_id, game_type, category, difficulty')
+                            .eq('id', gameId)
+                            .single();
+
+                        if (data && data.status === 'active' && data.player2_id) {
+                            supabase.removeChannel(channel);
+                            clearInterval(localInterval);
+                            let cat = [];
+                            try { cat = JSON.parse(data.category); } catch (e) { }
+                            onMatchFound(gameId, data.game_type || gameRules, cat, data.difficulty || 1);
+                        }
+                    }, 2500);
+                    checkIntervals.current.push(localInterval);
+                }
+            });
+
+        activeChannels.current.push(channel);
     };
 
     const handleCancel = async () => {
