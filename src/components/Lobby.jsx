@@ -8,6 +8,14 @@ export const Lobby = ({ onStart1vBot }) => {
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
 
+    const audioRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.volume = 0.15; // Set volume to 15%
+        }
+    }, []);
+
     React.useEffect(() => {
         if (user?.id) {
             supabase.from('profiles').select('*').eq('id', user.id).single()
@@ -17,6 +25,9 @@ export const Lobby = ({ onStart1vBot }) => {
 
     return (
         <div className="game-container start-screen lobby">
+            {/* Background Music Loop */}
+            <audio ref={audioRef} src="/chrono-echoes.mp3" autoPlay loop />
+
             <div className="lobby-header">
                 <h1>AB Kvíz</h1>
                 <div className="user-info">
