@@ -54,6 +54,78 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const [earnedPoints, setEarnedPoints] = useState(0);
 
+    const handleSubmitPrimary = () => {
+        if (!inputValue.trim() || isSubmitting) return;
+        setIsSubmitting(true);
+        setLastAnswer(inputValue);
+
+        if (isAnswerCorrect(inputValue, question?.answer || '')) {
+            const pts = calculatePoints(currentPlayer, timeLeft);
+            setEarnedPoints(pts);
+            setPhase('feedbackPrimaryCorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current(`player${currentPlayer}`, pts, false), 5000);
+            }
+        } else {
+            setPhase('feedbackPrimaryIncorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
+            setTimeout(() => {
+                setPhase('opponent');
+                setInputValue('');
+                setErrorMsg('');
+                setTimeLeft(15);
+                setLastAnswer(''); // Ready for opponent guess
+                setIsSubmitting(false); // Allow secondary guess input
+                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+            }, 2500);
+        }
+    };
+
+    const handleSubmitSecondary = () => {
+        if (!inputValue.trim() || isSubmitting) return;
+        setIsSubmitting(true);
+        setLastAnswer(inputValue);
+
+        if (isAnswerCorrect(inputValue, question?.answer || '')) {
+            const pts = calculatePoints(opponent, timeLeft);
+            setEarnedPoints(pts);
+            setPhase('feedbackSecondaryCorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current(`player${opponent}`, pts, false), 5000);
+            }
+        } else {
+            setPhase('feedbackSecondaryBlackIncorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current('black', 0, true), 5000);
+            }
+        }
+    };
+
+    const handleDeclineSecondary = () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
+        setLastAnswer('Hráč nevyužil šancu');
+        setPhase('feedbackSecondaryBlack');
+        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
+        if (!resolvedRef.current) {
+            resolvedRef.current = true;
+            setTimeout(() => onResolveRef.current('black', 0, true), 5000);
+        }
+    };
+
+    const handleKeyDown = (e, callback) => {
+        if (e.key === 'Enter') {
+            callback();
+        }
+    };
+
     // Synchronize with the global mobile input located in App.jsx
     useEffect(() => {
         const globalInput = document.getElementById('global-mobile-input');
@@ -350,78 +422,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     }, [phase, isLocalPrimary, isLocalSecondary, gameMode, onSyncModal]);
 
     if (!question) return null;
-
-    const handleSubmitPrimary = () => {
-        if (!inputValue.trim() || isSubmitting) return;
-        setIsSubmitting(true);
-        setLastAnswer(inputValue);
-
-        if (isAnswerCorrect(inputValue, question.answer)) {
-            const pts = calculatePoints(currentPlayer, timeLeft);
-            setEarnedPoints(pts);
-            setPhase('feedbackPrimaryCorrect');
-            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
-            if (!resolvedRef.current) {
-                resolvedRef.current = true;
-                setTimeout(() => onResolveRef.current(`player${currentPlayer}`, pts, false), 5000);
-            }
-        } else {
-            setPhase('feedbackPrimaryIncorrect');
-            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
-            setTimeout(() => {
-                setPhase('opponent');
-                setInputValue('');
-                setErrorMsg('');
-                setTimeLeft(15);
-                setLastAnswer(''); // Ready for opponent guess
-                setIsSubmitting(false); // Allow secondary guess input
-                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
-            }, 2500);
-        }
-    };
-
-    const handleSubmitSecondary = () => {
-        if (!inputValue.trim() || isSubmitting) return;
-        setIsSubmitting(true);
-        setLastAnswer(inputValue);
-
-        if (isAnswerCorrect(inputValue, question.answer)) {
-            const pts = calculatePoints(opponent, timeLeft);
-            setEarnedPoints(pts);
-            setPhase('feedbackSecondaryCorrect');
-            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
-            if (!resolvedRef.current) {
-                resolvedRef.current = true;
-                setTimeout(() => onResolveRef.current(`player${opponent}`, pts, false), 5000);
-            }
-        } else {
-            setPhase('feedbackSecondaryBlackIncorrect');
-            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
-            if (!resolvedRef.current) {
-                resolvedRef.current = true;
-                setTimeout(() => onResolveRef.current('black', 0, true), 5000);
-            }
-        }
-    };
-
-    const handleDeclineSecondary = () => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-
-        setLastAnswer('Hráč nevyužil šancu');
-        setPhase('feedbackSecondaryBlack');
-        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
-        if (!resolvedRef.current) {
-            resolvedRef.current = true;
-            setTimeout(() => onResolveRef.current('black', 0, true), 5000);
-        }
-    };
-
-    const handleKeyDown = (e, callback) => {
-        if (e.key === 'Enter') {
-            callback();
-        }
-    };
 
     return (
         <div className="modal-overlay">
