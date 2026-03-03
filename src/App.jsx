@@ -36,6 +36,7 @@ const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
 const GameApp = () => {
   const { user } = useAuth();
   const [gameMode, setGameMode] = useState(null);
+  const [gameRules, setGameRules] = useState('hex'); // 'hex' or 'points'
   const [activeGameId, setActiveGameId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -51,16 +52,18 @@ const GameApp = () => {
   }, [user]);
 
   // Pass necessary info down to the game engine
-  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum } = useGameState({
+  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo } = useGameState({
     userId: user?.id,
     gameMode,
+    gameRules,
     activeGameId
   });
 
   const [incomingInvite, setIncomingInvite] = useState(null);
 
-  const handleStartGame = useCallback((mode, gameId = null) => {
+  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null) => {
     setGameMode(mode);
+    setGameRules(rules);
     setActiveGameId(gameId);
 
     if (mode === '1v1_online' && gameId) {
@@ -92,6 +95,7 @@ const GameApp = () => {
           const { data } = await supabase.from('profiles').select('username').eq('id', payload.new.player1_id).single();
           setIncomingInvite({
             gameId: payload.new.id,
+            gameRules: payload.new.game_type || 'hex',
             challengerName: data?.username || 'Neznámy Hráč'
           });
         }
@@ -132,14 +136,14 @@ const GameApp = () => {
     } else {
       setOpponentName(null);
     }
-  }, [gameMode, activeGameId, user.id]);
+  }, [gameMode, activeGameId, user?.id]);
 
-  const handleAcceptInvite = async (gameId) => {
+  const handleAcceptInvite = async (gameId, rules) => {
     // Update game status to active
     const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
     if (!error) {
       setIncomingInvite(null);
-      handleStartGame('1v1_online', gameId);
+      handleStartGame('1v1_online', rules, gameId);
     }
   };
 
@@ -183,9 +187,9 @@ const GameApp = () => {
     }
   }, [currentPlayer, gameMode, board, winner, activeModal, showExitConfirm]);
 
-  const handleResolveQuestion = (targetOwner) => {
+  const handleResolveQuestion = (targetOwner, pointsEarned = 0, breakCombo = false) => {
     if (activeModal) {
-      claimHexagon(activeModal.hexId, targetOwner);
+      claimHexagon(activeModal.hexId, targetOwner, pointsEarned, breakCombo);
       setActiveModal(null);
     }
   };
@@ -216,12 +220,11 @@ const GameApp = () => {
     return (
       <>
         <Lobby
-          onStart1vBot={() => handleStartGame('1vbot')}
-          onStartOnline={() => { }} // We trigger online by clicking "Vyzvat" now
+          onStart1vBot={(rules) => handleStartGame('1vbot', rules)}
         />
         <GameInviteModal
           invite={incomingInvite}
-          onAccept={handleAcceptInvite}
+          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
           onDecline={handleDeclineInvite}
         />
       </>
@@ -279,26 +282,40 @@ const GameApp = () => {
           {/* Player 1: Dot on the left */}
           <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
             <div className="dot player1-bg" />
-            <span className="player1-text">
-              {gameMode === '1v1_online'
-                ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                : `(Vy) ${profile?.username || 'Ja'}`
-              }
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
+              <span className="player1-text" style={{ lineHeight: '1.2' }}>
+                {gameMode === '1v1_online'
+                  ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                  : `(Vy) ${profile?.username || 'Ja'}`
+                }
+              </span>
+              {gameRules === 'points' && (
+                <span className="player1-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
+                  {p1Score} bodov {p1Combo >= 5 ? '🔥 2x' : p1Combo >= 3 ? '🔥 1.5x' : ''}
+                </span>
+              )}
+            </div>
           </div>
 
           <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
 
           {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
-            <span className="player2-text">
-              {gameMode === '1vbot'
-                ? 'BOT'
-                : (gameMode === '1v1_online'
-                  ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                  : 'Hráč 2')
-              }
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, paddingRight: '4px' }}>
+              <span className="player2-text" style={{ lineHeight: '1.2' }}>
+                {gameMode === '1vbot'
+                  ? 'BOT'
+                  : (gameMode === '1v1_online'
+                    ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                    : 'Hráč 2')
+                }
+              </span>
+              {gameRules === 'points' && (
+                <span className="player2-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
+                  {p2Score} bodov {p2Combo >= 5 ? '🔥 2x' : p2Combo >= 3 ? '🔥 1.5x' : ''}
+                </span>
+              )}
+            </div>
             <div className="dot player2-bg" />
           </div>
         </div>
@@ -311,6 +328,9 @@ const GameApp = () => {
             question={activeModal.question}
             currentPlayer={currentPlayer}
             gameMode={gameMode}
+            gameRules={gameRules}
+            p1Combo={p1Combo}
+            p2Combo={p2Combo}
             onResolve={handleResolveQuestion}
             onClose={() => setActiveModal(null)}
             localPlayerNum={localPlayerNum}
@@ -335,7 +355,7 @@ const GameApp = () => {
 
         <GameInviteModal
           invite={incomingInvite}
-          onAccept={handleAcceptInvite}
+          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
           onDecline={handleDeclineInvite}
         />
       </div>

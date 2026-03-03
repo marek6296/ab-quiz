@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 
-export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClose, onResolve, localPlayerNum, playerNames }) => {
+export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames }) => {
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -20,6 +20,27 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
 
     const currentPlayerColor = currentPlayer === 1 ? 'Modrý' : 'Oranžový';
     const opponentColor = opponent === 1 ? 'Modrý' : 'Oranžový';
+
+    // Calculate Points
+    const calculatePoints = (playerNum, timeRemaining) => {
+        if (gameRules !== 'points') return 0;
+
+        let base = 10;
+        const timeTaken = 10 - timeRemaining;
+
+        // Speed bonus
+        if (timeTaken <= 3) base += 5;
+        else if (timeTaken <= 5) base += 3;
+
+        // Combo Multiplier
+        const combo = playerNum === 1 ? p1Combo : p2Combo;
+        if (combo >= 5) base = Math.floor(base * 2);
+        else if (combo >= 3) base = Math.floor(base * 1.5);
+
+        return base;
+    };
+
+    const [earnedPoints, setEarnedPoints] = useState(0);
 
     const renderInput = (onSubmit) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto' }}>
@@ -40,6 +61,12 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
             <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
             <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
+
+            {isSuccess && gameRules === 'points' && earnedPoints > 0 && (
+                <div style={{ marginTop: '1rem', fontSize: '2rem', color: '#fbbf24', fontWeight: 'bold', textShadow: '0 2px 10px rgba(251, 191, 36, 0.5)' }}>
+                    +{earnedPoints} bodov!
+                </div>
+            )}
 
             {(showAnswer || lastAnswer) && (
                 <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.08)', borderRadius: '16px', width: '100%', maxWidth: '500px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -84,15 +111,21 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
     // BOT Logic
     useEffect(() => {
         let timeout;
-        const thinkTime = Math.floor(Math.random() * 3000) + 4000; // 4 to 7 seconds
+        // In Points mode, the BOT tries to answer slightly faster to get bonuses (2 to 5s)
+        // In Hex mode, it takes its time (4 to 7s)
+        const thinkTimeBase = gameRules === 'points' ? 2000 : 4000;
+        const thinkTimeVar = gameRules === 'points' ? 3000 : 3000;
+        const thinkTime = Math.floor(Math.random() * thinkTimeVar) + thinkTimeBase;
 
         if (isBotPrimaryTurn) {
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
+                    const pts = calculatePoints(2, timeLeft);
+                    setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
-                    setTimeout(() => onResolve('player2'), 5000);
+                    setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
@@ -109,13 +142,15 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
+                    const pts = calculatePoints(2, timeLeft);
+                    setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
-                    setTimeout(() => onResolve('player2'), 5000);
+                    setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
-                    setTimeout(() => onResolve('unowned'), 5000);
+                    setTimeout(() => onResolve('unowned', 0, true), 5000);
                 }
             }, thinkTime);
         }
@@ -149,7 +184,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
                             } else {
                                 setLastAnswer('Čas vypršal');
                                 setPhase('feedbackSecondaryBlackTime');
-                                setTimeout(() => onResolve('unowned'), 5000);
+                                setTimeout(() => onResolve('unowned', 0, true), 5000);
                             }
                         }, 100);
 
@@ -169,8 +204,10 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
+            const pts = calculatePoints(currentPlayer, timeLeft);
+            setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
-            setTimeout(() => onResolve(`player${currentPlayer}`), 5000);
+            setTimeout(() => onResolve(`player${currentPlayer}`, pts, false), 5000);
         } else {
             setPhase('feedbackPrimaryIncorrect');
             setTimeout(() => {
@@ -188,18 +225,20 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, onClos
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
+            const pts = calculatePoints(opponent, timeLeft);
+            setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
-            setTimeout(() => onResolve(`player${opponent}`), 5000);
+            setTimeout(() => onResolve(`player${opponent}`, pts, false), 5000);
         } else {
             setPhase('feedbackSecondaryBlackIncorrect');
-            setTimeout(() => onResolve('unowned'), 5000);
+            setTimeout(() => onResolve('unowned', 0, true), 5000);
         }
     };
 
     const handleDeclineSecondary = () => {
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
-        setTimeout(() => onResolve('unowned'), 5000);
+        setTimeout(() => onResolve('unowned', 0, true), 5000);
     };
 
     const handleKeyDown = (e, callback) => {

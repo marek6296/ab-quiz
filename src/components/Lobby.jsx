@@ -6,6 +6,7 @@ import { FriendsList } from './auth/FriendsList';
 export const Lobby = ({ onStart1vBot }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
+    const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
 
     React.useEffect(() => {
         if (user?.id) {
@@ -27,19 +28,38 @@ export const Lobby = ({ onStart1vBot }) => {
             <div className="lobby-content">
                 <div className="lobby-panel">
                     <h2>Herné Módy</h2>
-                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                        <button className="primary" onClick={onStart1vBot}>
+
+                    {/* Game Rules Selector */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '12px' }}>
+                        <button
+                            className={`secondary ${gameRules === 'hex' ? 'active' : ''}`}
+                            style={{ flex: 1, margin: 0, opacity: gameRules === 'hex' ? 1 : 0.5, border: gameRules === 'hex' ? '1px solid var(--player1-color)' : 'none' }}
+                            onClick={() => setGameRules('hex')}
+                        >
+                            Hex (Cesta)
+                        </button>
+                        <button
+                            className={`secondary ${gameRules === 'points' ? 'active' : ''}`}
+                            style={{ flex: 1, margin: 0, opacity: gameRules === 'points' ? 1 : 0.5, border: gameRules === 'points' ? '1px solid var(--player2-color)' : 'none' }}
+                            onClick={() => setGameRules('points')}
+                        >
+                            Body (Rýchlosť)
+                        </button>
+                    </div>
+
+                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+                        <button className="primary" onClick={() => onStart1vBot(gameRules)}>
                             Hrať proti BOT-ovi
                         </button>
                         <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
-                            Pre **Online Multiplayer** si vyhľadajte priateľa v paneli napravo a kliknite na "Vyzvať".
+                            Pre **Online Multiplayer** si vyhľadajte priateľa v paneli napravo a kliknite na "Vyzvať". Bude použitý zvolený mód vyššie.
                         </p>
                     </div>
                 </div>
 
                 <div className="lobby-panel friends-panel">
                     <h2>Priatelia a Hráči</h2>
-                    <FriendsList />
+                    <FriendsList selectedGameRules={gameRules} />
                 </div>
             </div>
         </div>

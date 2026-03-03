@@ -20,10 +20,12 @@ export const GameBoard = ({ board, onHexClick }) => {
                         return (
                             <div
                                 key={hexId}
-                                className={`hexagon ${hexData.owner !== 'unowned' ? hexData.owner : ''}`}
+                                className={`hexagon ${hexData.owner !== 'unowned' ? hexData.owner : ''} ${hexData.owner === 'unowned' && hexData.special !== 'normal' ? `special-${hexData.special}` : ''}`}
                                 onClick={() => onHexClick(hexId)}
                             >
-                                {hexId}
+                                <span className="hex-number">{hexId}</span>
+                                {hexData.owner === 'unowned' && hexData.special === 'double' && <span className="hex-icon">⭐</span>}
+                                {hexData.owner === 'unowned' && hexData.special === 'risk' && <span className="hex-icon">⚠️</span>}
                             </div>
                         );
                     })}

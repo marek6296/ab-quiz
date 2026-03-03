@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { generateInitialBoard } from '../../hooks/useGameState';
 
-export const FriendsList = () => {
+export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -137,7 +138,8 @@ export const FriendsList = () => {
             player1_id: user.id,
             player2_id: partner.id,
             current_turn: user.id, // Challenger starts first
-            board_state: Array.from({ length: 28 }, (_, i) => ({ id: i + 1, owner: 'unowned' }))
+            game_type: selectedGameRules,
+            board_state: generateInitialBoard(selectedGameRules)
         }).select().single();
 
         if (error) {
