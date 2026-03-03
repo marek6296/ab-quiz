@@ -267,7 +267,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
     addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
   };
 
-  if (showAdmin) {
+  if (showAdmin && profile?.is_admin) {
     return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
