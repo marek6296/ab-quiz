@@ -68,7 +68,6 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
 
     const handleSearch = async (e) => {
         e.preventDefault();
-        playSound('click');
         if (!searchQuery.trim()) return;
 
         setLoading(true);
@@ -93,7 +92,6 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     };
 
     const sendFriendRequest = async (targetUserId) => {
-        playSound('click');
         setError('');
         const { error } = await supabase
             .from('friends')
@@ -119,7 +117,6 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     };
 
     const processRequest = async (id, newStatus) => {
-        playSound('click');
         const { error } = await supabase
             .from('friends')
             .update({ status: newStatus })
@@ -130,7 +127,6 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     };
 
     const removeFriend = async (id) => {
-        playSound('click');
         const { error } = await supabase
             .from('friends')
             .delete()
@@ -158,7 +154,6 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     };
 
     const handleCancelGameInvite = async () => {
-        playSound('click');
         if (outgoingInvite) {
             await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
             setOutgoingInvite(null);

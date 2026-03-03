@@ -150,7 +150,6 @@ const GameApp = () => {
   };
 
   const handleDeclineInvite = async (gameId) => {
-    playSound('click');
     await supabase.from('games').delete().eq('id', gameId);
     setIncomingInvite(null);
   };
@@ -308,7 +307,7 @@ const GameApp = () => {
             </div>
           </div>
 
-          <button className="neutral" onClick={() => { playSound('click'); setShowExitConfirm(true); }}>Opustiť Hru</button>
+          <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
 
           {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
@@ -360,8 +359,8 @@ const GameApp = () => {
 
         <ConfirmExitModal
           isOpen={showExitConfirm}
-          onConfirm={() => { playSound('click'); handleRestart(); }}
-          onCancel={() => { playSound('click'); setShowExitConfirm(false); }}
+          onConfirm={handleRestart}
+          onCancel={() => setShowExitConfirm(false)}
         />
 
         <GameInviteModal
