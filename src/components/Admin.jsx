@@ -126,11 +126,12 @@ export const Admin = ({ onBack }) => {
     };
 
     const handleDeleteAllQuestions = async () => {
-        if (!window.confirm('VAROVANIE: Naozaj chcete natrvalo ZMAZAŤ ÚPLNE VŠETKY otázky z databázy?')) return;
+        if (!window.confirm(`VAROVANIE: Naozaj chcete natrvalo ZMAZAŤ ${questions.length} aktuálne zobrazených otázok (podľa filtra) z databázy?`)) return;
         if (!window.confirm('Ste si absolútne istý? Túto akciu nie je možné vrátiť späť!')) return;
 
-        // Supabase requires a filter for deletes on all rows, mapping an always true condition
-        const { error } = await supabase.from('questions').delete().gte('difficulty', 0);
+        // Delete only the currently visible/filtered questions
+        const idsToDelete = questions.map(q => q.id);
+        const { error } = await supabase.from('questions').delete().in('id', idsToDelete);
         if (!error) {
             setQuestions([]);
             fetchStats();
@@ -308,7 +309,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                         disabled={loading}
                                         style={{ whiteSpace: 'nowrap' }}
                                     >
-                                        🗑️ Zmazať všetko
+                                        🗑️ Zmazať {filterCategory ? 'vyfiltrované' : 'všetko'}
                                     </button>
                                 </div>
                             </div>
