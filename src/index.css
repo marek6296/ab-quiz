@@ -1770,7 +1770,8 @@ button.small {
   }
 
   .dashboard-content {
-    padding: 1rem 1rem calc(80px + env(safe-area-inset-bottom, 0px));
+    /* Pridané extra odsadenie z 80px na 140px, aby obsah nebol odseknutý spodným menu */
+    padding: 1rem 1rem calc(140px + env(safe-area-inset-bottom, 0px));
     height: 100dvh;
     width: 100%;
   }
