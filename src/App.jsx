@@ -40,6 +40,13 @@ const GameApp = () => {
   const [gameRules, setGameRules] = useState('hex'); // 'hex' or 'points'
   const [activeGameId, setActiveGameId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
+
+  // Keep a ref of activeModal specifically for safe asynchronous database dispatching
+  const activeModalRef = useRef(activeModal);
+  useEffect(() => {
+    activeModalRef.current = activeModal;
+  }, [activeModal]);
+
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -262,14 +269,13 @@ const GameApp = () => {
   };
 
   const handleSyncModal = useCallback((updates) => {
-    if (gameMode === '1v1_online' && activeGameId) {
-      setActiveModal(prev => {
-        if (!prev) return prev;
-        const merged = { ...prev, ...updates };
-        // Fire-and-forget DB update for real-time synchronization
-        supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId);
-        return merged;
-      });
+    if (gameMode === '1v1_online' && activeGameId && activeModalRef.current) {
+      const merged = { ...activeModalRef.current, ...updates };
+      setActiveModal(merged); // Instantly update locally
+
+      // Safely push to database OUTSIDE of the state updater pure function.
+      // This guarantees React won't swallow the update.
+      supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId).then();
     }
   }, [gameMode, activeGameId]);
 
