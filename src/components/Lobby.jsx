@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 import { useAudio } from '../hooks/useAudio';
 
-export const Lobby = ({ onStart1vBot, onShowAdmin }) => {
+export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
@@ -190,13 +190,21 @@ export const Lobby = ({ onStart1vBot, onShowAdmin }) => {
                         </div>
                     </div>
 
-                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                        <button className="primary" onClick={() => onStart1vBot(gameRules, selectedCategories, difficulty)}>
-                            Hrať proti BOT-ovi
+                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                        <button className="primary" style={{ padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #38bdf8, #2563eb)' }} onClick={() => onStartMatchmaking('1v1_quick', gameRules, selectedCategories, difficulty)}>
+                            🚀 Rýchla Hra (1v1 Online)
                         </button>
-                        <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
-                            Pre **Online Multiplayer** si vyhľadajte priateľa v paneli napravo a kliknite na "Vyzvať". Bude použitý zvolený mód vyššie.
-                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button className="secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => onStartMatchmaking('1v1_private_create', gameRules, selectedCategories, difficulty)}>
+                                🔒 Vytvoriť Miestnosť
+                            </button>
+                            <button className="neutral" style={{ flex: 1, padding: '1rem' }} onClick={() => onStartMatchmaking('1v1_private_join', gameRules, selectedCategories, difficulty)}>
+                                🔑 Pripojiť sa cez Kód
+                            </button>
+                        </div>
+                        <button className="neutral" style={{ padding: '1rem', border: '1px solid #475569', background: 'transparent' }} onClick={() => onStart1vBot(gameRules, selectedCategories, difficulty)}>
+                            🤖 Tréning proti BOT-ovi
+                        </button>
                     </div>
                 </div>
 

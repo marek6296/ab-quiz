@@ -6,6 +6,7 @@ import { useGameState } from './hooks/useGameState';
 import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
+import { Matchmaking } from './components/Matchmaking';
 import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
@@ -122,9 +123,16 @@ const GameApp = () => {
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);
-    setAppState(APP_STATES.IN_GAME);
     setLocalCategory(cat);
     setLocalDifficulty(diff);
+
+    // If it's a matchmaking mode, redirect to the matchmaking screen
+    if (['1v1_quick', '1v1_private_create', '1v1_private_join'].includes(mode)) {
+      setAppState(APP_STATES.MATCHMAKING);
+      return;
+    }
+
+    setAppState(APP_STATES.IN_GAME);
 
     if (mode === '1v1_online' && gameId) {
       // Set status playing
@@ -363,15 +371,21 @@ const GameApp = () => {
       <>
         <Lobby
           onStart1vBot={(rules, cat, diff) => handleStartGame('1vbot', rules, null, cat, diff)}
+          onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
           onShowAdmin={() => setShowAdmin(true)}
         />
         <GameInviteModal
           invite={incomingInvite}
-          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
+          onAccept={(gameId) => handleStartGame('1v1_online', incomingInvite?.gameRules, gameId)}
           onDecline={handleDeclineInvite}
         />
       </>
     );
+  }
+
+  // Matchmaking Active
+  if (appState === APP_STATES.MATCHMAKING) {
+    return <Matchmaking user={user} />;
   }
 
   // Game is active
