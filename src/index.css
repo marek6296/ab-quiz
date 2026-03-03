@@ -1106,7 +1106,7 @@ button.small {
   z-index: 10000;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  animation: fadeOut 0.5s ease-in 3.5s forwards;
+  animation: fadeOut 0.8s ease-in 4.5s forwards;
   pointer-events: none;
 }
 
@@ -1115,8 +1115,11 @@ button.small {
   align-items: center;
   justify-content: center;
   gap: 12rem;
-  animation: vsPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  /* 0.5s delay before popping in, 1.5s duration for a slightly slower, more epic feel */
+  animation: vsPop 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
   width: 100%;
+  opacity: 0;
+  /* starts hidden before animation */
 }
 
 .vs-player {
@@ -1172,7 +1175,8 @@ button.small {
   text-transform: uppercase;
   color: #fbbf24;
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-  animation: pulse 2s infinite;
+  /* Start hidden, delay 1.5s (after avatars pop), then scale in over 1s, and then start pulsing */
+  animation: vsPop 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s backwards, pulse 2s infinite 2.5s;
 }
 
 @keyframes vsPop {
