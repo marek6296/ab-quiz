@@ -295,6 +295,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
       gameRules={gameRules}
       categories={localCategory}
       difficulty={localDifficulty}
+      onMatchFound={(gameId, rules, cat, diff) => handleStartGame('1v1_online', rules, gameId, cat, diff)}
     />;
   }
 

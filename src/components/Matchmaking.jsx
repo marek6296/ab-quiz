@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useGameStore, APP_STATES } from '../game-engine/store';
 import { generateInitialBoard } from '../game-engine/board';
 
-export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
+export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFound }) => {
     const {
-        setAppState, gameMode, setGameMode, setGameRules,
-        setActiveGameId, resetToLobby
+        gameMode, setGameMode, setGameRules,
+        resetToLobby
     } = useGameStore();
 
     const [statusText, setStatusText] = useState('Pripájanie k serveru...');
@@ -60,9 +60,9 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
                 .is('player2_id', null);
 
             if (!error) {
-                setGameRules(targetGame.game_type || 'hex'); // Sync with creator's rules
-                setActiveGameId(targetGame.id);
-                setAppState(APP_STATES.IN_GAME);
+                let cat = [];
+                try { cat = JSON.parse(targetGame.category); } catch (e) { }
+                onMatchFound(targetGame.id, targetGame.game_type || 'hex', cat, targetGame.difficulty || 1);
             } else {
                 addDebugLog(`Nepodarilo sa pripojiť (race condition?), skúšam znova...`);
                 findQuickMatch(true);
@@ -154,10 +154,9 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
                 .eq('id', targetGame.id);
 
             if (!error) {
-                setGameMode('1v1_private');
-                setGameRules(targetGame.game_type || 'hex'); // Sync rules with creator
-                setActiveGameId(targetGame.id);
-                setAppState(APP_STATES.IN_GAME);
+                let cat = [];
+                try { cat = JSON.parse(targetGame.category); } catch (e) { }
+                onMatchFound(targetGame.id, targetGame.game_type || 'hex', cat, targetGame.difficulty || 1);
             } else {
                 setStatusText('Niekto ťa predbehol. Skús znova.');
             }
@@ -176,8 +175,9 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
             }, (payload) => {
                 if (payload.new.status === 'active' && payload.new.player2_id) {
                     supabase.removeChannel(channel);
-                    setActiveGameId(gameId);
-                    setAppState(APP_STATES.IN_GAME);
+                    let cat = [];
+                    try { cat = JSON.parse(payload.new.category); } catch (e) { }
+                    onMatchFound(gameId, payload.new.game_type || gameRules, cat, payload.new.difficulty || 1);
                 }
             })
             .subscribe();
