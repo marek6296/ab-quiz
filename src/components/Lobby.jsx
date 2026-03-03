@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 import { useAudio } from '../hooks/useAudio';
 
-export const Lobby = ({ onStart1vBot }) => {
+export const Lobby = ({ onStart1vBot, onShowAdmin }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
@@ -14,14 +14,14 @@ export const Lobby = ({ onStart1vBot }) => {
     const { playSound } = useAudio();
 
     React.useEffect(() => {
-        fetch('/questions.json')
-            .then(res => res.json())
-            .then(data => {
-                if (data.metadata?.categories) {
-                    setAvailableCategories(data.metadata.categories);
-                }
-            })
-            .catch(err => console.error("Failed to load categories", err));
+        const fetchCategories = async () => {
+            const { data } = await supabase.from('questions').select('category', { count: 'exact' });
+            if (data) {
+                const unique = [...new Set(data.map(q => q.category))].sort();
+                setAvailableCategories(unique);
+            }
+        };
+        fetchCategories();
     }, []);
 
     const toggleCategory = (cat) => {
@@ -70,6 +70,11 @@ export const Lobby = ({ onStart1vBot }) => {
             <div className="lobby-header">
                 <h1>AB Kvíz</h1>
                 <div className="user-info">
+                    {profile?.is_admin && (
+                        <button className="secondary" onClick={onShowAdmin} style={{ marginRight: '1rem', background: '#38bdf8', color: '#0f172a' }}>
+                            Administrácia
+                        </button>
+                    )}
                     <span>Prihlásený ako: <strong>{profile?.username || user?.email}</strong></span>
                     <button className="text-button" onClick={() => signOut()}>Odhlásiť sa</button>
                 </div>

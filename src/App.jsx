@@ -7,6 +7,7 @@ import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
 import { supabase } from './lib/supabase';
+import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 
 const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
@@ -42,16 +43,15 @@ const GameApp = () => {
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [allQuestions, setAllQuestions] = useState([]);
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState(1);
   const { playSound } = useAudio();
 
+  // questions will now be fetched on-demand from Supabase
   useEffect(() => {
-    fetch('/questions.json')
-      .then(res => res.json())
-      .then(data => setAllQuestions(data.data || []))
-      .catch(err => console.error("Failed to load questions JSON", err));
+    setAllQuestions([]);
   }, []);
 
   // Fetch current user profile
@@ -72,13 +72,13 @@ const GameApp = () => {
 
   const [incomingInvite, setIncomingInvite] = useState(null);
 
-  const getRandomQuestionForConfig = useCallback(() => {
+  const getRandomQuestionForConfig = useCallback(async () => {
     let cats = Array.isArray(localCategory) ? localCategory : [];
     let diff = localDifficulty;
 
     if (gameMode === '1v1_online' && gameData) {
       try {
-        const parsed = JSON.parse(gameData.category);
+        const parsed = typeof gameData.category === 'string' ? JSON.parse(gameData.category) : gameData.category;
         cats = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
         cats = [];
@@ -86,19 +86,24 @@ const GameApp = () => {
       diff = gameData.difficulty || 1;
     }
 
-    let pool = allQuestions;
+    let query = supabase.from('questions').select('*');
     if (cats.length > 0) {
-      pool = pool.filter(q => cats.includes(q.category));
+      query = query.in('category', cats);
     }
-    pool = pool.filter(q => q.difficulty === diff);
+    query = query.eq('difficulty', diff);
 
-    if (pool.length === 0) {
+    // We fetch a batch and pick random on client for simplicity, 
+    // or we could use a random offset. Let's do a slightly larger batch and pick random.
+    const { data: pool } = await query.limit(100);
+
+    if (!pool || pool.length === 0) {
       console.warn("No questions match config! Falling back to any available question.");
-      pool = allQuestions.length > 0 ? allQuestions : [{ id: 1, text: "Načítavam otázky...", answer: "..." }];
+      const { data: fallback } = await supabase.from('questions').select('*').limit(1);
+      return fallback?.[0] || { id: 1, question_text: "Otázky sa nepodarilo načítať...", answer: "..." };
     }
 
     return pool[Math.floor(Math.random() * pool.length)];
-  }, [allQuestions, localCategory, localDifficulty, gameMode, gameData]);
+  }, [localCategory, localDifficulty, gameMode, gameData]);
 
   const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1) => {
     setGameMode(mode);
@@ -193,7 +198,7 @@ const GameApp = () => {
     setIncomingInvite(null);
   };
 
-  const handleHexClick = (hexId) => {
+  const handleHexClick = async (hexId) => {
     // If it's BOT's turn, ignore manual clicks
     if (gameMode === '1vbot' && currentPlayer === 2) return;
 
@@ -209,7 +214,7 @@ const GameApp = () => {
     }
 
     playSound('click');
-    const q = getRandomQuestionForConfig();
+    const q = await getRandomQuestionForConfig();
     setActiveModal({ hexId, question: q });
   };
 
@@ -221,8 +226,9 @@ const GameApp = () => {
       if (availableHexes.length > 0) {
         const timeout = setTimeout(() => {
           const randomHex = availableHexes[Math.floor(Math.random() * availableHexes.length)];
-          const q = getRandomQuestionForConfig();
-          setActiveModal({ hexId: randomHex.id, question: q });
+          getRandomQuestionForConfig().then(q => {
+            setActiveModal({ hexId: randomHex.id, question: q });
+          });
         }, 1500);
         return () => clearTimeout(timeout);
       }
@@ -264,12 +270,20 @@ const GameApp = () => {
     );
   }
 
+  // Admin Mode
+  if (showAdmin) {
+    return (
+      <Admin onBack={() => setShowAdmin(false)} />
+    );
+  }
+
   // Logged in, no game mode selected -> Show Lobby
   if (!gameMode) {
     return (
       <>
         <Lobby
-          onStart1vBot={(rules) => handleStartGame('1vbot', rules)}
+          onStart1vBot={(rules, cat, diff) => handleStartGame('1vbot', rules, null, cat, diff)}
+          onShowAdmin={() => setShowAdmin(true)}
         />
         <GameInviteModal
           invite={incomingInvite}
