@@ -103,8 +103,8 @@ export const Admin = ({ onBack }) => {
     // --------------------------
 
     return (
-        <div className="game-container lobby admin-panel" style={{ overflowY: 'auto', padding: '2rem' }}>
-            <div className="lobby-header" style={{ marginBottom: '2rem' }}>
+        <div className="game-container lobby admin-panel">
+            <div className="lobby-header">
                 <h1>Administrácia</h1>
                 <button className="secondary" onClick={onBack}>Späť do Lobby</button>
             </div>
