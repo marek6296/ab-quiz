@@ -45,6 +45,17 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
 
     const [earnedPoints, setEarnedPoints] = useState(0);
 
+    const generatePlaceholder = (answer) => {
+        if (!answer) return '';
+        return answer.split(' ').map(word => {
+            return word.split('').map(char => {
+                // Keep punctuation like hyphens or dots if they exist, otherwise use underscore
+                if (/[-.']/.test(char)) return char;
+                return '_';
+            }).join(' ');
+        }).join('\u00A0\u00A0\u00A0'); // 3 non-breaking spaces between words
+    };
+
     const renderInput = (onSubmit) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto' }}>
             <input
@@ -286,6 +297,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
+                        <div style={{ fontSize: '2.5rem', letterSpacing: '0.3rem', margin: '1rem 0', color: '#94a3b8', textShadow: '0 2px 4px rgba(0,0,0,0.5)', fontWeight: 'bold' }}>
+                            {generatePlaceholder(question.answer)}
+                        </div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
@@ -321,6 +335,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
+                        <div style={{ fontSize: '2.5rem', letterSpacing: '0.3rem', margin: '1rem 0', color: '#94a3b8', textShadow: '0 2px 4px rgba(0,0,0,0.5)', fontWeight: 'bold' }}>
+                            {generatePlaceholder(question.answer)}
+                        </div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Šanca pre súpera: {opponentName} ({opponentColor})
                         </h3>
