@@ -26,19 +26,19 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
         };
     }, [gameMode]);
 
-    const findQuickMatch = async () => {
+    const findQuickMatch = async (isRetry = false) => {
         const { addDebugLog } = useGameStore.getState();
-        addDebugLog(`Hľadám rýchlu hru: User=${user.id}, Rules=${gameRules}`);
-        setStatusText('Hľadám kamoša na hru...');
+        addDebugLog(`Hľadám rýchlu hru (pokus ${isRetry ? '2' : '1'}): User=${user.id}`);
+        setStatusText(isRetry ? 'Ešte jeden pokus o hľadanie...' : 'Hľadám kamoša na hru...');
 
-        // Try to find a waiting public game WITH THE SAME RULES (optional but safer)
+        // Try to find a waiting public game (be more lenient with rules for now)
         const { data: qGames, error: searchError } = await supabase.from('games')
             .select('*')
             .eq('status', 'waiting')
             .eq('is_public', true)
-            .eq('game_type', gameRules) // Match by game rules (hex vs points)
             .is('player2_id', null)
             .neq('player1_id', user.id)
+            .order('created_at', { ascending: true }) // Take the oldest one first
             .limit(1);
 
         if (searchError) {
@@ -47,30 +47,39 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
 
         if (qGames && qGames.length > 0) {
             const targetGame = qGames[0];
-            setStatusText('Pripájam sa k súperovi...');
+            setStatusText('Súper nájdený! Pripájam sa...');
+            addDebugLog(`Pripájam sa k hre: ${targetGame.id}`);
 
             const { error } = await supabase.from('games')
                 .update({
                     player2_id: user.id,
                     status: 'active',
-                    current_turn: targetGame.player1_id // Player 1 starts
+                    current_turn: targetGame.player1_id
                 })
                 .eq('id', targetGame.id)
                 .is('player2_id', null);
 
             if (!error) {
-                // If the game was created by someone with specific categories, we follow them
+                setGameRules(targetGame.game_type || 'hex'); // Sync with creator's rules
                 setActiveGameId(targetGame.id);
                 setAppState(APP_STATES.IN_GAME);
             } else {
-                // Someone else joined first, retry
-                findQuickMatch();
+                addDebugLog(`Nepodarilo sa pripojiť (race condition?), skúšam znova...`);
+                findQuickMatch(true);
             }
             return;
         }
 
-        // If no game found, create one and wait
+        // If not found on first try, wait 2 seconds and try one more time
+        if (!isRetry) {
+            searchTimeoutRef.current = setTimeout(() => findQuickMatch(true), 2000);
+            return;
+        }
+
+        // If still no game found after retry, create one and wait
         setStatusText('Miestnosť vytvorená. Čakám na súpera...');
+        addDebugLog('Žiadna hra nenájdená, vytváram novú...');
+
         const { data: newGame, error } = await supabase.from('games')
             .insert({
                 player1_id: user.id,
@@ -80,28 +89,16 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
                 category: categories?.length > 0 ? JSON.stringify(categories) : 'Všetky kategórie',
                 difficulty: difficulty || 1,
                 board_state: generateInitialBoard(gameRules),
-                current_turn: user.id // Default starting player
+                current_turn: user.id
             })
             .select()
             .single();
 
         if (newGame) {
-            addDebugLog(`Miestnosť vytvorená: ${newGame.id}`);
+            addDebugLog(`Miestnosť úspešne v databáze: ${newGame.id}`);
             listenForOpponent(newGame.id);
-            // Backup retry in case someone else also created a game simultaneously:
-            // Check again in 5 seconds if someone joined, if not, try searching one more time
-            searchTimeoutRef.current = setTimeout(() => {
-                supabase.from('games').select('player2_id').eq('id', newGame.id).single()
-                    .then(({ data }) => {
-                        if (data && !data.player2_id) {
-                            // still alone? try one more quick scan
-                            // (Realistically RLS fix should solve this)
-                        }
-                    });
-            }, 5000);
         } else if (error) {
             addDebugLog(`Chyba INSERT: ${error.message}`);
-            console.error('Insert Error:', error);
             setStatusText(`Chyba pri vytváraní hry: ${error.message}`);
         }
     };
