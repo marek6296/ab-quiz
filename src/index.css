@@ -1536,217 +1536,107 @@ button.small {
     padding: 1.5rem;
   }
 
-  /* Admin Mobile Overhaul (Ultra Wide & Fixed Order) */
+  /* Bulletproof Admin Mobile UI */
   .admin-panel {
-    padding: 0.5rem !important;
+    padding: 0.75rem !important;
+    height: 100vh;
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
-  }
-
-  .admin-panel .lobby-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .admin-panel .lobby-header h1 {
-    font-size: 1.2rem;
-    margin: 0;
+    overflow: hidden;
   }
 
   .admin-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    overflow-x: hidden;
-    width: 100%;
-  }
-
-  .admin-sidebar,
-  .admin-main {
-    width: 100% !important;
-    min-width: 0;
-    /* Fix flex overflow */
+    gap: 1rem;
+    flex: 1;
+    overflow: hidden;
   }
 
   .admin-sidebar {
-    order: 1;
-    /* Stats on TOP */
-    padding: 0.75rem !important;
-    margin-bottom: 0;
-  }
-
-  .admin-sidebar h3 {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .admin-stats-total {
-    font-size: 1rem;
-    color: #38bdf8;
-    margin-bottom: 0.5rem;
-  }
-
-  .admin-stats-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    max-height: 80px;
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-
-  .admin-stat-row {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    display: flex;
-    gap: 0.4rem;
-    border-bottom: none !important;
+    order: 10;
+    /* Move stats to the very bottom */
+    padding: 1rem !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .admin-main {
-    order: 2;
-    /* Questions BELOW */
-    padding: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
+    order: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
   }
 
   .tab-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
   }
 
   .tab-buttons button {
-    padding: 0.5rem 0.2rem;
-    font-size: 0.7rem;
-    text-align: center;
-    white-space: nowrap;
+    flex: 1;
+    padding: 0.75rem 0.25rem;
+    font-size: 0.8rem;
+    border-radius: 8px;
   }
 
   .admin-search-row {
-    flex-direction: row !important;
+    margin-bottom: 0.75rem;
     gap: 0.5rem !important;
   }
 
-  .admin-search-row .search-input {
-    flex: 2;
-  }
-
-  .admin-search-row .delete-all-btn {
-    flex: 1;
-    padding: 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  /* Table to Cards Transformation */
   .admin-table-wrapper {
-    max-height: 65vh;
-    /* Much taller for better visibility */
-    overflow-y: auto;
-    overflow-x: hidden;
+    flex: 1;
+    max-height: none !important;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 0;
-    width: 100vw;
-    margin-left: -0.5rem;
-    /* Break out of parent padding */
-  }
-
-  .admin-table {
-    display: block;
-  }
-
-  .admin-table thead {
-    display: none;
-    /* Hide headers on mobile */
-  }
-
-  .admin-table tbody {
-    display: block;
+    border-radius: 12px;
+    padding: 0.25rem;
   }
 
   .admin-table tr {
-    display: grid;
     grid-template-areas:
-      "text text text"
-      "answer answer actions";
-    gap: 0.5rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.02);
-    margin-bottom: 2px;
-    border-radius: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .admin-table td {
-    display: block;
-    padding: 0 !important;
-    border: none !important;
+      "text text"
+      "answer actions";
+    grid-template-columns: 1fr auto;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 0.4rem;
+    padding: 0.85rem;
+    border-radius: 10px;
+    border-bottom: none;
   }
 
   .q-text {
-    grid-area: text;
-    font-size: 0.95rem;
-    color: #f8fafc;
-    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
   }
 
   .q-answer {
-    grid-area: answer;
-    font-size: 0.85rem;
-    color: #4ade80;
-    padding-top: 0.2rem;
-  }
-
-  .q-actions {
-    grid-area: actions;
-    text-align: right;
-  }
-
-  .hide-mobile {
-    display: none !important;
-  }
-
-  /* Form and AI Chips */
-  .form-row {
-    grid-template-columns: 1fr !important;
-    gap: 0;
-  }
-
-  .admin-panel .auth-form {
-    padding: 0;
-  }
-
-  .admin-panel .auth-form .form-group label {
-    font-size: 0.8rem;
-  }
-
-  .admin-panel .auth-form input,
-  .admin-panel .auth-form textarea,
-  .admin-panel .auth-form select {
-    padding: 0.6rem;
     font-size: 0.9rem;
+    font-weight: 600;
   }
 
-  .category-container {
+  .q-actions .delete-btn {
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+  }
+
+  /* Stats visualization on mobile */
+  .admin-stats-list {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.4rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    max-height: none;
   }
 
-  .category-chip {
+  .admin-stat-row {
     padding: 0.4rem;
-    font-size: 0.75rem !important;
+    background: rgba(255, 255, 255, 0.02);
   }
 }
 
