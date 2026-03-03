@@ -330,16 +330,15 @@ export const Admin = ({ onBack }) => {
 
                                         setLoading(true);
                                         try {
-                                            // Fetch existing questions for selected categories to avoid duplicates
+                                            // Fetch only a small subset of existing questions to avoid hitting tokens/context limits
                                             const { data: existingData } = await supabase
                                                 .from('questions')
                                                 .select('question_text')
                                                 .in('category', finalCategories)
-                                                .eq('difficulty', diff);
+                                                .limit(30);
 
-                                            const existingQuestions = existingData?.map(q => q.question_text) || [];
-                                            const avoidList = existingQuestions.length > 0
-                                                ? `Zoznam otázok, ktoré už v DB máme a NIKDY ich neopakuj: [${existingQuestions.slice(0, 100).join(', ')}]`
+                                            const avoidList = existingData?.length > 0
+                                                ? `\nTIETO OTÁZKY UŽ MÁME (NEOPAKOVAŤ): ${existingData.map(q => q.question_text).join(' | ')}`
                                                 : "";
 
                                             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -350,67 +349,71 @@ export const Admin = ({ onBack }) => {
                                                 },
                                                 body: JSON.stringify({
                                                     model: "gpt-4o",
-                                                    temperature: 0.3,
+                                                    temperature: 0.7, // Slightly higher for better variety
                                                     messages: [
                                                         {
                                                             role: "system",
-                                                            content: `Si ELITNÝ autor kvízových otázok pre slovenskú súťaž. Tvojou úlohou je vygenerovať otázky, ktoré sú 100% FAKTICKY SPRÁVNE, JEDNOZNAČNÉ a STRUČNÉ.
+                                                            content: `Si ELITNÝ expert na tvorbu kvízov pre slovenskú verziu AZ-KVÍZ (AB Kvíz).
+    Tvojou úlohou je vygenerovať presne požadovaný počet otázok.
 
-                                                            STRIKTNÉ PRAVIDLÁ PRE KVALITU:
-                                                            1. ŽIADNA HALUCINÁCIA: Ak si nie si 100% istý faktom (najmä pri CZ/SK scéne), radšej danú otázku NEGENERUJ a skús inú tému.
-                                                            2. JEDNOZNAČNOSŤ: Otázka musí mať presne JEDNU nespochybniteľnú odpoveď. Vyhni sa otázkam typu "Kto bol prvý...", ak existujú viaceré interpretácie.
-                                                            3. ULTRA-STRUČNOSŤ (Max 8-10 slov): Otázka musí byť prečítateľná za 3 sekundy. Priamočiare vety.
-                                                            4. ŠPECIFIKÁ KATEGÓRIÍ:
-                                                               - Streameri a YouTuberi: VÝHRADNE CZ/SK scéna. Zameraj sa na overené fakty, ikonické mená a hlášky (napr. 'Kto založil projekt Madmonq?', 'Ktorý streamer je známy ako Kráľ českej YouTube scény?'). 
-                                                               - Slovensko: Geografia, história, osobnosti (napr. 'Ktorá rieka preteká Piešťanmi?', 'V ktorom roku vznikla SR?').
-                                                               - Ostatné: Používaj všeobecne známy prehľad (nie akademické detaily).
-                                                            5. ODPOVEDE: Musia byť presné, 1-2 slová.
-                                                            6. FORMÁT: Striktne vráť JSON objekt, ktorý obasuje kľúč **"questions"**. Tento kľúč bude obsahovať pole objektov s kľúčmi 'question_text', 'answer', 'category'. Nikdy nevracaj iba jeden objekt, vždy pole vo vnútri "questions".`
+    STRIKTNÉ PRAVIDLÁ KVALITY:
+    1. PRAVDIVOSŤ: Odpovede musia byť 100% fakticky overiteľné. Žiadne výmysly.
+    2. JEDNOZNAČNOSŤ: Na otázku musí existovať jedna stručná a nespochybniteľná odpoveď.
+    3. ŠTRUKTÚRA KATEDÓRIÍ:
+       - 'Streameri a YouTuberi': Iba CZ/SK scéna (Gogo, Duklock, Restt, Agraelus, Herdyn, Madmonq atď.).
+       - 'Logika a Hádanky': Krátke, úderné hádanky. Odpoveď musí byť podstatné meno (napr. 'Má to kľúče, ale nevie odomknúť?' -> 'Piáno' alebo 'Klavír'). Vyhni sa abstraktným metaforám.
+       - 'Slovensko': Zameranie na hory, mestá, rieky, hrady a známe osobnosti.
+       - 'Slovenský jazyk': Gramatika, pravopis, vybrané slová.
+    4. STRUČNOSŤ: Otázka max 12 slov. Odpoveď max 2 slová.
+    5. MNOŽSTVO: Musíš vygenerovať presne toľko otázok, koľko užívateľ žiada.
+
+    FORMÁT: Vráť JSON objekt: {"questions": [{"question_text": "...", "answer": "...", "category": "..."}]}`
                                                         },
                                                         {
                                                             role: "user",
-                                                            content: `Vygeneruj ${count} UNIKÁTNYCH otázok v týchto kategóriách: ${finalCategories.join(', ')}. ${avoidList}`
+                                                            content: `Vygeneruj PRESNE ${count} unikátnych otázok rozdelených medzi tieto kategórie: ${finalCategories.join(', ')}. Obecná náročnosť level ${diff} z 3. ${avoidList}`
                                                         }
                                                     ],
                                                     response_format: { type: "json_object" }
                                                 })
                                             });
 
-                                            const rawData = await response.json();
-                                            const result = JSON.parse(rawData.choices[0].message.content);
-
-                                            let questionsList = [];
-                                            if (result.questions && Array.isArray(result.questions)) {
-                                                questionsList = result.questions;
-                                            } else if (Array.isArray(result)) {
-                                                questionsList = result;
-                                            } else if (result.question_text) {
-                                                // Handle case where GPT rogue-returns a single object instead of an array
-                                                questionsList = [result];
+                                            if (!response.ok) {
+                                                const errData = await response.json().catch(() => ({}));
+                                                throw new Error(errData.error?.message || `HTTP ${response.status}`);
                                             }
 
+                                            const rawData = await response.json();
+                                            if (!rawData.choices?.[0]?.message?.content) {
+                                                throw new Error("AI nevrátila žiadny obsah. Skúste to prosím znova.");
+                                            }
+
+                                            const result = JSON.parse(rawData.choices[0].message.content);
+                                            let questionsList = result.questions || (Array.isArray(result) ? result : []);
+
                                             if (questionsList.length > 0) {
+                                                // Validate and normalize
                                                 const toInsert = questionsList.map(q => ({
-                                                    question_text: q.question_text,
-                                                    answer: q.answer,
+                                                    question_text: q.question_text || q.text,
+                                                    answer: String(q.answer).trim(),
                                                     category: q.category || finalCategories[0],
                                                     difficulty: diff
-                                                }));
+                                                })).filter(q => q.question_text && q.answer); // Basic sanitization
 
                                                 const { error } = await supabase.from('questions').insert(toInsert);
                                                 if (error) throw error;
 
-                                                alert(`Úspešne pridaných ${toInsert.length} otázok naprieč kategóriami!`);
+                                                alert(`🎉 Úspešne pridaných ${toInsert.length} otázok!`);
                                                 setGenCategories([]);
                                                 setCustomCat('');
                                                 fetchStats();
                                                 fetchQuestions();
                                             } else {
-                                                throw new Error("Neočakávaný formát z AI: " + JSON.stringify(result));
+                                                throw new Error("AI vygenerovala prázdny zoznam. Skús iné kategórie.");
                                             }
                                         } catch (err) {
-                                            console.error(err);
-                                            alert("Chyba AI generátora: " + err.message);
+                                            console.error("Generator Error:", err);
+                                            alert("⚠ Chyba AI: " + err.message);
                                         } finally {
                                             setLoading(false);
                                         }
