@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../hooks/useGameState';
+import { useAudio } from '../../hooks/useAudio';
 
 export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     const { user } = useAuth();
@@ -10,6 +11,7 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     const [searchResults, setSearchResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { playSound } = useAudio();
 
     const [outgoingInvite, setOutgoingInvite] = useState(null);
 
@@ -66,6 +68,7 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
 
     const handleSearch = async (e) => {
         e.preventDefault();
+        playSound('click');
         if (!searchQuery.trim()) return;
 
         setLoading(true);
@@ -90,6 +93,8 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
     };
 
     const sendFriendRequest = async (targetUserId) => {
+        playSound('click');
+        setError('');
         const { error } = await supabase
             .from('friends')
             .insert({
@@ -113,21 +118,23 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
         }
     };
 
-    const acceptRequest = async (requestId) => {
+    const processRequest = async (id, newStatus) => {
+        playSound('click');
         const { error } = await supabase
             .from('friends')
-            .update({ status: 'accepted' })
-            .eq('id', requestId);
+            .update({ status: newStatus })
+            .eq('id', id);
 
         if (error) console.error('Error accepting request:', error);
         else fetchFriends();
     };
 
-    const removeFriend = async (requestId) => {
+    const removeFriend = async (id) => {
+        playSound('click');
         const { error } = await supabase
             .from('friends')
             .delete()
-            .eq('id', requestId);
+            .eq('id', id);
 
         if (error) console.error('Error removing friend:', error);
         else fetchFriends();
@@ -150,7 +157,8 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
         }
     };
 
-    const cancelChallenge = async () => {
+    const handleCancelGameInvite = async () => {
+        playSound('click');
         if (outgoingInvite) {
             await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
             setOutgoingInvite(null);
