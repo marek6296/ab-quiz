@@ -281,7 +281,7 @@ const GameApp = () => {
         />
         <GameInviteModal
           invite={incomingInvite}
-          onAccept={(gameId) => handleStartGame('1v1_online', incomingInvite?.gameRules, gameId)}
+          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
           onDecline={handleDeclineInvite}
         />
       </>
