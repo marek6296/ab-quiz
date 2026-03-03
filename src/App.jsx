@@ -289,7 +289,12 @@ const GameApp = () => {
   }
 
   if (appState === APP_STATES.MATCHMAKING) {
-    return <Matchmaking user={user} />;
+    return <Matchmaking
+      user={user}
+      gameRules={gameRules}
+      categories={localCategory}
+      difficulty={localDifficulty}
+    />;
   }
 
   if (appState === APP_STATES.IN_GAME) {

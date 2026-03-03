@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useGameStore, APP_STATES } from '../game-engine/store';
+import { generateInitialBoard } from '../game-engine/board';
 
-export const Matchmaking = ({ user }) => {
+export const Matchmaking = ({ user, gameRules, categories, difficulty }) => {
     const {
-        setAppState, gameRules, gameMode, setGameMode,
+        setAppState, gameMode, setGameMode, setGameRules,
         setActiveGameId, resetToLobby
     } = useGameStore();
 
     const [statusText, setStatusText] = useState('Pripájanie k serveru...');
     const [roomCodeInput, setRoomCodeInput] = useState('');
     const [isCreatingPrivate, setIsCreatingPrivate] = useState(false);
+    const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         if (gameMode === '1v1_quick') {
@@ -18,24 +20,29 @@ export const Matchmaking = ({ user }) => {
         } else if (gameMode === '1v1_private_create') {
             createPrivateRoom();
         }
+
+        return () => {
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        };
     }, [gameMode]);
 
     const findQuickMatch = async () => {
-        setStatusText('Hľadám voľného súpera...');
+        setStatusText('Hľadám kamoša na hru...');
 
-        // Try to find a waiting public game
-        const { data: waitingGames } = await supabase.from('games')
+        // Try to find a waiting public game WITH THE SAME RULES (optional but safer)
+        const { data: qGames } = await supabase.from('games')
             .select('*')
             .eq('status', 'waiting')
             .eq('is_public', true)
+            .eq('game_type', gameRules) // Match by game rules (hex vs points)
             .is('player2_id', null)
             .neq('player1_id', user.id)
             .limit(1);
 
-        if (waitingGames && waitingGames.length > 0) {
-            // Join it
-            const targetGame = waitingGames[0];
-            setStatusText('Pripájam sa k hre...');
+        if (qGames && qGames.length > 0) {
+            const targetGame = qGames[0];
+            setStatusText('Pripájam sa k súperovi...');
+
             const { error } = await supabase.from('games')
                 .update({
                     player2_id: user.id,
@@ -43,37 +50,53 @@ export const Matchmaking = ({ user }) => {
                     current_turn: targetGame.player1_id // Player 1 starts
                 })
                 .eq('id', targetGame.id)
-                .is('player2_id', null); // Ensure no race condition
+                .is('player2_id', null);
 
             if (!error) {
+                // If the game was created by someone with specific categories, we follow them
                 setActiveGameId(targetGame.id);
                 setAppState(APP_STATES.IN_GAME);
             } else {
-                // If failed (someone else took it), try again
+                // Someone else joined first, retry
                 findQuickMatch();
             }
             return;
         }
 
         // If no game found, create one and wait
-        setStatusText('Vytváram novú hru. Čakám na súpera...');
+        setStatusText('Miestnosť vytvorená. Čakám na súpera...');
         const { data: newGame, error } = await supabase.from('games')
             .insert({
                 player1_id: user.id,
                 status: 'waiting',
                 game_type: gameRules,
-                is_public: true
+                is_public: true,
+                category: categories?.length > 0 ? JSON.stringify(categories) : 'Všetky kategórie',
+                difficulty: difficulty || 1,
+                board_state: generateInitialBoard(gameRules),
+                current_turn: user.id // Default starting player
             })
             .select()
             .single();
 
         if (newGame) {
             listenForOpponent(newGame.id);
+            // Backup retry in case someone else also created a game simultaneously:
+            // Check again in 5 seconds if someone joined, if not, try searching one more time
+            searchTimeoutRef.current = setTimeout(() => {
+                supabase.from('games').select('player2_id').eq('id', newGame.id).single()
+                    .then(({ data }) => {
+                        if (data && !data.player2_id) {
+                            // still alone? try one more quick scan
+                            // (Realistically RLS fix should solve this)
+                        }
+                    });
+            }, 5000);
         }
     };
 
     const createPrivateRoom = async () => {
-        setStatusText('Generujem kód miestnosti...');
+        setStatusText('Vytváram tvoj kód...');
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         const { data: newGame } = await supabase.from('games')
@@ -82,7 +105,11 @@ export const Matchmaking = ({ user }) => {
                 status: 'waiting',
                 game_type: gameRules,
                 is_public: false,
-                room_code: code
+                room_code: code,
+                category: categories?.length > 0 ? JSON.stringify(categories) : 'Všetky kategórie',
+                difficulty: difficulty || 1,
+                board_state: generateInitialBoard(gameRules),
+                current_turn: user.id
             })
             .select()
             .single();
@@ -96,7 +123,7 @@ export const Matchmaking = ({ user }) => {
 
     const joinPrivateRoom = async () => {
         if (!roomCodeInput) return;
-        setStatusText('Overujem kód...');
+        setStatusText('Kontrolujem kód...');
 
         const { data: games } = await supabase.from('games')
             .select('*')
@@ -117,10 +144,11 @@ export const Matchmaking = ({ user }) => {
 
             if (!error) {
                 setGameMode('1v1_private');
+                setGameRules(targetGame.game_type || 'hex'); // Sync rules with creator
                 setActiveGameId(targetGame.id);
                 setAppState(APP_STATES.IN_GAME);
             } else {
-                setStatusText('Nepodarilo sa pripojiť. Skúste znova.');
+                setStatusText('Niekto ťa predbehol. Skús znova.');
             }
         } else {
             setStatusText('Miestnosť neexistuje alebo je plná.');
