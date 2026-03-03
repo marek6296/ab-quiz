@@ -14,7 +14,20 @@ export const Lobby = ({ onStart1vBot }) => {
         const audio = audioRef.current;
         if (audio) {
             audio.volume = 0.015; // Set volume to 1.5% (barely audible)
-            audio.play().catch(e => console.log('Autoplay prevented:', e)); // Attempt to play immediately
+
+            // Handle modern browser autoplay policies
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Auto-play was prevented by the browser. 
+                    // Wait for the first click anywhere on the page to start music.
+                    const playOnInteraction = () => {
+                        audio.play();
+                        document.removeEventListener('click', playOnInteraction);
+                    };
+                    document.addEventListener('click', playOnInteraction);
+                });
+            }
         }
     }, []);
 
