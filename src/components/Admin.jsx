@@ -113,14 +113,14 @@ export const Admin = ({ onBack }) => {
                 {/* Sidebar Stats */}
                 <div className="admin-sidebar lobby-panel">
                     <h3>Štatistiky</h3>
-                    <div style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#38bdf8' }}>
-                        Celkom otázok: <strong>{stats.total}</strong>
+                    <div className="admin-stats-total">
+                        Celkom: <strong>{stats.total}</strong>
                     </div>
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <div className="admin-stats-list">
                         {Object.entries(stats.byCategory).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
-                            <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <span style={{ color: '#94a3b8' }}>{cat}</span>
-                                <span style={{ fontWeight: 'bold' }}>{count}</span>
+                            <div key={cat} className="admin-stat-row">
+                                <span className="stat-cat">{cat}</span>
+                                <span className="stat-count">{count}</span>
                             </div>
                         ))}
                     </div>
