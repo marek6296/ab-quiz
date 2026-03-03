@@ -167,7 +167,11 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
 
             if (error) {
                 console.error("Server zamietol ťah:", error);
-                // In a perfect system, we'd revert the optimistic UI on error here
+                alert(`Chyba pri synchronizácii: ${error.message || 'Hra zostala v zaseknutom stave. Skúste obnoviť stránku.'}`);
+                // Failsafe: Pokus o rucne vymazanie modalneho okna v DB (ak ma hrac RLS prava)
+                supabase.from('games').update({ active_modal: null }).eq('id', activeGameId).then();
+                // Refresh local state based on what's in DB (rollback optimistic UI)
+                window.location.reload();
             }
 
         } else {
