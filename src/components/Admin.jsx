@@ -180,6 +180,7 @@ AKCIA:
 3. Oprav štylistiku otázky, aby nebola robotická, ale znela ako z úst moderátora (t.j. jasná, jednoznačná).
 4. Priraď/Oprav náročnosť (difficulty): 1=ľahké/odpoveď pre masy(95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké/veľké detaily.
 5. Vráť SPÄŤ rovnaké "id", aby sme otázku aktualizovali.
+6. STRIKTNÝ ZÁKAZ: Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď. Ak tam je, preformuluj otázku.
 Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_text, answer, difficulty, category.`
                             },
                             {
@@ -590,7 +591,8 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
     4. ŠPECIFIKÁ TÉM:
        - 'Slovensko': Len unikátne slovenské fakty (najvyššie, najstaršie, jediné).
        - 'Logika a Hádanky': Klasické vtipné hádanky, kde je odpoveď zväčša predmet alebo zviera.
-    5. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
+    5. ŽIADNA ODPOVEĎ V OTÁZKE: Text otázky nesmie priamo ani nepriamo obsahovať samotnú odpoveď. Je to kritická chyba, ak sa odpoveď nachádza v znení otázky.
+    6. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                             },
                                                             {
                                                                 role: "user",
