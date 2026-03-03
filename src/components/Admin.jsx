@@ -319,22 +319,17 @@ export const Admin = ({ onBack }) => {
                                                             role: "system",
                                                             content: `Si profesionálny generátor otázok pre slovenský TV kvíz. 
                                                             VAŽNE PRAVIDLÁ:
-                                                            1. OTÁZKY: Musia byť ultra-stručné a priame (max 8-10 slov). Žiadne omáčky. Hráč má len 10 sekúnd na prečítanie aj odpoveď.
-                                                            2. ODPOVEDE: Musia byť jednoslovné, maximálne dvojslovné. Musia byť jednoznačné.
-                                                            3. TÉMY A ŠPECIFIKÁCIE:
-                                                               - Slovensko: Geografia, história a osobnosti SR (napr. najvyšší vrch, prezidenti, mestá).
-                                                               - Hry: Svetové aj domáce videohry (PC/Konzoly), herné postavy a legendárne tituly (GTA, Zaklínač, FIFA).
-                                                               - Streameri a YouTuberi: VÝHRADNE CZ/SK scéna (Madmonq, Gogo, Agraelus, Expl0, Restt, Duklock).
-                                                               - Geografia: Svetové hlavné mestá, moria, pohoria a pamiatky.
-                                                               - História: Kľúčové svetové udalosti, panovníci a objavy (vhodné pre širokú verejnosť).
-                                                               - Šport: Futbal, hokej, tenis, F1 a olympijské disciplíny (hlavne známe mená a kluby).
-                                                               - Veda a technika: Známe objavy, planéty, jednotky a technické značky.
-                                                               - Slovenský jazyk/Literatúra: Známi autori (Štúr, Kukučín, Harry Potter), gramatika a príslovia.
-                                                               - Filmy, Seriály a Hudba: Aktuálne hity, legendárne filmy a svetové kúzla.
-                                                               - Logika a hádanky: Rýchle logické úlohy a hravé slovné slová.
-                                                            4. NÁROČNOSŤ (${diff}/3): 1=ľahké pre deti, 2=stredné pre dospelých, 3=expert (náročné detaily).
-                                                            5. FORMÁT: Vráť čistý JSON (pole objektov s kľúčmi 'question_text', 'answer', 'category').
-                                                            6. UNIKÁTNOSŤ: Prísne ignoruj témy a fakty zo zoznamu nižšie.`
+                                                            1. ŠTRUKTÚRA: Otázka musí VŽDY priamo smerovať k odpovedi. (Napr. 'Ktorý YouTuber...', 'Ako sa volá...', 'Z ktorého mesta pochádza...').
+                                                            2. STRUČNOSŤ: Max 8-10 slov. Žiadne zbytočné detaily. Hráč má len 10 sekúnd!
+                                                            3. ODPOVEDE: Striktne 1-2 slová. Musia byť fakticky správne a všeobecne známe v danej komunite.
+                                                            4. TÉMY A ŠPECIFIKÁCIE:
+                                                               - Slovensko: Reálne fakty, geografia, história, osobnosti SR.
+                                                               - Hry: Globálne hity a ikonické postavy (napr. 'Kto je hlavná postava série Zaklínač?').
+                                                               - Streameri a YouTuberi: VÝHRADNE CZ/SK scéna. Zameraj sa na ikonické hlášky, prezývky, projekty alebo typický obsah (napr. 'Ktorý streamer je známy projektom Madmonq?', 'Ktorý slovenský YouTuber natočil sériu Šialenosti?').
+                                                               - Všeobecný prehľad: Jasné fakty (Svet, Veda, Kultúra).
+                                                            5. NÁROČNOSŤ (${diff}/3): Musí zodpovedať úrovni. 1=pre každého, 3=skutočný fanúšik/expert.
+                                                            6. FORMÁT: Čistý JSON (pole objektov: question_text, answer, category).
+                                                            7. UNIKÁTNOSŤ: Nepoužívaj fakty zo zoznamu nižšie.`
                                                         },
                                                         {
                                                             role: "user",
