@@ -49,8 +49,30 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         // automaticky túto otázku prepadneme, aby sa predĺženie nedalo získať F5-kou.
         const isReload = (phase === 'currentPlayer' || phase === 'opponent' || phase === 'opponentChoice');
         if (gameMode !== '1v1_online' && isReload && !window.hasMountedQuestionModalThisSession) {
-            setTimeLeft(0);
-            phaseStartRef.current = 0; // Oklamanie timera aby si myslel, že čas brutálne pretiekol a stlačí enter.
+            if (phase === 'currentPlayer') {
+                setInputValue('');
+                setTimeout(() => {
+                    setPhase('feedbackPrimaryIncorrect');
+                    setLastAnswer('Podvádzanie (Refresh)');
+                    setTimeout(() => {
+                        setPhase('opponentChoice');
+                        setInputValue('');
+                        setErrorMsg('');
+                        setTimeLeft(5);
+                        setLastAnswer('');
+                    }, 2500);
+                }, 100);
+            } else if (phase === 'opponent' || phase === 'opponentChoice') {
+                setInputValue('');
+                setTimeout(() => {
+                    setPhase('feedbackSecondaryBlack');
+                    setLastAnswer('Podvádzanie (Refresh)');
+                    if (!resolvedRef.current) {
+                        resolvedRef.current = true;
+                        setTimeout(() => onResolveRef.current('black', 0, true), 3000);
+                    }
+                }, 100);
+            }
         }
         window.hasMountedQuestionModalThisSession = true;
     }, [gameMode, phase]);
