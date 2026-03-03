@@ -44,22 +44,28 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     // Anti-cheat a Disconnect penáleze
     useEffect(() => {
-        // Zabraňuje cheatom formou refreshu prehliadača počas lokálnej hry alebo proti BOTovi.
-        // Ak sa načíta komponent a my sme zistili, že sme v strede hry (napríklad phase načítaný z localStorage),
-        // automaticky túto otázku prepadneme, aby sa predĺženie nedalo získať F5-kou.
         const isReload = (phase === 'currentPlayer' || phase === 'opponent' || phase === 'opponentChoice');
-        if (gameMode !== '1v1_online' && isReload && !window.hasMountedQuestionModalThisSession) {
+
+        // Anti-cheat chytí reštart, ak sme offline (vždy) alebo sme online A SME NA ŤAHU
+        const isMyLocalTurn = gameMode !== '1v1_online' ||
+            (phase === 'currentPlayer' && isLocalPrimary) ||
+            ((phase === 'opponentChoice' || phase === 'opponent') && isLocalSecondary);
+
+        if (isReload && isMyLocalTurn && !window.hasMountedQuestionModalThisSession) {
             if (phase === 'currentPlayer') {
                 setInputValue('');
                 setTimeout(() => {
                     setPhase('feedbackPrimaryIncorrect');
                     setLastAnswer('Podvádzanie (Refresh)');
+                    if (gameMode === '1v1_online' && onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: 'Podvádzanie (Refresh)' });
+
                     setTimeout(() => {
                         setPhase('opponentChoice');
                         setInputValue('');
                         setErrorMsg('');
                         setTimeLeft(5);
                         setLastAnswer('');
+                        if (gameMode === '1v1_online' && onSyncModal) onSyncModal({ phase: 'opponentChoice', timeLeft: 5, lastAnswer: '' });
                     }, 2500);
                 }, 100);
             } else if (phase === 'opponent' || phase === 'opponentChoice') {
@@ -67,6 +73,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 setTimeout(() => {
                     setPhase('feedbackSecondaryBlack');
                     setLastAnswer('Podvádzanie (Refresh)');
+                    if (gameMode === '1v1_online' && onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Podvádzanie (Refresh)' });
+
                     if (!resolvedRef.current) {
                         resolvedRef.current = true;
                         setTimeout(() => onResolveRef.current('black', 0, true), 3000);
@@ -75,7 +83,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }
         }
         window.hasMountedQuestionModalThisSession = true;
-    }, [gameMode, phase]);
+    }, [gameMode, phase, isLocalPrimary, isLocalSecondary, onSyncModal]);
 
     useEffect(() => {
         // Enforce zlyhania, ak sa náš súper v Online režime odpojil presne počas svojho ťahu (zbabelý útek / strata pripojenia)
