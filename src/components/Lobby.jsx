@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
-import { useAudio } from '../hooks/useAudio';
 
 export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToPortal }) => {
     const { user, signOut } = useAuth();
@@ -16,18 +15,64 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [difficulty, setDifficulty] = useState(1);
 
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data } = await supabase.from('questions').select('category', { count: 'exact' });
+            if (data) {
+                const unique = [...new Set(data.map(q => q.category))].sort();
+                setAvailableCategories(unique);
+            }
+        };
+        fetchCategories();
     }, []);
 
+    useEffect(() => {
+        if (user?.id) {
+            supabase.from('profiles').select('*').eq('id', user.id).single()
+                .then(({ data }) => setProfile(data));
+        }
+    }, [user]);
+
+    const handleStartFromSetup = () => {
+        if (setupMode === '1vbot') {
+            onStart1vBot(gameRules, selectedCategories, difficulty);
+        } else {
+            onStartMatchmaking(setupMode, gameRules, selectedCategories, difficulty);
+        }
+    };
+
+    const toggleCategory = (cat) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
+    };
 
     const isAllSelected = selectedCategories.length === 0;
 
     return (
         <div className="dashboard-layout">
-
             <aside className="dashboard-sidebar">
                 <div className="sidebar-logo">
                     <h1 className="logo-brutal">
                         AB Kvíz
+                    </h1>
+                </div>
+
+                <nav className="sidebar-nav">
+                    <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setSetupMode(null); }}>
+                        <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
+                    </button>
+                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
+                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
+                    </button>
+                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
+                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
+                    </button>
+                    {profile?.is_admin && (
+                        <button className="nav-item" onClick={onShowAdmin} style={{ color: '#f8fafc', fontWeight: 'bold' }}>
+                            <span style={{ fontSize: '1.5rem' }}>🛠️</span> Administrácia
+                        </button>
+                    )}
                 </nav>
 
                 <div style={{ marginTop: 'auto', marginBottom: '1rem' }}>
@@ -48,11 +93,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                 <div className="mobile-only-logo">
                     <h1 className="logo-brutal">AB Kvíz</h1>
                 </div>
+
                 {activeTab === 'play' && !setupMode && (
                     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
                         <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a proti komu chcete hrať.</p>
 
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
                             <div className="mode-card primary" onClick={() => setSetupMode('1v1_quick')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
                                 <h3>Rýchla Hra</h3>
