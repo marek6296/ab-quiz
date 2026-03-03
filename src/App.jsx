@@ -266,8 +266,9 @@ const ABQuizApp = ({ onBackToPortal }) => {
       manualExitRef.current = false; // Reset exit flag on new game
       supabase.from('profiles').update({ online_status: 'playing' }).eq('id', user.id).then();
     } else {
-      resetGame();
+      resetGame(rules);
     }
+    setActiveModal(null);
   }, [user, resetGame, setGameMode, setGameRules, setActiveGameId, setAppState, addDebugLog]);
 
   const [reconnectCheckEnabled, setReconnectCheckEnabled] = useState(false);
@@ -415,6 +416,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
     }
     resetToLobby();
     setShowExitConfirm(false);
+    setActiveModal(null); // Extrémne dôležité: Vyčistiť starý modal
     resetGame();
     addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
   };

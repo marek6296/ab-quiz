@@ -234,15 +234,18 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         }
     }, [winner, board, gameMode, activeGameId, gameData, currentPlayer, userId, gameRules, p1Score, p2Score, p1Combo, p2Combo]);
 
-    const resetGame = useCallback(() => {
-        setBoard(generateInitialBoard(gameRules));
+    const resetGame = useCallback((forceRules) => {
+        const rulesToUse = forceRules || gameRules;
+        setBoard(generateInitialBoard(rulesToUse));
         setCurrentPlayer(1);
         setWinner(null);
         setP1Score(0);
         setP2Score(0);
         setP1Combo(0);
         setP2Combo(0);
+        setGameData(null); // Clear old online game mappings when restarting
         localStorage.removeItem('ab_quiz_local_state');
+        localStorage.removeItem('ab_quiz_local_modal');
     }, [gameRules]);
 
     // For App.jsx, we need a way to know WHICH player the local user is to restrict clicks
