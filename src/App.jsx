@@ -300,7 +300,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
       await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
-    alert("Opustili ste hru.");
     resetToLobby();
     setShowExitConfirm(false);
     resetGame();
