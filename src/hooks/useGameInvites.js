@@ -1,7 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomingInvite }) => {
+    // Vytvorenie stabilnej referencie funkcií na to, aby sme nemuseli unsubscribovať channel
+    const activeGameIdRef = useRef(activeGameId);
+    const handleStartGameRef = useRef(handleStartGame);
+    useEffect(() => {
+        activeGameIdRef.current = activeGameId;
+        handleStartGameRef.current = handleStartGame;
+    }, [activeGameId, handleStartGame]);
+
     useEffect(() => {
         if (!user) return;
 
@@ -16,7 +24,7 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                 table: 'games',
                 filter: `player2_id=eq.${user.id}`
             }, async (payload) => {
-                if (payload.new.status === 'waiting') {
+                if (payload.new.status === 'waiting' && !activeGameIdRef.current) {
                     const { data } = await supabase.from('profiles').select('username').eq('id', payload.new.player1_id).single();
                     setIncomingInvite({
                         gameId: payload.new.id,
@@ -31,8 +39,8 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                 table: 'games',
                 filter: `player1_id=eq.${user.id}`
             }, (payload) => {
-                if (payload.new.status === 'active' && !activeGameId) {
-                    handleStartGame('1v1_online', payload.new.game_type || 'hex', payload.new.id);
+                if (payload.new.status === 'active' && !activeGameIdRef.current) {
+                    handleStartGameRef.current('1v1_online', payload.new.game_type || 'hex', payload.new.id);
                 }
             })
             .subscribe();
@@ -42,5 +50,5 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
             // Set offline on unmount
             if (user) supabase.from('profiles').update({ online_status: 'offline' }).eq('id', user.id).then();
         };
-    }, [user, activeGameId, handleStartGame, setIncomingInvite]);
+    }, [user, setIncomingInvite]);
 };

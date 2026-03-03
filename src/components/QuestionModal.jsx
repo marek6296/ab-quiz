@@ -10,6 +10,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [lastAnswer, setLastAnswer] = useState('');
     const phaseStartRef = useRef(Date.now());
 
+    // Udržanie najaktuálnejšej hodnoty `onResolve`, aby sme nemuseli neustále reštartovať timery.
+    const onResolveRef = useRef(onResolve);
+    useEffect(() => {
+        onResolveRef.current = onResolve;
+    }, [onResolve]);
+
     const { playSound, stopSound } = useAudio();
 
     const opponent = currentPlayer === 1 ? 2 : 1;
@@ -177,7 +183,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
-                    setTimeout(() => onResolve('player2', pts, false), 5000);
+                    setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
@@ -198,16 +204,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
-                    setTimeout(() => onResolve('player2', pts, false), 5000);
+                    setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
-                    setTimeout(() => onResolve('unowned', 0, true), 5000);
+                    setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
                 }
             }, thinkTime);
         }
         return () => clearTimeout(timeout);
-    }, [isBotPrimaryTurn, isBotSecondaryTurn, onResolve, question.answer]);
+    }, [isBotPrimaryTurn, isBotSecondaryTurn, question.answer, gameRules, timeLeft]);
 
     // Timer Logic - Strictly based on absolute time elapsed to prevent browser background throttling issues
     useEffect(() => {
@@ -248,7 +254,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             setLastAnswer('Čas vypršal');
                             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
 
-                            setTimeout(() => onResolve('unowned', 0, true), 5000);
+                            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
                         }
                     }
                 }
@@ -256,7 +262,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             return () => clearInterval(timer);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, isLocalPrimary, isLocalSecondary, gameMode, onSyncModal, onResolve]);
+    }, [phase, isLocalPrimary, isLocalSecondary, gameMode, onSyncModal]);
 
     if (!question) return null;
 
@@ -269,7 +275,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolve(`player${currentPlayer}`, pts, false), 5000);
+            setTimeout(() => onResolveRef.current(`player${currentPlayer}`, pts, false), 5000);
         } else {
             setPhase('feedbackPrimaryIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
@@ -293,11 +299,11 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolve(`player${opponent}`, pts, false), 5000);
+            setTimeout(() => onResolveRef.current(`player${opponent}`, pts, false), 5000);
         } else {
             setPhase('feedbackSecondaryBlackIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolve('unowned', 0, true), 5000);
+            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
         }
     };
 
@@ -305,7 +311,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
         if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
-        setTimeout(() => onResolve('unowned', 0, true), 5000);
+        setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
     };
 
     const handleKeyDown = (e, callback) => {

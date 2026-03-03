@@ -137,6 +137,8 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
     };
 
     const handleChallenge = async (partner) => {
+        if (outgoingInvite) return; // Zabránenie viacnásobnému výzvaniu
+
         const { data, error } = await supabase.from('games').insert({
             player1_id: user.id,
             player2_id: partner.id,
