@@ -56,6 +56,17 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const inputRef = useRef(null);
 
+    // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
+    useEffect(() => {
+        if (inputRef.current) {
+            // A tiny timeout ensures modal animation has started and DOM is ready for focus grabbing on Safari/mobile
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [phase, isLocalPrimary, isLocalSecondary]);
+
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
 
@@ -109,7 +120,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     position: 'absolute',
                     opacity: 0,
                     top: 0,
-                    left: '-9999px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
                     width: '1px',
                     height: '1px'
                 }}
