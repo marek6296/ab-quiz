@@ -27,6 +27,13 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const isBotPrimaryTurn = gameMode === '1vbot' && currentPlayer === 2 && phase === 'currentPlayer';
     const isBotSecondaryTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponent';
 
+    // Auto-skip 'opponentReveal' phase for the Bot
+    useEffect(() => {
+        if (phase === 'opponentReveal' && gameMode === '1vbot' && opponent === 2) {
+            setPhase('opponent');
+        }
+    }, [phase, gameMode, opponent]);
+
     const currentPlayerName = currentPlayer === 1 ? playerNames.player1 : playerNames.player2;
     const opponentName = opponent === 1 ? playerNames.player1 : playerNames.player2;
 
@@ -72,13 +79,13 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setPhase('feedbackPrimaryIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
             setTimeout(() => {
-                setPhase('opponent');
+                setPhase('opponentReveal');
                 setInputValue('');
                 setErrorMsg('');
                 setTimeLeft(15);
                 setLastAnswer(''); // Ready for opponent guess
                 setIsSubmitting(false); // Allow secondary guess input
-                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                if (onSyncModal) onSyncModal({ phase: 'opponentReveal', lastAnswer: '' });
             }, 2500);
         }
     };
@@ -138,7 +145,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
         const isSelfTurnActive = (phase === 'reveal' && isLocalPrimary) ||
             (phase === 'currentPlayer' && isLocalPrimary) ||
-            (phase === 'opponent' && isLocalSecondary);
+            (phase === 'opponent' && isLocalSecondary); // We do NOT include opponentReveal here, so keyboard auto blurs during transition
 
         // Keep local value in sync
         const handleInput = (e) => setInputValue(e.target.value);
@@ -336,7 +343,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
-                        setPhase('opponent'); // BOT didn't know, pass
+                        setPhase('opponentReveal'); // The bot skip handles the jump to 'opponent'
                         setInputValue('');
                         setErrorMsg('');
                         setTimeLeft(15);
@@ -396,12 +403,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
 
                             setTimeout(() => {
-                                setPhase('opponent');
+                                setPhase('opponentReveal');
                                 setInputValue('');
                                 setErrorMsg('');
                                 setTimeLeft(15);
                                 setLastAnswer('');
-                                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                                if (onSyncModal) onSyncModal({ phase: 'opponentReveal', lastAnswer: '' });
                             }, 2500);
                         } else {
                             setPhase('feedbackSecondaryBlackTime');
@@ -468,6 +475,39 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true, true)}
                 {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false, false)}
                 {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false, false)}
+
+                {/* Secondary Guess Intro Phase (OpponentReveal) */}
+                {phase === 'opponentReveal' && (
+                    <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div className="reveal-animation">
+                            <h2 className="reveal-text" style={{ color: '#fbbf24' }}>Šanca pre: {opponentName}</h2>
+                        </div>
+                        <div className="question-text" style={{ margin: '1rem 0' }}>{question.question_text || question.text}</div>
+
+                        <p style={{ margin: '1rem 0', color: '#fff', fontSize: '1.2rem', textAlign: 'center' }}>
+                            Súper neodpovedal správne. Máš teraz jedinečnú šancu získať tento hexagón!
+                        </p>
+
+                        {isLocalSecondary ? (
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexDirection: 'column', width: '100%', maxWidth: '300px' }}>
+                                <button className="primary" onClick={() => {
+                                    setPhase('opponent');
+                                    // FORCE focus here immediately on click!
+                                    const globalInput = document.getElementById('global-mobile-input');
+                                    if (globalInput) globalInput.focus();
+                                    if (onSyncModal) onSyncModal({ phase: 'opponent' });
+                                }} style={{ width: '100%', padding: '1.2rem', fontSize: '1.1rem' }}>
+                                    Zobraziť klávesnicu
+                                </button>
+                                <button className="neutral" onClick={handleDeclineSecondary} style={{ width: '100%' }}>
+                                    Netuším (Čierny Hex)
+                                </button>
+                            </div>
+                        ) : (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa, kým {opponentName} prijme na seba šancu...</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
