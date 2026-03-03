@@ -257,14 +257,17 @@ const GameApp = () => {
     }
   };
 
-  const handleSyncModal = async (updates) => {
-    if (gameMode === '1v1_online' && activeGameId && activeModal) {
-      const merged = { ...activeModal, ...updates };
-      setActiveModal(merged);
-      // Fire-and-forget DB update for real-time synchronization
-      supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId);
+  const handleSyncModal = useCallback((updates) => {
+    if (gameMode === '1v1_online' && activeGameId) {
+      setActiveModal(prev => {
+        if (!prev) return prev;
+        const merged = { ...prev, ...updates };
+        // Fire-and-forget DB update for real-time synchronization
+        supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId);
+        return merged;
+      });
     }
-  };
+  }, [gameMode, activeGameId]);
 
   // BOT Turn automation
   useEffect(() => {
