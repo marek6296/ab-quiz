@@ -285,7 +285,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 {/* Primary Guess Phase */}
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                        <div className="question-text">{question.text}</div>
+                        <div className="question-text">{question.question_text || question.text}</div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
@@ -320,7 +320,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                        <div className="question-text">{question.text}</div>
+                        <div className="question-text">{question.question_text || question.text}</div>
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Šanca pre súpera: {opponentName} ({opponentColor})
                         </h3>
