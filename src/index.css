@@ -1535,4 +1535,93 @@ button.small {
   .setup-panel {
     padding: 1.5rem;
   }
+
+  /* Admin Responsive Fixes */
+  .admin-panel {
+    padding: 1rem !important;
+    height: 100dvh;
+  }
+
+  .admin-panel .lobby-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .admin-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .admin-sidebar,
+  .admin-main {
+    width: 100% !important;
+  }
+
+  .admin-sidebar {
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .tab-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tab-buttons button {
+    flex: 1;
+    min-width: 100px;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 0;
+  }
+
+  .admin-search-row {
+    flex-direction: column;
+    gap: 1rem !important;
+  }
+
+  .admin-search-row .search-input {
+    width: 100%;
+  }
+
+  .admin-search-row .delete-all-btn {
+    width: 100%;
+  }
+
+  .admin-panel table th:nth-child(3),
+  .admin-panel table td:nth-child(3),
+  .admin-panel table th:nth-child(4),
+  .admin-panel table td:nth-child(4) {
+    display: none;
+  }
+
+  .admin-panel table th,
+  .admin-panel table td {
+    padding: 0.6rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.admin-sidebar,
+.admin-main {
+  height: auto;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }

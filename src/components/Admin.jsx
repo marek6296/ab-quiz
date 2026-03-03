@@ -109,9 +109,9 @@ export const Admin = ({ onBack }) => {
                 <button className="secondary" onClick={onBack}>Späť do Lobby</button>
             </div>
 
-            <div className="lobby-content" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem', alignItems: 'start' }}>
+            <div className="admin-grid">
                 {/* Sidebar Stats */}
-                <div className="lobby-panel" style={{ height: 'auto' }}>
+                <div className="admin-sidebar lobby-panel">
                     <h3>Štatistiky</h3>
                     <div style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#38bdf8' }}>
                         Celkom otázok: <strong>{stats.total}</strong>
@@ -127,28 +127,27 @@ export const Admin = ({ onBack }) => {
                 </div>
 
                 {/* Main Content */}
-                <div className="lobby-panel" style={{ height: 'auto' }}>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="admin-main lobby-panel">
+                    <div className="tab-buttons">
                         <button className={`secondary ${activeTab === 'list' ? 'active' : ''}`} onClick={() => setActiveTab('list')}>Zoznam</button>
-                        <button className={`secondary ${activeTab === 'add' ? 'active' : ''}`} onClick={() => setActiveTab('add')}>Pridať manuálne</button>
-                        <button className={`secondary ${activeTab === 'generate' ? 'active' : ''}`} onClick={() => setActiveTab('generate')}>Generovať AI</button>
+                        <button className={`secondary ${activeTab === 'add' ? 'active' : ''}`} onClick={() => setActiveTab('add')}>Manuálne</button>
+                        <button className={`secondary ${activeTab === 'generate' ? 'active' : ''}`} onClick={() => setActiveTab('generate')}>AI Generátor</button>
                     </div>
 
                     {activeTab === 'list' && (
                         <>
-                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
-                                <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                            <div className="admin-search-row">
+                                <div className="form-group search-input">
                                     <input
                                         type="text"
-                                        placeholder="Hľadať v otázkach..."
+                                        placeholder="Hľadať..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && fetchQuestions()}
-                                        style={{ margin: 0 }}
                                     />
                                 </div>
-                                <button className="danger" onClick={handleDeleteAllQuestions} style={{ margin: 0, whiteSpace: 'nowrap', padding: '0.8rem 1.5rem', alignSelf: 'stretch' }}>
-                                    🗑️ Zmazať všetky
+                                <button className="danger delete-all-btn" onClick={handleDeleteAllQuestions}>
+                                    🗑️ Zmazať všetko
                                 </button>
                             </div>
                             <div style={{ maxHeight: '600px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
@@ -207,7 +206,7 @@ export const Admin = ({ onBack }) => {
                                     required
                                 />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label>Kategória</label>
                                     <input
@@ -305,7 +304,7 @@ export const Admin = ({ onBack }) => {
                                     />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="form-row">
                                     <div className="form-group">
                                         <label>Počet otázok CELKOM (1-50)</label>
                                         <input type="number" id="gen_count" defaultValue={10} min={1} max={50} />
