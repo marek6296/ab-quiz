@@ -15,7 +15,7 @@ export const Lobby = ({ onStart1vBot }) => {
     React.useEffect(() => {
         const audio = audioRef.current;
         if (audio) {
-            audio.volume = 0.015; // Set volume to 1.5% (barely audible)
+            audio.volume = 0.006; // Set volume to 0.6% (reduced by 60% from 0.015)
 
             // Handle modern browser autoplay policies
             const playPromise = audio.play();
