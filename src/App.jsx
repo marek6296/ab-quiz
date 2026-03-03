@@ -263,7 +263,11 @@ const GameApp = () => {
       </div>
 
       {/* Game start sound plays when game begins. Placed outside of vs overlay to ensure it's not paused by any browser CSS optimizations */}
-      <audio src="/game-start.mp3" autoPlay />
+      <audio
+        src="/game-start.mp3"
+        autoPlay
+        ref={el => { if (el) el.volume = 0.15; }}
+      />
 
       <div className="game-container game-entrance">
         <h1 className="game-title">
