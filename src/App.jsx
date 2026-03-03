@@ -9,6 +9,7 @@ import { GameInviteModal } from './components/GameInviteModal';
 import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
+import { useGameStore, APP_STATES } from './game-engine/store';
 
 const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
   if (!isOpen) return null;
@@ -36,9 +37,14 @@ const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
 // Wrapper component to use the Auth context
 const GameApp = () => {
   const { user } = useAuth();
-  const [gameMode, setGameMode] = useState(null);
-  const [gameRules, setGameRules] = useState('hex'); // 'hex' or 'points'
-  const [activeGameId, setActiveGameId] = useState(null);
+  const {
+    appState, setAppState,
+    gameMode, setGameMode,
+    gameRules, setGameRules,
+    activeGameId, setActiveGameId,
+    resetToLobby
+  } = useGameStore();
+
   const [activeModal, setActiveModal] = useState(null);
 
   // Keep a ref of activeModal specifically for safe asynchronous database dispatching
@@ -116,6 +122,7 @@ const GameApp = () => {
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);
+    setAppState(APP_STATES.IN_GAME);
     setLocalCategory(cat);
     setLocalDifficulty(diff);
 
@@ -125,7 +132,8 @@ const GameApp = () => {
     } else {
       resetGame();
     }
-  }, [user, resetGame, setGameMode, setActiveGameId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, resetGame, setGameMode, setActiveGameId, setAppState]);
 
   // Resume active game if we have one and we're not currently in a game
   useEffect(() => {
@@ -327,8 +335,7 @@ const GameApp = () => {
       await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
-    setGameMode(null);
-    setActiveGameId(null);
+    resetToLobby();
     setShowExitConfirm(false);
     resetGame();
   };
@@ -351,7 +358,7 @@ const GameApp = () => {
   }
 
   // Logged in, no game mode selected -> Show Lobby
-  if (!gameMode) {
+  if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
     return (
       <>
         <Lobby
@@ -368,174 +375,179 @@ const GameApp = () => {
   }
 
   // Game is active
-  return (
-    <>
-      {/* Versus Animation Overlay */}
-      <div className="versus-overlay">
-        <div className="versus-content">
-          <div className="vs-player">
-            <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
-            <span style={{ fontWeight: 700 }}>
-              {gameMode === '1v1_online'
-                ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
-                : profile?.username || 'Vy'
-              }
-            </span>
-          </div>
-          <div className="vs-text">VS</div>
-          <div className="vs-player">
-            <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
-            <span style={{ fontWeight: 700 }}>
-              {gameMode === '1vbot'
-                ? 'BOT'
-                : (gameMode === '1v1_online'
-                  ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
-                  : 'Hráč 2')
-              }
-            </span>
-          </div>
-        </div>
-        <div className="vs-title">Bitka začína!</div>
-      </div>
-
-      {/* Game start sound plays when game begins. Placed outside of vs overlay to ensure it's not paused by any browser CSS optimizations */}
-      <audio
-        src="/game-start.mp3"
-        autoPlay
-        ref={el => { if (el) el.volume = 0.15; }}
-      />
-
-      <div className="game-container game-entrance">
-        {gameMode === '1v1_online' && gameData?.paused_by && (
-          <div className="versus-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
-            <div className="versus-content" style={{ flexDirection: 'column', gap: '2rem' }}>
-              <h2 style={{ color: '#facc15', fontSize: '2.5rem' }}>HRA JE POZASTAVENÁ</h2>
-              <p style={{ fontSize: '1.2rem', color: 'white', textAlign: 'center' }}>
-                {gameData.paused_by === user.id
-                  ? "Vy ste pozastavili hru."
-                  : "Súper pozastavil hru. Čaká sa..."}
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                {gameData.paused_by === user.id && (
-                  <button className="primary" onClick={handleTogglePause} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
-                    Pokračovať v hre
-                  </button>
-                )}
-                <button className="neutral" onClick={() => setShowExitConfirm(true)} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
-                  Opustiť hru
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <h1 className="game-title">
-          <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
-          <span className="vs">VS</span>
-          <span>{gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}</span>
-        </h1>
-
-        {winner && (
-          <div className="winner-banner">
-            {winner === localPlayerNum
-              ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
-              : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
-            }
-          </div>
-        )}
-
-        <div className="status-board">
-          {/* Player 1: Dot on the left */}
-          <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
-            <div className="dot player1-bg" />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
-              <span className="player1-text" style={{ lineHeight: '1.2' }}>
+  if (appState === APP_STATES.IN_GAME) {
+    return (
+      <>
+        {/* Versus Animation Overlay */}
+        <div className="versus-overlay">
+          <div className="versus-content">
+            <div className="vs-player">
+              <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
+              <span style={{ fontWeight: 700 }}>
                 {gameMode === '1v1_online'
-                  ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                  : `(Vy) ${profile?.username || 'Ja'}`
+                  ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                  : profile?.username || 'Vy'
                 }
               </span>
-              {gameRules === 'points' && (
-                <span className="player1-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
-                  {p1Score} bodov {p1Combo >= 5 ? '🔥 2x' : p1Combo >= 3 ? '🔥 1.5x' : ''}
+            </div>
+            <div className="vs-text">VS</div>
+            <div className="vs-player">
+              <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
+              <span style={{ fontWeight: 700 }}>
+                {gameMode === '1vbot'
+                  ? 'BOT'
+                  : (gameMode === '1v1_online'
+                    ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                    : 'Hráč 2')
+                }
+              </span>
+            </div>
+          </div>
+          <div className="vs-title">Bitka začína!</div>
+        </div>
+
+        {/* Game start sound plays when game begins. Placed outside of vs overlay to ensure it's not paused by any browser CSS optimizations */}
+        <audio
+          src="/game-start.mp3"
+          autoPlay
+          ref={el => { if (el) el.volume = 0.15; }}
+        />
+
+        <div className="game-container game-entrance">
+          {gameMode === '1v1_online' && gameData?.paused_by && (
+            <div className="versus-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
+              <div className="versus-content" style={{ flexDirection: 'column', gap: '2rem' }}>
+                <h2 style={{ color: '#facc15', fontSize: '2.5rem' }}>HRA JE POZASTAVENÁ</h2>
+                <p style={{ fontSize: '1.2rem', color: 'white', textAlign: 'center' }}>
+                  {gameData.paused_by === user.id
+                    ? "Vy ste pozastavili hru."
+                    : "Súper pozastavil hru. Čaká sa..."}
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  {gameData.paused_by === user.id && (
+                    <button className="primary" onClick={handleTogglePause} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
+                      Pokračovať v hre
+                    </button>
+                  )}
+                  <button className="neutral" onClick={() => setShowExitConfirm(true)} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
+                    Opustiť hru
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <h1 className="game-title">
+            <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
+            <span className="vs">VS</span>
+            <span>{gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}</span>
+          </h1>
+
+          {winner && (
+            <div className="winner-banner">
+              {winner === localPlayerNum
+                ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
+                : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
+              }
+            </div>
+          )}
+
+          <div className="status-board">
+            {/* Player 1: Dot on the left */}
+            <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
+              <div className="dot player1-bg" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
+                <span className="player1-text" style={{ lineHeight: '1.2' }}>
+                  {gameMode === '1v1_online'
+                    ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                    : `(Vy) ${profile?.username || 'Ja'}`
+                  }
                 </span>
+                {gameRules === 'points' && (
+                  <span className="player1-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
+                    {p1Score} bodov {p1Combo >= 5 ? '🔥 2x' : p1Combo >= 3 ? '🔥 1.5x' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {gameMode === '1v1_online' && !activeModal && !winner && (
+                <button className="secondary" onClick={handleTogglePause}>
+                  Pauza
+                </button>
               )}
+              <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
+            </div>
+
+            {/* Player 2: Dot on the right */}
+            <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, paddingRight: '4px' }}>
+                <span className="player2-text" style={{ lineHeight: '1.2' }}>
+                  {gameMode === '1vbot'
+                    ? 'BOT'
+                    : (gameMode === '1v1_online'
+                      ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                      : 'Hráč 2')
+                  }
+                </span>
+                {gameRules === 'points' && (
+                  <span className="player2-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
+                    {p2Score} bodov {p2Combo >= 5 ? '🔥 2x' : p2Combo >= 3 ? '🔥 1.5x' : ''}
+                  </span>
+                )}
+              </div>
+              <div className="dot player2-bg" />
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {gameMode === '1v1_online' && !activeModal && !winner && (
-              <button className="secondary" onClick={handleTogglePause}>
-                Pauza
-              </button>
-            )}
-            <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
-          </div>
+          <GameBoard board={board} onHexClick={handleHexClick} />
 
-          {/* Player 2: Dot on the right */}
-          <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, paddingRight: '4px' }}>
-              <span className="player2-text" style={{ lineHeight: '1.2' }}>
-                {gameMode === '1vbot'
+          {activeModal && (
+            <QuestionModal
+              modalData={activeModal} // Used for synchronization
+              hexId={activeModal.hexId}
+              question={activeModal.question}
+              currentPlayer={currentPlayer}
+              gameMode={gameMode}
+              gameRules={gameRules}
+              p1Combo={p1Combo}
+              p2Combo={p2Combo}
+              onResolve={handleResolveQuestion}
+              onClose={() => setActiveModal(null)}
+              onSyncModal={handleSyncModal}
+              localPlayerNum={localPlayerNum}
+              playerNames={{
+                player1: gameMode === '1v1_online'
+                  ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                  : `(Vy) ${profile?.username || 'Ja'}`,
+                player2: gameMode === '1vbot'
                   ? 'BOT'
                   : (gameMode === '1v1_online'
                     ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
                     : 'Hráč 2')
-                }
-              </span>
-              {gameRules === 'points' && (
-                <span className="player2-text" style={{ fontSize: '0.85rem', opacity: 0.85, lineHeight: '1.2' }}>
-                  {p2Score} bodov {p2Combo >= 5 ? '🔥 2x' : p2Combo >= 3 ? '🔥 1.5x' : ''}
-                </span>
-              )}
-            </div>
-            <div className="dot player2-bg" />
-          </div>
-        </div>
+              }}
+            />
+          )}
 
-        <GameBoard board={board} onHexClick={handleHexClick} />
-
-        {activeModal && (
-          <QuestionModal
-            modalData={activeModal} // Used for synchronization
-            hexId={activeModal.hexId}
-            question={activeModal.question}
-            currentPlayer={currentPlayer}
-            gameMode={gameMode}
-            gameRules={gameRules}
-            p1Combo={p1Combo}
-            p2Combo={p2Combo}
-            onResolve={handleResolveQuestion}
-            onClose={() => setActiveModal(null)}
-            onSyncModal={handleSyncModal}
-            localPlayerNum={localPlayerNum}
-            playerNames={{
-              player1: gameMode === '1v1_online'
-                ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                : `(Vy) ${profile?.username || 'Ja'}`,
-              player2: gameMode === '1vbot'
-                ? 'BOT'
-                : (gameMode === '1v1_online'
-                  ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                  : 'Hráč 2')
-            }}
+          <ConfirmExitModal
+            isOpen={showExitConfirm}
+            onConfirm={handleRestart}
+            onCancel={() => setShowExitConfirm(false)}
           />
-        )}
 
-        <ConfirmExitModal
-          isOpen={showExitConfirm}
-          onConfirm={handleRestart}
-          onCancel={() => setShowExitConfirm(false)}
-        />
+          <GameInviteModal
+            invite={incomingInvite}
+            onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
+            onDecline={handleDeclineInvite}
+          />
+        </div>
+      </>
+    );
+  }
 
-        <GameInviteModal
-          invite={incomingInvite}
-          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
-          onDecline={handleDeclineInvite}
-        />
-      </div>
-    </>
-  );
+  // Fallback for unknown states
+  return null;
 };
 
 function App() {
