@@ -107,7 +107,10 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
     let query = supabase.from('questions').select('*');
     if (cats.length > 0) {
-      query = query.in('category', cats);
+      // Pick *one* random category to query. This guarantees perfect randomization 
+      // across checked categories rather than pulling sequentially sorted buckets.
+      const randomCat = cats[Math.floor(Math.random() * cats.length)];
+      query = query.eq('category', randomCat);
     }
     query = query.eq('difficulty', diff);
 

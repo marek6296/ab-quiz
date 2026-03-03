@@ -487,6 +487,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {/* Primary Guess Phase */}
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
+                            {question.category || 'Všeobecné'}
+                        </div>
                         <div className="question-text">{question.question_text || question.text}</div>
                         {renderPlaceholder(question.answer)}
                         {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
@@ -522,6 +525,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {/* Secondary Guess Choice Phase */}
                 {phase === 'opponentChoice' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
+                            {question.category || 'Všeobecné'}
+                        </div>
                         <div className="question-text">{question.question_text || question.text}</div>
 
                         <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
@@ -560,6 +566,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
+                            {question.category || 'Všeobecné'}
+                        </div>
                         <div className="question-text">{question.question_text || question.text}</div>
                         {renderPlaceholder(question.answer)}
                         {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
