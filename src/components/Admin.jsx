@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 export const Admin = ({ onBack }) => {
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState('');
     const [stats, setStats] = useState({ total: 0, byCategory: {} });
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
@@ -428,6 +429,9 @@ export const Admin = ({ onBack }) => {
 
                                         const count = parseInt(document.getElementById('gen_count').value);
                                         const diff = parseInt(document.getElementById('gen_diff').value);
+                                        let diffDesc = "ĽAHKÁ (Základné, všeobecne známe fakty pre bežného konzumenta.)";
+                                        if (diff === 2) diffDesc = "STREDNÁ (Špecifickejšie fakty, ktoré pozná priemerný fanúšik.)";
+                                        if (diff === 3) diffDesc = "ŤAŽKÁ (Veľmi ojedinelé detaily, roky, mená začiatočných postáv. Pre expertov.)";
                                         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
                                         if (finalCategories.length === 0) return alert('Vyber aspoň jednu kategóriu!');
@@ -435,30 +439,37 @@ export const Admin = ({ onBack }) => {
 
                                         setLoading(true);
                                         try {
-                                            // Fetch only a small subset of existing questions to avoid hitting tokens/context limits
-                                            const { data: existingData } = await supabase
-                                                .from('questions')
-                                                .select('question_text')
-                                                .in('category', finalCategories)
-                                                .limit(30);
+                                            let totalInserted = 0;
 
-                                            const avoidList = existingData?.length > 0
-                                                ? `\nTIETO OTÁZKY UŽ MÁME (NEOPAKOVAŤ): ${existingData.map(q => q.question_text).join(' | ')}`
-                                                : "";
+                                            // Iterate sequentially over each category
+                                            for (let i = 0; i < finalCategories.length; i++) {
+                                                const cat = finalCategories[i];
+                                                setLoadingStatus(`Generujem tému: ${cat} (${i + 1}/${finalCategories.length})...`);
 
-                                            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'Authorization': `Bearer ${apiKey}`
-                                                },
-                                                body: JSON.stringify({
-                                                    model: "gpt-4o",
-                                                    temperature: 0.4, // Lower temperature for more factual and less random content
-                                                    messages: [
-                                                        {
-                                                            role: "system",
-                                                            content: `Si PROFESIONÁLNY autor kvízových otázok pre slovenskú obdobu AZ-KVÍZu. Tvojou úlohou je tvoriť otázky vysokej kvality, ktoré sú JEDNOZNÁČNÉ a majú IBA JEDNU možnú odpoveď.
+                                                // Fetch only a small subset of existing questions to avoid hitting tokens/context limits
+                                                const { data: existingData } = await supabase
+                                                    .from('questions')
+                                                    .select('question_text')
+                                                    .eq('category', cat)
+                                                    .limit(30);
+
+                                                const avoidList = existingData?.length > 0
+                                                    ? `\nTIETO OTÁZKY UŽ MÁME (NEOPAKOVAŤ): ${existingData.map(q => q.question_text).join(' | ')}`
+                                                    : "";
+
+                                                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'Authorization': `Bearer ${apiKey}`
+                                                    },
+                                                    body: JSON.stringify({
+                                                        model: "gpt-4o",
+                                                        temperature: 0.4, // Lower temperature for more factual and less random content
+                                                        messages: [
+                                                            {
+                                                                role: "system",
+                                                                content: `Si PROFESIONÁLNY autor kvízových otázok pre slovenskú obdobu AZ-KVÍZu. Tvojou úlohou je tvoriť otázky vysokej kvality, ktoré sú JEDNOZNÁČNÉ a majú IBA JEDNU možnú odpoveď.
 
     STRIKTNÉ KRITÉRIÁ:
     1. KONTEXT V OTÁZKE: Otázka musí obsahovať dostatok informácií, aby bola odpoveď unikátna. (Zlé: 'V ktorom meste je hrad?', Dobré: 'V ktorom slovenskom meste na sútoku Váhu a Nitry stojí protiturecká pevnosť?')
@@ -469,60 +480,70 @@ export const Admin = ({ onBack }) => {
        - 'Logika a Hádanky': Odpoveď musí byť hmotný predmet alebo zvieratko, jedno slovo.
     4. JAZYK: Používaj spisovnú slovenčinu a profesionálnu formuláciu.
     5. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
-                                                        },
-                                                        {
-                                                            role: "user",
-                                                            content: `Vygeneruj PRESNE ${count} unikátnych otázok PRE KAŽDÚ JEDNU z týchto kategórií (Celkom teda očakávam striktne ${count * finalCategories.length} otázok): ${finalCategories.join(', ')}. Obecná náročnosť level ${diff} z 3. ${avoidList}`
-                                                        }
-                                                    ],
-                                                    response_format: { type: "json_object" }
-                                                })
-                                            });
+                                                            },
+                                                            {
+                                                                role: "user",
+                                                                content: `Vygeneruj PRESNE ${count} unikátnych otázok výhradne pre tému: ${cat}. Požadovaná náročnosť: ${diffDesc}. ${avoidList}`
+                                                            }
+                                                        ],
+                                                        response_format: { type: "json_object" }
+                                                    })
+                                                });
 
-                                            if (!response.ok) {
-                                                const errData = await response.json().catch(() => ({}));
-                                                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+                                                if (!response.ok) {
+                                                    const errData = await response.json().catch(() => ({}));
+                                                    throw new Error(errData.error?.message || `HTTP ${response.status}`);
+                                                }
+
+                                                const rawData = await response.json();
+                                                if (!rawData.choices?.[0]?.message?.content) {
+                                                    throw new Error(`AI nevrátila žiadny obsah pre ${cat}.`);
+                                                }
+
+                                                const result = JSON.parse(rawData.choices[0].message.content);
+                                                let questionsList = result.questions || (Array.isArray(result) ? result : []);
+
+                                                if (questionsList.length > 0) {
+                                                    // Validate and normalize
+                                                    const toInsert = questionsList.map(q => ({
+                                                        question_text: q.question_text || q.text,
+                                                        answer: String(q.answer).trim(),
+                                                        category: cat, // Force correct category
+                                                        difficulty: diff
+                                                    })).filter(q => q.question_text && q.answer); // Basic sanitization
+
+                                                    if (toInsert.length > 0) {
+                                                        const { error } = await supabase.from('questions').insert(toInsert);
+                                                        if (error) throw error;
+                                                        totalInserted += toInsert.length;
+                                                    }
+                                                } else {
+                                                    console.warn(`Skrze logiku AI bol vrátený prázdny JSON pre tému ${cat}. Preskakujem.`);
+                                                }
                                             }
 
-                                            const rawData = await response.json();
-                                            if (!rawData.choices?.[0]?.message?.content) {
-                                                throw new Error("AI nevrátila žiadny obsah. Skúste to prosím znova.");
-                                            }
-
-                                            const result = JSON.parse(rawData.choices[0].message.content);
-                                            let questionsList = result.questions || (Array.isArray(result) ? result : []);
-
-                                            if (questionsList.length > 0) {
-                                                // Validate and normalize
-                                                const toInsert = questionsList.map(q => ({
-                                                    question_text: q.question_text || q.text,
-                                                    answer: String(q.answer).trim(),
-                                                    category: q.category || finalCategories[0],
-                                                    difficulty: diff
-                                                })).filter(q => q.question_text && q.answer); // Basic sanitization
-
-                                                const { error } = await supabase.from('questions').insert(toInsert);
-                                                if (error) throw error;
-
-                                                alert(`🎉 Úspešne pridaných ${toInsert.length} otázok!`);
-                                                setGenCategories([]);
-                                                setCustomCat('');
-                                                fetchStats();
-                                                fetchQuestions();
-                                            } else {
-                                                throw new Error("AI vygenerovala prázdny zoznam. Skús iné kategórie.");
-                                            }
+                                            alert(`🎉 Úspešne pridaných ${totalInserted} otázok!`);
+                                            setGenCategories([]);
+                                            setCustomCat('');
+                                            fetchStats();
+                                            fetchQuestions();
                                         } catch (err) {
                                             console.error("Generator Error:", err);
                                             alert("⚠ Chyba AI: " + err.message);
                                         } finally {
                                             setLoading(false);
+                                            setLoadingStatus('');
                                         }
                                     }}
                                     disabled={loading}
-                                    style={{ width: '100%', marginTop: '1rem', background: '#ec4899', fontSize: '1.1rem' }}
+                                    style={{ width: '100%', marginTop: '2rem', fontSize: '1.2rem', padding: loading ? '1.2rem' : '1.5rem', opacity: loading ? 0.9 : 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', transition: 'all 0.3s ease' }}
                                 >
-                                    {loading ? 'AI Generuje a Triedi...' : '✨ Vygenerovať balík otázok'}
+                                    {loading ? (
+                                        <>
+                                            <div className="loader" style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.2)', borderTop: '3px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                                            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>{loadingStatus || 'Inicializujem...'}</span>
+                                        </>
+                                    ) : '✨ Generovať s AI'}
                                 </button>
                             </form>
 
