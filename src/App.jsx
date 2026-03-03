@@ -67,6 +67,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const [showVersus, setShowVersus] = useState(false);
   const manualExitRef = useRef(false);
   const prevActiveModalRef = useRef(null);
+  const usedQuestionIdsRef = useRef(new Set());
 
   const { playSound } = useAudio();
 
@@ -110,21 +111,32 @@ const ABQuizApp = ({ onBackToPortal }) => {
     }
     query = query.eq('difficulty', diff);
 
+    if (usedQuestionIdsRef.current.size > 0) {
+      query = query.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
+    }
+
     const { data: pool, error } = await query.limit(100);
 
     if (error || !pool || pool.length === 0) {
-      console.warn("No questions match config! Falling back to any available question.");
+      console.warn("No questions match config or all used! Falling back...");
 
       // Fallback 1: Just the categories without difficulty constraint
       let fallbackQuery = supabase.from('questions').select('*');
       if (cats.length > 0) {
         fallbackQuery = fallbackQuery.in('category', cats);
       }
+      if (usedQuestionIdsRef.current.size > 0) {
+        fallbackQuery = fallbackQuery.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
+      }
       let { data: fallbackPool } = await fallbackQuery.limit(50);
 
       // Fallback 2: Any question at all from DB
       if (!fallbackPool || fallbackPool.length === 0) {
-        const { data: globalFallback } = await supabase.from('questions').select('*').limit(50);
+        let globalQuery = supabase.from('questions').select('*');
+        if (usedQuestionIdsRef.current.size > 0) {
+          globalQuery = globalQuery.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
+        }
+        const { data: globalFallback } = await globalQuery.limit(50);
         fallbackPool = globalFallback;
       }
 
@@ -139,6 +151,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   }, [localCategory, localDifficulty, gameMode, gameData]);
 
   const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1) => {
+    usedQuestionIdsRef.current.clear(); // Reset used questions each new game
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);
@@ -252,10 +265,13 @@ const ABQuizApp = ({ onBackToPortal }) => {
     if (winner) playSound('winner');
   }, [winner, playSound]);
 
-  // Centralized "Click" sound when any modal opens (Local, Bot, or Online)
+  // Centralized "Click" sound when any modal opens (Local, Bot, or Online) + track used question
   useEffect(() => {
     if (activeModal && !prevActiveModalRef.current) {
       playSound('click');
+    }
+    if (activeModal?.question?.id) {
+      usedQuestionIdsRef.current.add(activeModal.question.id);
     }
     prevActiveModalRef.current = activeModal;
   }, [activeModal, playSound]);
