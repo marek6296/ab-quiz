@@ -139,6 +139,95 @@ export const Admin = ({ onBack }) => {
             alert('Chyba pri mazaní všetkých otázok: ' + error.message);
         }
     };
+
+    const handleReviewQuestions = async () => {
+        if (!window.confirm(`Chystáte sa spustiť AI kontrolu pre ${questions.length} aktuálne zobrazených otázok v tabuľke. AI opraví chyby, zlepší formátovanie a upraví náročnosť. Môže to trvať dlhšie. Pokračovať?`)) return;
+
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+        if (!apiKey) return alert('Chýba VITE_OPENAI_API_KEY v premenných Vercelu!');
+
+        setLoading(true);
+        try {
+            const batches = [];
+            for (let i = 0; i < questions.length; i += 15) {
+                batches.push(questions.slice(i, i + 15));
+            }
+
+            let totalUpdated = 0;
+
+            for (let i = 0; i < batches.length; i++) {
+                setLoadingStatus(`Kontrolujem várku ${i + 1} z ${batches.length}...`);
+                const batch = batches[i];
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o",
+                        temperature: 0.2,
+                        messages: [
+                            {
+                                role: "system",
+                                content: `Si ODBORNÝ EDITOR kvízových otázok pre profesionálnu TV reláciu. Dostaneš JSON otázok.
+Tvojou úlohou je každú jednu otázku opraviť a vrátiť kompletný upravený zoznam v kľúči "questions".
+AKCIA:
+1. Over faktickú správnosť odpovede na otázku.
+2. Odpoveď MAXIMÁLNE stručná (ideálne 1-2 slová, nie celé vety).
+3. Oprav štylistiku otázky, aby nebola robotická, ale znela ako z úst moderátora (t.j. jasná, jednoznačná).
+4. Priraď/Oprav náročnosť (difficulty): 1=ľahké/odpoveď pre masy(95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké/veľké detaily.
+5. Vráť SPÄŤ rovnaké "id", aby sme otázku aktualizovali.
+Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_text, answer, difficulty, category.`
+                            },
+                            {
+                                role: "user",
+                                content: `Oprav túto várku otázok: ${JSON.stringify(batch.map(q => ({ id: q.id, question_text: q.question_text, answer: q.answer, difficulty: q.difficulty, category: q.category })))}`
+                            }
+                        ],
+                        response_format: { type: "json_object" }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error("AI Error:", errData);
+                    continue;
+                }
+
+                const rawData = await response.json();
+                const result = JSON.parse(rawData.choices[0].message.content);
+                const updatedList = result.questions || (Array.isArray(result) ? result : []);
+
+                if (updatedList.length > 0) {
+                    const toUpsert = updatedList.map(q => ({
+                        id: q.id,
+                        question_text: q.question_text || q.text,
+                        answer: String(q.answer).trim(),
+                        difficulty: q.difficulty,
+                        category: q.category
+                    })).filter(q => q.id && q.question_text && q.answer);
+
+                    if (toUpsert.length > 0) {
+                        const { error } = await supabase.from('questions').upsert(toUpsert);
+                        if (error) console.error("Upsert error:", error);
+                        else totalUpdated += toUpsert.length;
+                    }
+                }
+            }
+
+            alert(`🎉 Kontrola dokončená! Upravených bolo ${totalUpdated} otázok.`);
+            fetchStats();
+            fetchQuestions();
+        } catch (err) {
+            console.error(err);
+            alert('Chyba pri AI kontrole: ' + err.message);
+        } finally {
+            setLoading(false);
+            setLoadingStatus('');
+        }
+    };
     // --------------------------
 
     return (
@@ -197,9 +286,14 @@ export const Admin = ({ onBack }) => {
                                         ))}
                                     </select>
                                 </div>
-                                <button className="danger delete-all-btn" onClick={handleDeleteAllQuestions}>
-                                    🗑️ Zmazať všetko
-                                </button>
+                                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <button className="primary" onClick={handleReviewQuestions} style={{ whiteSpace: 'nowrap' }}>
+                                        🪄 AI Kontrola zobrazených
+                                    </button>
+                                    <button className="danger delete-all-btn" onClick={handleDeleteAllQuestions} style={{ whiteSpace: 'nowrap' }}>
+                                        🗑️ Zmazať všetko
+                                    </button>
+                                </div>
                             </div>
                             <div className="admin-table-wrapper">
                                 <table className="admin-table">
