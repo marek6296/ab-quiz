@@ -375,7 +375,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
         {showVersus && <audio src="/game-start.mp3" autoPlay ref={el => { if (el) el.volume = 0.15; }} />}
 
-        <div className="game-container game-entrance">
+        <div className="game-container game-entrance" style={{ display: showVersus ? 'none' : 'flex', width: '100%' }}>
           {gameMode === '1v1_online' && gameData?.paused_by && (
             <div className="versus-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
               <div className="versus-content" style={{ flexDirection: 'column', gap: '2rem' }}>
