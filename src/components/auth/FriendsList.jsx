@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../hooks/useGameState';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex' }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = 'Všetky kategórie', selectedDifficulty = 1 }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -142,6 +142,8 @@ export const FriendsList = ({ selectedGameRules = 'hex' }) => {
             player2_id: partner.id,
             current_turn: user.id, // Challenger starts first
             game_type: selectedGameRules,
+            category: selectedCategory,
+            difficulty: selectedDifficulty,
             board_state: generateInitialBoard(selectedGameRules)
         }).select().single();
 

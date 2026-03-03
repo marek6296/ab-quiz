@@ -8,7 +8,19 @@ export const Lobby = ({ onStart1vBot }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
+    const [category, setCategory] = React.useState('Všetky kategórie');
+    const [difficulty, setDifficulty] = React.useState(1);
     const { playSound } = useAudio();
+
+    const CATEGORIES = [
+        "Všetky kategórie",
+        "Aktuálne dianie", "Anatómia", "Biológia", "Botanika", "Chémia",
+        "Cudzie jazyky", "Dejiny", "Filmy a seriály", "Fyzika", "Gastro",
+        "Geografia", "Hry a hračky", "Hudba", "IT", "Literatúra",
+        "Logika a hádanky", "Mytológia", "Móda", "Náboženstvo", "Politika",
+        "Popkultúra a celebrity", "Ríša zvierat", "Slovenský jazyk",
+        "Technológie", "Výtvarné umenie", "Šport"
+    ];
 
     const audioRef = React.useRef(null);
 
@@ -75,8 +87,40 @@ export const Lobby = ({ onStart1vBot }) => {
                         </button>
                     </div>
 
+                    {/* Category & Difficulty Selectors */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>Kategória Otázok</label>
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                            >
+                                {CATEGORIES.map(c => <option key={c} value={c} style={{ color: '#000' }}>{c}</option>)}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>Náročnosť ({difficulty === 1 ? 'Ľahké' : difficulty === 2 ? 'Stredné' : 'Ťažké'})</label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="1"
+                                value={difficulty}
+                                onChange={(e) => setDifficulty(parseInt(e.target.value, 10))}
+                                style={{ width: '100%' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.8rem' }}>
+                                <span>1</span>
+                                <span>2</span>
+                                <span>3</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                        <button className="primary" onClick={() => onStart1vBot(gameRules)}>
+                        <button className="primary" onClick={() => onStart1vBot(gameRules, category, difficulty)}>
                             Hrať proti BOT-ovi
                         </button>
                         <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
@@ -87,7 +131,7 @@ export const Lobby = ({ onStart1vBot }) => {
 
                 <div className="lobby-panel friends-panel">
                     <h2>Priatelia a Hráči</h2>
-                    <FriendsList selectedGameRules={gameRules} />
+                    <FriendsList selectedGameRules={gameRules} selectedCategory={category} selectedDifficulty={difficulty} />
                 </div>
             </div>
         </div>

@@ -5,7 +5,6 @@ import { Lobby } from './components/Lobby';
 import { useGameState } from './hooks/useGameState';
 import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
-import { getRandomQuestion } from './data/questions';
 import { GameInviteModal } from './components/GameInviteModal';
 import { supabase } from './lib/supabase';
 import { useAudio } from './hooks/useAudio';
@@ -43,7 +42,17 @@ const GameApp = () => {
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [allQuestions, setAllQuestions] = useState([]);
+  const [localCategory, setLocalCategory] = useState('Všetky kategórie');
+  const [localDifficulty, setLocalDifficulty] = useState(1);
   const { playSound } = useAudio();
+
+  useEffect(() => {
+    fetch('/questions.json')
+      .then(res => res.json())
+      .then(data => setAllQuestions(data.data || []))
+      .catch(err => console.error("Failed to load questions JSON", err));
+  }, []);
 
   // Fetch current user profile
   useEffect(() => {
@@ -54,7 +63,7 @@ const GameApp = () => {
   }, [user]);
 
   // Pass necessary info down to the game engine
-  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo } = useGameState({
+  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData } = useGameState({
     userId: user?.id,
     gameMode,
     gameRules,
@@ -63,10 +72,34 @@ const GameApp = () => {
 
   const [incomingInvite, setIncomingInvite] = useState(null);
 
-  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null) => {
+  const getRandomQuestionForConfig = useCallback(() => {
+    let cat = localCategory;
+    let diff = localDifficulty;
+    if (gameMode === '1v1_online' && gameData) {
+      cat = gameData.category || 'Všetky kategórie';
+      diff = gameData.difficulty || 1;
+    }
+
+    let pool = allQuestions;
+    if (cat !== 'Všetky kategórie') {
+      pool = pool.filter(q => q.category === cat);
+    }
+    pool = pool.filter(q => q.difficulty === diff);
+
+    if (pool.length === 0) {
+      console.warn("No questions match config! Falling back to any available question.");
+      pool = allQuestions.length > 0 ? allQuestions : [{ id: 1, text: "Načítavam otázky...", answer: "..." }];
+    }
+
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [allQuestions, localCategory, localDifficulty, gameMode, gameData]);
+
+  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = 'Všetky kategórie', diff = 1) => {
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);
+    setLocalCategory(cat);
+    setLocalDifficulty(diff);
 
     if (mode === '1v1_online' && gameId) {
       // Set status playing
@@ -170,7 +203,7 @@ const GameApp = () => {
     }
 
     playSound('click');
-    const q = getRandomQuestion();
+    const q = getRandomQuestionForConfig();
     setActiveModal({ hexId, question: q });
   };
 
@@ -182,7 +215,7 @@ const GameApp = () => {
       if (availableHexes.length > 0) {
         const timeout = setTimeout(() => {
           const randomHex = availableHexes[Math.floor(Math.random() * availableHexes.length)];
-          const q = getRandomQuestion();
+          const q = getRandomQuestionForConfig();
           setActiveModal({ hexId: randomHex.id, question: q });
         }, 1500);
         return () => clearTimeout(timeout);

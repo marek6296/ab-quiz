@@ -222,6 +222,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         p1Score,
         p2Score,
         p1Combo,
-        p2Combo
+        p2Combo,
+        gameData
     };
 };
