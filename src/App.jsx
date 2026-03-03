@@ -12,6 +12,7 @@ import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 import { useGameStore, APP_STATES } from './game-engine/store';
+import { GamePortal } from './components/GamePortal';
 
 // Custom Hooks pre logiku hry
 import { useBlockNavigation } from './hooks/useBlockNavigation';
@@ -43,7 +44,7 @@ const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
 };
 
 // Wrapper component to use the Auth context
-const GameApp = () => {
+const ABQuizApp = ({ onBackToPortal }) => {
   const { user } = useAuth();
   const {
     appState, setAppState,
@@ -266,15 +267,6 @@ const GameApp = () => {
     addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
   };
 
-  if (!user) {
-    return (
-      <div className="game-container start-screen">
-        <h1>AB Kvíz</h1>
-        <AuthTabs />
-      </div>
-    );
-  }
-
   if (showAdmin) {
     return <Admin onBack={() => setShowAdmin(false)} />;
   }
@@ -286,6 +278,7 @@ const GameApp = () => {
           onStart1vBot={(rules, cat, diff) => handleStartGame('1vbot', rules, null, cat, diff)}
           onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
           onShowAdmin={() => setShowAdmin(true)}
+          onBackToPortal={onBackToPortal}
         />
         <GameInviteModal
           invite={incomingInvite}
@@ -462,10 +455,45 @@ const GameApp = () => {
   return null;
 };
 
+const MainRouter = () => {
+  const { user } = useAuth();
+  const [currentApp, setCurrentApp] = useState('portal');
+
+  // Load from session storage for smoother reloads
+  useEffect(() => {
+    const saved = sessionStorage.getItem('ab_quiz_current_app');
+    if (saved) setCurrentApp(saved);
+  }, []);
+
+  const handleSetApp = (app) => {
+    setCurrentApp(app);
+    sessionStorage.setItem('ab_quiz_current_app', app);
+  };
+
+  if (!user) {
+    return (
+      <div className="game-container start-screen">
+        <h1 className="logo-brutal" style={{ fontSize: '3.5rem', marginBottom: '2rem' }}>PORTÁL HIER</h1>
+        <AuthTabs />
+      </div>
+    );
+  }
+
+  if (currentApp === 'portal') {
+    return <GamePortal onSelectGame={handleSetApp} />;
+  }
+
+  if (currentApp === 'ab_quiz') {
+    return <ABQuizApp onBackToPortal={() => handleSetApp('portal')} />;
+  }
+
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
-      <GameApp />
+      <MainRouter />
     </AuthProvider>
   );
 }

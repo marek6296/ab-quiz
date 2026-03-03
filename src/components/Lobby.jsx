@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 import { useAudio } from '../hooks/useAudio';
 
-export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
+export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToPortal }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = useState(null);
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
@@ -98,7 +98,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
                     )}
                 </nav>
 
-                <div className="user-profile" style={{ marginTop: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ marginTop: 'auto', marginBottom: '1rem' }}>
+                    <button className="nav-item" onClick={onBackToPortal} style={{ width: '100%', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                        <span style={{ fontSize: '1.5rem' }}>⬅️</span> Zmeniť hru
+                    </button>
+                </div>
+
+                <div className="user-profile" style={{ padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{profile?.username || 'Hráč'}</div>
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Online</div>
