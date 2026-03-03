@@ -9,6 +9,10 @@ export const Admin = ({ onBack }) => {
     const [filterCategory, setFilterCategory] = useState('');
     const [activeTab, setActiveTab] = useState('list');
 
+    // Edit State
+    const [editingId, setEditingId] = useState(null);
+    const [editFormData, setEditFormData] = useState({});
+
     // AI Gen State
     const [genCategories, setGenCategories] = useState([]);
     const [customCat, setCustomCat] = useState('');
@@ -82,6 +86,31 @@ export const Admin = ({ onBack }) => {
         } else {
             alert('Chyba: ' + error.message);
         }
+    };
+
+    const handleUpdateQuestion = async (id) => {
+        const { error } = await supabase
+            .from('questions')
+            .update({
+                question_text: editFormData.question_text,
+                answer: editFormData.answer,
+                category: editFormData.category,
+                difficulty: editFormData.difficulty
+            })
+            .eq('id', id);
+
+        if (!error) {
+            setEditingId(null);
+            fetchQuestions();
+            fetchStats();
+        } else {
+            alert('Chyba pri aktualizácii: ' + error.message);
+        }
+    };
+
+    const startEditing = (q) => {
+        setEditingId(q.id);
+        setEditFormData({ ...q });
     };
 
     const handleDeleteQuestion = async (id) => {
@@ -185,19 +214,74 @@ export const Admin = ({ onBack }) => {
                                     <tbody>
                                         {questions.map(q => (
                                             <tr key={q.id}>
-                                                <td className="q-text">{q.question_text}</td>
-                                                <td className="q-answer">{q.answer}</td>
-                                                <td className="q-cat hide-mobile">{q.category}</td>
-                                                <td className="q-diff hide-mobile">{q.difficulty}</td>
-                                                <td className="q-actions">
-                                                    <button
-                                                        onClick={() => handleDeleteQuestion(q.id)}
-                                                        className="delete-btn"
-                                                        title="Vymazať"
-                                                    >
-                                                        ❌
-                                                    </button>
-                                                </td>
+                                                {editingId === q.id ? (
+                                                    <>
+                                                        <td>
+                                                            <textarea
+                                                                className="edit-input"
+                                                                value={editFormData.question_text}
+                                                                onChange={e => setEditFormData({ ...editFormData, question_text: e.target.value })}
+                                                                style={{ width: '100%', minHeight: '60px', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid #38bdf8', padding: '0.5rem', borderRadius: '4px' }}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <input
+                                                                className="edit-input"
+                                                                value={editFormData.answer}
+                                                                onChange={e => setEditFormData({ ...editFormData, answer: e.target.value })}
+                                                                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid #38bdf8', padding: '0.5rem', borderRadius: '4px' }}
+                                                            />
+                                                        </td>
+                                                        <td className="hide-mobile">
+                                                            <input
+                                                                className="edit-input"
+                                                                value={editFormData.category}
+                                                                onChange={e => setEditFormData({ ...editFormData, category: e.target.value })}
+                                                                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid #38bdf8', padding: '0.5rem', borderRadius: '4px' }}
+                                                            />
+                                                        </td>
+                                                        <td className="hide-mobile">
+                                                            <select
+                                                                value={editFormData.difficulty}
+                                                                onChange={e => setEditFormData({ ...editFormData, difficulty: parseInt(e.target.value) })}
+                                                                style={{ background: '#1e293b', color: 'white', padding: '0.5rem', borderRadius: '4px', border: '1px solid #38bdf8' }}
+                                                            >
+                                                                <option value={1}>1</option>
+                                                                <option value={2}>2</option>
+                                                                <option value={3}>3</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="q-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                            <button onClick={() => handleUpdateQuestion(q.id)} className="secondary" style={{ padding: '0.4rem', fontSize: '1rem' }} title="Uložiť">✅</button>
+                                                            <button onClick={() => setEditingId(null)} className="neutral" style={{ padding: '0.4rem', fontSize: '1rem' }} title="Zrušiť">❌</button>
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="q-text">{q.question_text}</td>
+                                                        <td className="q-answer">{q.answer}</td>
+                                                        <td className="q-cat hide-mobile">{q.category}</td>
+                                                        <td className="q-diff hide-mobile">{q.difficulty}</td>
+                                                        <td className="q-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                            <button
+                                                                onClick={() => startEditing(q)}
+                                                                className="neutral"
+                                                                style={{ padding: '0.4rem', fontSize: '1rem', background: 'rgba(255,255,255,0.05)' }}
+                                                                title="Upraviť"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteQuestion(q.id)}
+                                                                className="delete-btn"
+                                                                style={{ padding: '0.4rem', fontSize: '1rem' }}
+                                                                title="Vymazať"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </td>
+                                                    </>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
