@@ -10,7 +10,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
     const [lastAnswer, setLastAnswer] = useState('');
 
     const { playSound, stopSound } = useAudio();
-    const tickPlayedRef = useRef(false);
 
     const opponent = currentPlayer === 1 ? 2 : 1;
     const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
@@ -102,7 +101,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         setErrorMsg('');
         setTimeLeft(10);
         setLastAnswer('');
-        tickPlayedRef.current = false;
 
         // Auto transition after reveal animation
         const timer = setTimeout(() => {
@@ -113,12 +111,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
         return () => clearTimeout(timer);
     }, [question]);
 
-    // Ensure ticking stops when phase changes
+    // Ensure ticking plays during answering, and stops when phase changes
     useEffect(() => {
-        if (phase !== 'currentPlayer' && phase !== 'opponent') {
+        if (phase === 'currentPlayer' || phase === 'opponent') {
+            playSound('tick');
+        } else {
             stopSound('tick');
         }
-    }, [phase, stopSound]);
+    }, [phase, playSound, stopSound]);
 
     // BOT Logic
     useEffect(() => {
@@ -133,12 +133,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
+                    playSound('correct');
                     const pts = calculatePoints(2, timeLeft);
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
                     setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
+                    playSound('wrong');
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
@@ -147,7 +149,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                         setErrorMsg('');
                         setTimeLeft(10);
                         setLastAnswer(''); // Clear for next phase
-                        tickPlayedRef.current = false;
                     }, 2500);
                 }
             }, thinkTime);
@@ -155,12 +156,14 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
+                    playSound('correct');
                     const pts = calculatePoints(2, timeLeft);
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
                     setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
+                    playSound('wrong');
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
                     setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -178,10 +181,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 setTimeLeft((prev) => {
                     const next = Math.max(0, prev - step);
 
-                    if (next <= 3.0 && !tickPlayedRef.current) {
-                        playSound('tick');
-                        tickPlayedRef.current = true;
-                    }
+                    // We no longer trigger ticking at 3 seconds here. It is handled by the useEffect above.
 
                     // Use a slightly lower threshold to avoid float precision issues during decrement
                     if (next < 0.01) {
@@ -190,6 +190,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                         // Small delay so the bar hits actually 0 before overlay pops
                         setTimeout(() => {
                             if (phase === 'currentPlayer') {
+                                playSound('wrong');
                                 setLastAnswer('Čas vypršal');
                                 setPhase('feedbackPrimaryTime');
                                 setTimeout(() => {
@@ -198,9 +199,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                                     setErrorMsg('');
                                     setTimeLeft(10);
                                     setLastAnswer('');
-                                    tickPlayedRef.current = false;
                                 }, 2500);
                             } else {
+                                playSound('wrong');
                                 setLastAnswer('Čas vypršal');
                                 setPhase('feedbackSecondaryBlackTime');
                                 setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -237,7 +238,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 setErrorMsg('');
                 setTimeLeft(10);
                 setLastAnswer(''); // Ready for opponent guess
-                tickPlayedRef.current = false;
             }, 2500);
         }
     };
