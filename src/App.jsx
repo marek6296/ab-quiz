@@ -7,7 +7,7 @@ import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
 import { Matchmaking } from './components/Matchmaking';
-import { DebuggerPanel } from './components/DebuggerPanel';
+
 import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
@@ -480,7 +480,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
           <ConfirmExitModal isOpen={showExitConfirm} onConfirm={handleRestart} onCancel={() => setShowExitConfirm(false)} />
           <GameInviteModal invite={incomingInvite} onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)} onDecline={handleDeclineInvite} />
 
-          <DebuggerPanel gameData={gameData} currentPlayer={currentPlayer} p1Score={p1Score} p2Score={p2Score} p1Combo={p1Combo} p2Combo={p2Combo} />
+
         </div>
       </>
     );

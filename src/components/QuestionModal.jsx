@@ -58,17 +58,29 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
     useEffect(() => {
-        if (inputRef.current) {
+        const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
+            (phase === 'opponent' && isLocalSecondary);
+
+        if (isSelfTurn && inputRef.current) {
             // A tiny timeout ensures modal animation has started and DOM is ready for focus grabbing on Safari/mobile
-            const timer = setTimeout(() => {
-                inputRef.current?.focus();
-            }, 50);
-            return () => clearTimeout(timer);
+            // We use multiple attempts because sometimes the initial DOM transition blocks focus
+            const timer1 = setTimeout(() => inputRef.current?.focus(), 50);
+            const timer2 = setTimeout(() => inputRef.current?.focus(), 300);
+            const timer3 = setTimeout(() => inputRef.current?.focus(), 800);
+
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                clearTimeout(timer3);
+            };
         }
     }, [phase, isLocalPrimary, isLocalSecondary]);
 
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
+
+        const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
+            (phase === 'opponent' && isLocalSecondary);
 
         // Remove spaces to match the typed characters index against the actual letter positions
         const cleanTyped = inputValue.replace(/\s+/g, '');
@@ -77,8 +89,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return (
             <div
                 className="placeholder-container"
-                onClick={() => inputRef.current && inputRef.current.focus()}
-                style={{ cursor: 'text' }}
+                onClick={() => isSelfTurn && inputRef.current && inputRef.current.focus()}
+                style={{ cursor: isSelfTurn ? 'text' : 'default', position: 'relative' }}
             >
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
@@ -116,14 +128,21 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, onSubmit)}
                 autoFocus
+                inputMode="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
                 style={{
                     position: 'absolute',
                     opacity: 0,
                     top: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '1px',
-                    height: '1px'
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 1, // Place it behind the placeholder but still clickable if parent allows pointer-events
+                    cursor: 'text',
+                    fontSize: '16px' // Prevents iOS zoom on focus
                 }}
             />
             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMsg}</div>}
