@@ -333,36 +333,35 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     };
 
     const renderFeedback = (title, message, isSuccess, showAnswer = false) => (
-        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-            <h2 style={{ color: isSuccess ? '#4ade80' : '#ef4444', fontSize: '2.5rem', marginBottom: '1rem' }}>{title}</h2>
-            <p style={{ fontSize: '1.5rem', color: '#fff' }}>{message}</p>
+        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <h2 className="feedback-title" style={{ color: isSuccess ? '#4ade80' : '#ef4444' }}>{title}</h2>
+            <p className="feedback-message">{message}</p>
 
             {isSuccess && gameRules === 'points' && earnedPoints > 0 && (
-                <div style={{ marginTop: '1rem', fontSize: '2rem', color: '#fbbf24', fontWeight: 'bold', textShadow: '0 2px 10px rgba(251, 191, 36, 0.5)' }}>
+                <div className="feedback-points">
                     +{earnedPoints} bodov!
                 </div>
             )}
 
             {(showAnswer || lastAnswer) && (
-                <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.08)', borderRadius: '16px', width: '100%', maxWidth: '500px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="feedback-answer-box">
                     {lastAnswer && (
-                        <p style={{ fontSize: '1.1rem', color: '#cbd5e1', marginBottom: showAnswer ? '1rem' : 0 }}>
-                            Zadaná odpoveď: <strong style={{ color: '#fff' }}>{lastAnswer}</strong>
+                        <p className="feedback-last-answer" style={{ marginBottom: showAnswer ? '0.5rem' : 0 }}>
+                            Zadaná: <strong style={{ color: '#fff' }}>{lastAnswer}</strong>
                         </p>
                     )}
                     {showAnswer && (
-                        <div style={{ borderTop: lastAnswer ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: lastAnswer ? '1rem' : 0 }}>
-                            <p style={{ fontSize: '1.1rem', color: '#94a3b8' }}>
-                                Správna odpoveď bola:
+                        <div style={{ borderTop: lastAnswer ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: lastAnswer ? '0.5rem' : 0 }}>
+                            <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: 0 }}>
+                                Správne:
                             </p>
-                            <p style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: 800, marginTop: '0.25rem' }}>
+                            <p className="feedback-correct-answer">
                                 {question.answer}
                             </p>
                         </div>
                     )}
                 </div>
             )}
-            {showAnswer && <p style={{ marginTop: '2rem', color: '#64748b', fontSize: '0.9rem' }}>Okno sa zavrie o chvíľu...</p>}
         </div>
     );
 
