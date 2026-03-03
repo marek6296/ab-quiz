@@ -314,22 +314,22 @@ export const Admin = ({ onBack }) => {
                                                 },
                                                 body: JSON.stringify({
                                                     model: "gpt-4o",
+                                                    temperature: 0.3,
                                                     messages: [
                                                         {
                                                             role: "system",
-                                                            content: `Si profesionálny generátor otázok pre slovenský TV kvíz. 
-                                                            VAŽNE PRAVIDLÁ:
-                                                            1. ŠTRUKTÚRA: Otázka musí VŽDY priamo smerovať k odpovedi. (Napr. 'Ktorý YouTuber...', 'Ako sa volá...', 'Z ktorého mesta pochádza...').
-                                                            2. STRUČNOSŤ: Max 8-10 slov. Žiadne zbytočné detaily. Hráč má len 10 sekúnd!
-                                                            3. ODPOVEDE: Striktne 1-2 slová. Musia byť fakticky správne a všeobecne známe v danej komunite.
-                                                            4. TÉMY A ŠPECIFIKÁCIE:
-                                                               - Slovensko: Reálne fakty, geografia, história, osobnosti SR.
-                                                               - Hry: Globálne hity a ikonické postavy (napr. 'Kto je hlavná postava série Zaklínač?').
-                                                               - Streameri a YouTuberi: VÝHRADNE CZ/SK scéna. Zameraj sa na ikonické hlášky, prezývky, projekty alebo typický obsah (napr. 'Ktorý streamer je známy projektom Madmonq?', 'Ktorý slovenský YouTuber natočil sériu Šialenosti?').
-                                                               - Všeobecný prehľad: Jasné fakty (Svet, Veda, Kultúra).
-                                                            5. NÁROČNOSŤ (${diff}/3): Musí zodpovedať úrovni. 1=pre každého, 3=skutočný fanúšik/expert.
-                                                            6. FORMÁT: Čistý JSON (pole objektov: question_text, answer, category).
-                                                            7. UNIKÁTNOSŤ: Nepoužívaj fakty zo zoznamu nižšie.`
+                                                            content: `Si ELITNÝ autor kvízových otázok pre slovenskú súťaž. Tvojou úlohou je vygenerovať otázky, ktoré sú 100% FAKTICKY SPRÁVNE, JEDNOZNAČNÉ a STRUČNÉ.
+
+                                                            STRIKTNÉ PRAVIDLÁ PRE KVALITU:
+                                                            1. ŽIADNA HALUCINÁCIA: Ak si nie si 100% istý faktom (najmä pri CZ/SK scéne), radšej danú otázku NEGENERUJ a skús inú tému.
+                                                            2. JEDNOZNAČNOSŤ: Otázka musí mať presne JEDNU nespochybniteľnú odpoveď. Vyhni sa otázkam typu "Kto bol prvý...", ak existujú viaceré interpretácie.
+                                                            3. ULTRA-STRUČNOSŤ (Max 8-10 slov): Otázka musí byť prečítateľná za 3 sekundy. Priamočiare vety.
+                                                            4. ŠPECIFIKÁ KATEGÓRIÍ:
+                                                               - Streameri a YouTuberi: VÝHRADNE CZ/SK scéna. Zameraj sa na overené fakty, ikonické mená a hlášky (napr. 'Kto založil projekt Madmonq?', 'Ktorý streamer je známy ako Kráľ českej YouTube scény?'). 
+                                                               - Slovensko: Geografia, história, osobnosti (napr. 'Ktorá rieka preteká Piešťanmi?', 'V ktorom roku vznikla SR?').
+                                                               - Ostatné: Používaj všeobecne známy prehľad (nie akademické detaily).
+                                                            5. ODPOVEDE: Musia byť presné, 1-2 slová.
+                                                            6. FORMÁT: Čistý JSON (pole objektov s kľúčmi 'question_text', 'answer', 'category').`
                                                         },
                                                         {
                                                             role: "user",
