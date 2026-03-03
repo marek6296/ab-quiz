@@ -144,35 +144,6 @@ h1 {
   justify-self: center;
 }
 
-@keyframes caretBlink {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0;
-  }
-}
-
-.placeholder-char.has-caret {
-  position: relative;
-}
-
-.placeholder-char.has-caret::after {
-  content: '';
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 80%;
-  background-color: white;
-  animation: caretBlink 1.2s infinite;
-  z-index: 2;
-}
-
 h2 {
   font-size: 1.5rem;
   color: var(--text-color);
