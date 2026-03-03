@@ -329,7 +329,7 @@ export const Admin = ({ onBack }) => {
                                                                - Slovensko: Geografia, história, osobnosti (napr. 'Ktorá rieka preteká Piešťanmi?', 'V ktorom roku vznikla SR?').
                                                                - Ostatné: Používaj všeobecne známy prehľad (nie akademické detaily).
                                                             5. ODPOVEDE: Musia byť presné, 1-2 slová.
-                                                            6. FORMÁT: Čistý JSON (pole objektov s kľúčmi 'question_text', 'answer', 'category').`
+                                                            6. FORMÁT: Striktne vráť JSON objekt, ktorý obasuje kľúč **"questions"**. Tento kľúč bude obsahovať pole objektov s kľúčmi 'question_text', 'answer', 'category'. Nikdy nevracaj iba jeden objekt, vždy pole vo vnútri "questions".`
                                                         },
                                                         {
                                                             role: "user",
@@ -342,9 +342,18 @@ export const Admin = ({ onBack }) => {
 
                                             const rawData = await response.json();
                                             const result = JSON.parse(rawData.choices[0].message.content);
-                                            const questionsList = result.questions || result.data || Object.values(result)[0] || [];
 
-                                            if (Array.isArray(questionsList)) {
+                                            let questionsList = [];
+                                            if (result.questions && Array.isArray(result.questions)) {
+                                                questionsList = result.questions;
+                                            } else if (Array.isArray(result)) {
+                                                questionsList = result;
+                                            } else if (result.question_text) {
+                                                // Handle case where GPT rogue-returns a single object instead of an array
+                                                questionsList = [result];
+                                            }
+
+                                            if (questionsList.length > 0) {
                                                 const toInsert = questionsList.map(q => ({
                                                     question_text: q.question_text,
                                                     answer: q.answer,
