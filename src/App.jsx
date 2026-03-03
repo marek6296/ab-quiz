@@ -249,11 +249,20 @@ const GameApp = () => {
 
     playSound('click');
     const q = await getRandomQuestionForConfig();
-    const newModal = { hexId, question: q };
+    const newModal = { hexId, question: q, phase: 'reveal' };
     setActiveModal(newModal);
 
     if (gameMode === '1v1_online' && activeGameId) {
       await supabase.from('games').update({ active_modal: newModal }).eq('id', activeGameId);
+    }
+  };
+
+  const handleSyncModal = async (updates) => {
+    if (gameMode === '1v1_online' && activeGameId && activeModal) {
+      const merged = { ...activeModal, ...updates };
+      setActiveModal(merged);
+      // Fire-and-forget DB update for real-time synchronization
+      supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId);
     }
   };
 
@@ -475,6 +484,7 @@ const GameApp = () => {
 
         {activeModal && (
           <QuestionModal
+            modalData={activeModal} // Used for synchronization
             hexId={activeModal.hexId}
             question={activeModal.question}
             currentPlayer={currentPlayer}
@@ -484,6 +494,7 @@ const GameApp = () => {
             p2Combo={p2Combo}
             onResolve={handleResolveQuestion}
             onClose={() => setActiveModal(null)}
+            onSyncModal={handleSyncModal}
             localPlayerNum={localPlayerNum}
             playerNames={{
               player1: gameMode === '1v1_online'

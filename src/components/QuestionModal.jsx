@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 import { useAudio } from '../hooks/useAudio';
 
-export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames }) => {
+export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames }) => {
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -107,20 +107,39 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
 
     // Reset state on new question
     useEffect(() => {
-        setPhase('reveal');
-        setInputValue('');
-        setErrorMsg('');
-        setTimeLeft(10);
-        setLastAnswer('');
-
-        // Auto transition after reveal animation
-        const timer = setTimeout(() => {
-            setPhase('currentPlayer');
-            // Explicitly ensure 10 seconds starts NOW
+        if (!modalData?.phase || modalData.phase === 'reveal') {
+            setPhase('reveal');
+            setInputValue('');
+            setErrorMsg('');
             setTimeLeft(10);
-        }, 1800);
-        return () => clearTimeout(timer);
-    }, [question]);
+            setLastAnswer('');
+
+            // Auto transition after reveal animation
+            const timer = setTimeout(() => {
+                setPhase('currentPlayer');
+                // Explicitly ensure 10 seconds starts NOW
+                setTimeLeft(10);
+                if (isLocalPrimary && onSyncModal) onSyncModal({ phase: 'currentPlayer' });
+            }, 1800);
+            return () => clearTimeout(timer);
+        }
+    }, [question, modalData?.phase, isLocalPrimary, onSyncModal]);
+
+    // DB Sync Receiver
+    useEffect(() => {
+        if (modalData && modalData.phase && modalData.phase !== 'reveal' && modalData.phase !== phase) {
+            setPhase(modalData.phase);
+            if (modalData.lastAnswer !== undefined) {
+                setLastAnswer(modalData.lastAnswer);
+            }
+            if (modalData.phase === 'opponent') {
+                setTimeLeft(10);
+                setInputValue('');
+                setErrorMsg('');
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [modalData?.phase, modalData?.lastAnswer]);
 
     // Ensure ticking plays during answering, and stops when phase changes
     useEffect(() => {
@@ -192,32 +211,36 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                 setTimeLeft((prev) => {
                     const next = Math.max(0, prev - step);
 
-                    // We no longer trigger ticking at 3 seconds here. It is handled by the useEffect above.
-
-                    // Use a slightly lower threshold to avoid float precision issues during decrement
                     if (next < 0.01) {
                         clearInterval(timer);
 
-                        // Small delay so the bar hits actually 0 before overlay pops
-                        setTimeout(() => {
-                            if (phase === 'currentPlayer') {
-                                playSound('wrong');
-                                setLastAnswer('Čas vypršal');
-                                setPhase('feedbackPrimaryTime');
-                                setTimeout(() => {
-                                    setPhase('opponent');
-                                    setInputValue('');
-                                    setErrorMsg('');
-                                    setTimeLeft(10);
-                                    setLastAnswer('');
-                                }, 2500);
-                            } else {
-                                playSound('wrong');
-                                setLastAnswer('Čas vypršal');
-                                setPhase('feedbackSecondaryBlackTime');
-                                setTimeout(() => onResolve('unowned', 0, true), 5000);
-                            }
-                        }, 100);
+                        // Only the player whose turn it physically is dictates the outcome of a timeout
+                        const authority = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
+
+                        if (gameMode !== '1v1_online' || authority) {
+                            setTimeout(() => {
+                                if (phase === 'currentPlayer') {
+                                    playSound('wrong');
+                                    setLastAnswer('Čas vypršal');
+                                    setPhase('feedbackPrimaryTime');
+                                    if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
+                                    setTimeout(() => {
+                                        setPhase('opponent');
+                                        setInputValue('');
+                                        setErrorMsg('');
+                                        setTimeLeft(10);
+                                        setLastAnswer('');
+                                        if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                                    }, 2500);
+                                } else {
+                                    playSound('wrong');
+                                    setLastAnswer('Čas vypršal');
+                                    setPhase('feedbackSecondaryBlackTime');
+                                    if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
+                                    setTimeout(() => onResolve('unowned', 0, true), 5000);
+                                }
+                            }, 100);
+                        }
 
                         return 0;
                     }
@@ -226,7 +249,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
             }, 100);
             return () => clearInterval(timer);
         }
-    }, [phase, onResolve]);
+    }, [phase, isLocalPrimary, isLocalSecondary, gameMode, onResolve, onSyncModal, playSound]);
 
     if (!question) return null;
 
@@ -239,16 +262,19 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
             const pts = calculatePoints(currentPlayer, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve(`player${currentPlayer}`, pts, false), 5000);
         } else {
             playSound('wrong');
             setPhase('feedbackPrimaryIncorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
             setTimeout(() => {
                 setPhase('opponent');
                 setInputValue('');
                 setErrorMsg('');
                 setTimeLeft(10);
                 setLastAnswer(''); // Ready for opponent guess
+                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
             }, 2500);
         }
     };
@@ -262,10 +288,12 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
             const pts = calculatePoints(opponent, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve(`player${opponent}`, pts, false), 5000);
         } else {
             playSound('wrong');
             setPhase('feedbackSecondaryBlackIncorrect');
+            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve('unowned', 0, true), 5000);
         }
     };
@@ -273,6 +301,7 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
     const handleDeclineSecondary = () => {
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
+        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
         setTimeout(() => onResolve('unowned', 0, true), 5000);
     };
 
