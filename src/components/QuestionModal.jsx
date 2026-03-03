@@ -56,30 +56,19 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const inputRef = useRef(null);
 
-    // Explicitly auto-focus the input whenever it's the player's turn to answer
+    // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
     useEffect(() => {
-        const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
-            (phase === 'opponent' && isLocalSecondary);
-
-        if (isSelfTurn && inputRef.current) {
-            // Multiple attempts to grab focus, as mobile OS often ignores the first one if DOM isn't fully ready
-            const timer1 = setTimeout(() => inputRef.current?.focus(), 50);
-            const timer2 = setTimeout(() => inputRef.current?.focus(), 300);
-            const timer3 = setTimeout(() => inputRef.current?.focus(), 800);
-
-            return () => {
-                clearTimeout(timer1);
-                clearTimeout(timer2);
-                clearTimeout(timer3);
-            };
+        if (inputRef.current) {
+            // A tiny timeout ensures modal animation has started and DOM is ready for focus grabbing on Safari/mobile
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
         }
     }, [phase, isLocalPrimary, isLocalSecondary]);
 
-    const renderPlaceholder = (answer, onSubmit) => {
+    const renderPlaceholder = (answer) => {
         if (!answer) return null;
-
-        const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
-            (phase === 'opponent' && isLocalSecondary);
 
         // Remove spaces to match the typed characters index against the actual letter positions
         const cleanTyped = inputValue.replace(/\s+/g, '');
@@ -88,43 +77,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return (
             <div
                 className="placeholder-container"
-                onClick={() => isSelfTurn && inputRef.current && inputRef.current.focus()}
-                style={{ cursor: isSelfTurn ? 'text' : 'default', position: 'relative' }}
+                onClick={() => inputRef.current && inputRef.current.focus()}
+                style={{ cursor: 'text' }}
             >
-                {/* 
-                    Hidden input placed INSIDE the container and covering it.
-                    Visible to the browser but opaque to the user.
-                    This pattern is most reliable for mobile keyboards.
-                */}
-                {isSelfTurn && (
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, onSubmit)}
-                        autoFocus
-                        inputMode="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        className="mobile-hidden-input"
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            opacity: 0,
-                            zIndex: 10,
-                            width: '100%',
-                            height: '100%',
-                            fontSize: '16px', // Prevents iOS zoom
-                            border: 'none',
-                            outline: 'none',
-                            background: 'transparent'
-                        }}
-                    />
-                )}
-
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
                         {word.split('').map((char, cIdx) => {
@@ -152,7 +107,28 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         );
     };
 
-    const renderInput = () => null; // Function removed, now integrated into placeholder
+    const renderInput = (onSubmit) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto', position: 'relative' }}>
+            <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, onSubmit)}
+                autoFocus
+                style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    top: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '1px',
+                    height: '1px'
+                }}
+            />
+            {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMsg}</div>}
+        </div>
+    );
 
     const renderFeedback = (title, message, isSuccess, showAnswer = false) => (
         <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
@@ -438,10 +414,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer, handleSubmitPrimary)}
-                        {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
-
-                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fff' }}>
+                        {renderPlaceholder(question.answer)}
+                        <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
                         {/* Timer Bar for primary player */}
@@ -453,11 +427,14 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                         {isBotPrimaryTurn ? (
                             <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
                         ) : isLocalPrimary ? (
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button className="primary" onClick={handleSubmitPrimary}>
-                                    Odoslať odpoveď
-                                </button>
-                            </div>
+                            <>
+                                {renderInput(handleSubmitPrimary)}
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                    <button className="primary" onClick={handleSubmitPrimary}>
+                                        Odoslať odpoveď
+                                    </button>
+                                </div>
+                            </>
                         ) : (
                             <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {currentPlayerName} odpovie...</p>
                         )}
@@ -473,31 +450,33 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer, handleSubmitSecondary)}
-                        {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
-
-                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
-                            SÚPER MÁ ŠANCU: {opponentName} ({opponentColor})
+                        {renderPlaceholder(question.answer)}
+                        <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
+                            Šanca pre súpera: {opponentName} ({opponentColor})
                         </h3>
-                        {/* Timer Bar for opponent */}
+
+                        {/* Timer Bar */}
                         <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#fbbf24' }}></div>
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                         </div>
-                        <p style={{ marginBottom: '1.5rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
+                        <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd do konca!</p>
 
                         {isBotSecondaryTurn ? (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
+                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT sa snaží využiť šancu a premýšľa...</p>
                         ) : isLocalSecondary ? (
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button className="primary" onClick={handleSubmitSecondary}>
-                                    Odpovedať
-                                </button>
-                                <button className="neutral" onClick={handleDeclineSecondary}>
-                                    Neviem (Čierny Hex)
-                                </button>
-                            </div>
+                            <>
+                                {renderInput(handleSubmitSecondary)}
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                    <button className="secondary" onClick={handleSubmitSecondary}>
+                                        Odoslať odpoveď
+                                    </button>
+                                    <button className="danger" onClick={handleDeclineSecondary}>
+                                        Nechcem odpovedať
+                                    </button>
+                                </div>
+                            </>
                         ) : (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {opponentName} zareaguje...</p>
+                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {opponentName} využije šancu...</p>
                         )}
                     </div>
                 )}
