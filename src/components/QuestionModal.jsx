@@ -6,7 +6,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
-    const [timeLeft, setTimeLeft] = useState(10);
+    const [timeLeft, setTimeLeft] = useState(15);
     const [lastAnswer, setLastAnswer] = useState('');
 
     const { playSound, stopSound } = useAudio();
@@ -29,7 +29,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         if (gameRules !== 'points') return 0;
 
         let base = 10;
-        const timeTaken = 10 - timeRemaining;
+        const timeTaken = 15 - timeRemaining;
 
         // Speed bonus
         if (timeTaken <= 3) base += 5;
@@ -111,14 +111,14 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setPhase('reveal');
             setInputValue('');
             setErrorMsg('');
-            setTimeLeft(10);
+            setTimeLeft(15);
             setLastAnswer('');
 
             // Auto transition after reveal animation
             const timer = setTimeout(() => {
                 setPhase('currentPlayer');
-                // Explicitly ensure 10 seconds starts NOW
-                setTimeLeft(10);
+                // Explicitly ensure 15 seconds starts NOW
+                setTimeLeft(15);
                 if (isLocalPrimary && onSyncModal) onSyncModal({ phase: 'currentPlayer' });
             }, 1800);
             return () => clearTimeout(timer);
@@ -133,7 +133,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 setLastAnswer(modalData.lastAnswer);
             }
             if (modalData.phase === 'opponent') {
-                setTimeLeft(10);
+                setTimeLeft(15);
                 setInputValue('');
                 setErrorMsg('');
             }
@@ -150,6 +150,15 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         }
     }, [phase, playSound, stopSound]);
 
+    // Global sound trigger for both players when phase changes
+    useEffect(() => {
+        if (phase.includes('Correct')) {
+            playSound('correct');
+        } else if (phase.includes('Incorrect') || phase.includes('Time') || phase === 'feedbackSecondaryBlack') {
+            playSound('wrong');
+        }
+    }, [phase, playSound]);
+
     // BOT Logic
     useEffect(() => {
         let timeout;
@@ -163,21 +172,19 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
-                    playSound('correct');
                     const pts = calculatePoints(2, timeLeft);
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
                     setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
-                    playSound('wrong');
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
                         setPhase('opponent'); // BOT didn't know, pass
                         setInputValue('');
                         setErrorMsg('');
-                        setTimeLeft(10);
+                        setTimeLeft(15);
                         setLastAnswer(''); // Clear for next phase
                     }, 2500);
                 }
@@ -186,14 +193,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
-                    playSound('correct');
                     const pts = calculatePoints(2, timeLeft);
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
                     setTimeout(() => onResolve('player2', pts, false), 5000);
                 } else {
-                    playSound('wrong');
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
                     setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -224,7 +229,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             if (gameMode !== '1v1_online' || authority) {
                 setTimeout(() => {
                     if (phase === 'currentPlayer') {
-                        playSound('wrong');
                         setLastAnswer('Čas vypršal');
                         setPhase('feedbackPrimaryTime');
                         if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
@@ -232,12 +236,11 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             setPhase('opponent');
                             setInputValue('');
                             setErrorMsg('');
-                            setTimeLeft(10);
+                            setTimeLeft(15);
                             setLastAnswer('');
                             if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
                         }, 2500);
                     } else {
-                        playSound('wrong');
                         setLastAnswer('Čas vypršal');
                         setPhase('feedbackSecondaryBlackTime');
                         if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
@@ -256,21 +259,19 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
-            playSound('correct');
             const pts = calculatePoints(currentPlayer, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve(`player${currentPlayer}`, pts, false), 5000);
         } else {
-            playSound('wrong');
             setPhase('feedbackPrimaryIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
             setTimeout(() => {
                 setPhase('opponent');
                 setInputValue('');
                 setErrorMsg('');
-                setTimeLeft(10);
+                setTimeLeft(15);
                 setLastAnswer(''); // Ready for opponent guess
                 if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
             }, 2500);
@@ -282,14 +283,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
-            playSound('correct');
             const pts = calculatePoints(opponent, timeLeft);
             setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve(`player${opponent}`, pts, false), 5000);
         } else {
-            playSound('wrong');
             setPhase('feedbackSecondaryBlackIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
             setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -332,7 +331,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                         </h3>
                         {/* Timer Bar for primary player */}
                         <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                         </div>
                         <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
 
@@ -371,7 +370,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
                         {/* Timer Bar */}
                         <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 10) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                         </div>
                         <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd do konca!</p>
 

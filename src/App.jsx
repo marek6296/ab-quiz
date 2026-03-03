@@ -206,12 +206,16 @@ const GameApp = () => {
         const dbModalStr = JSON.stringify(gameData.active_modal || null);
         const locModalStr = JSON.stringify(prev || null);
         if (dbModalStr !== locModalStr) {
+          if (!prev && gameData.active_modal && currentPlayer !== localPlayerNum) {
+            playSound('click');
+          }
           return gameData.active_modal || null;
         }
         return prev;
       });
     }
-  }, [gameMode, gameData?.active_modal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameMode, gameData?.active_modal, currentPlayer, localPlayerNum, playSound]);
 
   const handleAcceptInvite = async (gameId, rules) => {
     // Update game status to active
