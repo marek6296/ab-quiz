@@ -62,21 +62,6 @@ const GameApp = () => {
     }
   }, [user]);
 
-  // Resume active game if we have one and we're not currently in a game
-  useEffect(() => {
-    if (user?.id && !activeGameId) {
-      supabase.from('games').select('*')
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-        .eq('status', 'active')
-        .single()
-        .then(({ data }) => {
-          if (data && !activeGameId) {
-            handleStartGame('1v1_online', data.game_type || 'hex', data.id);
-          }
-        });
-    }
-  }, [user, activeGameId, handleStartGame]);
-
   // Pass necessary info down to the game engine
   const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData } = useGameState({
     userId: user?.id,
@@ -134,6 +119,21 @@ const GameApp = () => {
       resetGame();
     }
   }, [user, resetGame, setGameMode, setActiveGameId]);
+
+  // Resume active game if we have one and we're not currently in a game
+  useEffect(() => {
+    if (user?.id && !activeGameId) {
+      supabase.from('games').select('*')
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .eq('status', 'active')
+        .single()
+        .then(({ data }) => {
+          if (data && !activeGameId) {
+            handleStartGame('1v1_online', data.game_type || 'hex', data.id);
+          }
+        });
+    }
+  }, [user, activeGameId, handleStartGame]);
 
   // Listen for Online Game Invites
   useEffect(() => {
