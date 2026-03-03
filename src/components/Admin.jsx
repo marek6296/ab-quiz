@@ -6,7 +6,8 @@ export const Admin = ({ onBack }) => {
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({ total: 0, byCategory: {} });
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('list'); // 'list' or 'generate'
+    const [filterCategory, setFilterCategory] = useState('');
+    const [activeTab, setActiveTab] = useState('list');
 
     // AI Gen State
     const [genCategories, setGenCategories] = useState([]);
@@ -51,16 +52,24 @@ export const Admin = ({ onBack }) => {
 
     const fetchQuestions = async () => {
         setLoading(true);
-        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(50);
+        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(100);
 
         if (searchTerm) {
             query = query.ilike('question_text', `%${searchTerm}%`);
+        }
+
+        if (filterCategory) {
+            query = query.eq('category', filterCategory);
         }
 
         const { data, error } = await query;
         if (data) setQuestions(data);
         setLoading(false);
     };
+
+    useEffect(() => {
+        fetchQuestions();
+    }, [filterCategory]);
 
     const handleAddQuestion = async (e) => {
         e.preventDefault();
@@ -140,11 +149,23 @@ export const Admin = ({ onBack }) => {
                                 <div className="form-group search-input">
                                     <input
                                         type="text"
-                                        placeholder="Hľadať..."
+                                        placeholder="Hľadať otázku..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && fetchQuestions()}
                                     />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <select
+                                        value={filterCategory}
+                                        onChange={(e) => setFilterCategory(e.target.value)}
+                                        style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px', width: '100%' }}
+                                    >
+                                        <option value="">Všetky kategórie</option>
+                                        {Object.keys(stats.byCategory).sort().map(cat => (
+                                            <option key={cat} value={cat}>{cat} ({stats.byCategory[cat]})</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <button className="danger delete-all-btn" onClick={handleDeleteAllQuestions}>
                                     🗑️ Zmazať všetko
