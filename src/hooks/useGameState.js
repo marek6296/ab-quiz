@@ -1,18 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { checkWin } from '../utils/pathfinding';
 import { supabase } from '../lib/supabase';
-
-export const generateInitialBoard = (rules) => {
-    return Array.from({ length: 28 }, (_, i) => {
-        let special = 'normal';
-        if (rules === 'points') {
-            const rand = Math.random();
-            if (rand > 0.85) special = 'double';
-            else if (rand > 0.70) special = 'risk';
-        }
-        return { id: i + 1, owner: 'unowned', special };
-    });
-};
+import { generateInitialBoard, updateBoardWithClaim } from '../game-engine/board';
+import { calculateClaimResults } from '../game-engine/scoring';
+import { evaluateWinCondition, getNextTurnPlayer, getNextTurnDbId } from '../game-engine/turnManager';
 
 export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId }) => {
     const [board, setBoard] = useState(generateInitialBoard(gameRules));
@@ -85,27 +75,13 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     useEffect(() => {
         if (winner || !board) return; // Game over
 
-        let newWinner = null;
-
-        if (gameRules === 'points') {
-            // Points Mode Win Conditions: First to 150 points or full board
-            if (p1Score >= 150) newWinner = 1;
-            else if (p2Score >= 150) newWinner = 2;
-            else {
-                // Check if board is full
-                const isFull = board.every(h => h.owner !== 'unowned');
-                if (isFull) {
-                    newWinner = p1Score >= p2Score ? 1 : 2; // In real game, tiebreakers might be needed
-                }
-            }
-        } else {
-            // Hex (Pathfinding) Mode Win Conditions
-            const player1Nodes = board.filter(h => h.owner === 'player1').map(h => h.id);
-            const player2Nodes = board.filter(h => h.owner === 'player2').map(h => h.id);
-
-            if (checkWin(player1Nodes, 1)) newWinner = 1;
-            else if (checkWin(player2Nodes, 2)) newWinner = 2;
-        }
+        const newWinner = evaluateWinCondition({
+            board,
+            gameRules,
+            p1Score,
+            p2Score,
+            targetOwner: 'unowned' // Just a passive check, no specific target Owner
+        });
 
         if (newWinner) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -116,33 +92,19 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     const claimHexagon = useCallback(async (hexId, targetOwner, pointsEarned = 0, breakCombo = false) => {
         if (winner) return;
 
-        // Calculate new scores and combos
-        let newP1Score = p1Score;
-        let newP2Score = p2Score;
-        let newP1Combo = p1Combo;
-        let newP2Combo = p2Combo;
+        const hex = board.find(h => h.id === hexId);
 
-        if (targetOwner === 'player1') {
-            const hex = board.find(h => h.id === hexId);
-            const actualPoints = hex?.special === 'double' ? pointsEarned * 2 : pointsEarned;
-            newP1Score += actualPoints;
-            newP1Combo += 1;
-        } else if (targetOwner === 'player2') {
-            const hex = board.find(h => h.id === hexId);
-            const actualPoints = hex?.special === 'double' ? pointsEarned * 2 : pointsEarned;
-            newP2Score += actualPoints;
-            newP2Combo += 1;
-        } else if (targetOwner === 'unowned' && breakCombo) {
-            // This happens when the actively guessing player gets it wrong
-            const hex = board.find(h => h.id === hexId);
-            if (currentPlayer === 1) {
-                newP1Combo = 0;
-                if (hex?.special === 'risk') newP1Score = Math.max(0, newP1Score - 15);
-            } else if (currentPlayer === 2) {
-                newP2Combo = 0;
-                if (hex?.special === 'risk') newP2Score = Math.max(0, newP2Score - 15);
-            }
-        }
+        // Calculate new scores and combos
+        const results = calculateClaimResults({
+            targetOwner,
+            pointsEarned,
+            breakCombo,
+            currentPlayer,
+            hexSpecialInfo: hex?.special,
+            currentScoresAndCombos: { p1Score, p2Score, p1Combo, p2Combo }
+        });
+
+        const { newP1Score, newP2Score, newP1Combo, newP2Combo } = results;
 
         // Apply state locally immediately
         setP1Score(newP1Score);
@@ -153,30 +115,28 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         if (gameMode === '1v1_online' && activeGameId && gameData) {
             // Online Mode
             // 1. Calculate new board
-            const newBoard = board.map(hex => hex.id === hexId && hex.owner === 'unowned' ? { ...hex, owner: targetOwner } : hex);
+            const newBoard = updateBoardWithClaim(board, hexId, targetOwner);
 
-            // 2. Next player ID (only switch turn if a full cycle happened, but for now we follow old logic)
-            const nextTurnId = currentPlayer === 1 ? gameData.player2_id : gameData.player1_id;
+            // 2. Next player ID
+            const nextTurnId = getNextTurnDbId(currentPlayer, gameData);
 
             // 3. Early Win check for the DB
             let finalWinnerId = null;
-            if (gameRules === 'points') {
-                if (newP1Score >= 150) finalWinnerId = gameData.player1_id;
-                else if (newP2Score >= 150) finalWinnerId = gameData.player2_id;
-                else if (newBoard.every(h => h.owner !== 'unowned')) {
-                    finalWinnerId = newP1Score >= newP2Score ? gameData.player1_id : gameData.player2_id;
-                }
-            } else {
-                const targetNodes = newBoard.filter(h => h.owner === targetOwner).map(h => h.id);
-                if (checkWin(targetNodes, targetOwner === 'player1' ? 1 : 2)) {
-                    finalWinnerId = userId; // current player won
-                }
+            const newWinnerNum = evaluateWinCondition({
+                board: newBoard,
+                gameRules,
+                p1Score: newP1Score,
+                p2Score: newP2Score,
+                targetOwner
+            });
+            if (newWinnerNum) {
+                finalWinnerId = newWinnerNum === 1 ? gameData.player1_id : gameData.player2_id;
             }
 
             // Immediately apply locally to avoid lag
             setBoard(newBoard);
-            setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
-            if (finalWinnerId) setWinner(currentPlayer);
+            setCurrentPlayer(getNextTurnPlayer(currentPlayer));
+            if (newWinnerNum) setWinner(newWinnerNum);
 
             const updates = {
                 board_state: newBoard,
@@ -198,11 +158,9 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         } else {
             // Local Mode
             if (targetOwner !== 'unowned') {
-                setBoard(prev =>
-                    prev.map(hex => hex.id === hexId && hex.owner === 'unowned' ? { ...hex, owner: targetOwner } : hex)
-                );
+                setBoard(updateBoardWithClaim(board, hexId, targetOwner));
             }
-            setCurrentPlayer(prev => prev === 1 ? 2 : 1);
+            setCurrentPlayer(getNextTurnPlayer(currentPlayer));
         }
     }, [winner, board, gameMode, activeGameId, gameData, currentPlayer, userId, gameRules, p1Score, p2Score, p1Combo, p2Combo]);
 
