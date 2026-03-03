@@ -8,6 +8,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [errorMsg, setErrorMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState(15);
     const [lastAnswer, setLastAnswer] = useState('');
+    const phaseStartRef = useRef(Date.now());
 
     const { playSound, stopSound } = useAudio();
 
@@ -208,49 +209,54 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return () => clearTimeout(timeout);
     }, [isBotPrimaryTurn, isBotSecondaryTurn, onResolve, question.answer]);
 
-    // Timer Logic - Strictly ticks down without side effects
+    // Timer Logic - Strictly based on absolute time elapsed to prevent browser background throttling issues
     useEffect(() => {
         if (phase === 'currentPlayer' || phase === 'opponent') {
+            phaseStartRef.current = Date.now(); // Record exact start time of this phase locally
+            let timeoutTriggered = false; // Prevent multiple triggers in local instance
+
             const timer = setInterval(() => {
-                setTimeLeft((prev) => {
-                    const next = prev - 0.1;
-                    return next > 0 ? next : 0;
-                });
+                const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
+                let next = 15 - elapsedSeconds;
+                if (next < 0) next = 0;
+                setTimeLeft(next);
+
+                if (next === 0 && !timeoutTriggered) {
+                    const authority = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
+                    // Failsafe: if the authority's tab is minimized and completely asleep, 
+                    // allow the other player to force the timeout after a 2.5 second grace period.
+                    const forceTimeoutIfAsleep = elapsedSeconds >= 17.5;
+
+                    if (gameMode !== '1v1_online' || authority || forceTimeoutIfAsleep) {
+                        timeoutTriggered = true; // Lock it locally
+
+                        if (phase === 'currentPlayer') {
+                            setPhase('feedbackPrimaryTime');
+                            setLastAnswer('Čas vypršal');
+                            if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
+
+                            setTimeout(() => {
+                                setPhase('opponent');
+                                setInputValue('');
+                                setErrorMsg('');
+                                setTimeLeft(15);
+                                setLastAnswer('');
+                                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                            }, 2500);
+                        } else {
+                            setPhase('feedbackSecondaryBlackTime');
+                            setLastAnswer('Čas vypršal');
+                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
+
+                            setTimeout(() => onResolve('unowned', 0, true), 5000);
+                        }
+                    }
+                }
             }, 100);
             return () => clearInterval(timer);
         }
-    }, [phase]);
-
-    // Timeout Execution - Triggers exactly once when timeLeft reaches 0
-    useEffect(() => {
-        if ((phase === 'currentPlayer' || phase === 'opponent') && timeLeft === 0) {
-            const authority = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
-
-            if (gameMode !== '1v1_online' || authority) {
-                setTimeout(() => {
-                    if (phase === 'currentPlayer') {
-                        setLastAnswer('Čas vypršal');
-                        setPhase('feedbackPrimaryTime');
-                        if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
-                        setTimeout(() => {
-                            setPhase('opponent');
-                            setInputValue('');
-                            setErrorMsg('');
-                            setTimeLeft(15);
-                            setLastAnswer('');
-                            if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
-                        }, 2500);
-                    } else {
-                        setLastAnswer('Čas vypršal');
-                        setPhase('feedbackSecondaryBlackTime');
-                        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
-                        setTimeout(() => onResolve('unowned', 0, true), 5000);
-                    }
-                }, 100);
-            }
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [timeLeft, phase]);
+    }, [phase, isLocalPrimary, isLocalSecondary, gameMode, onSyncModal, onResolve]);
 
     if (!question) return null;
 
