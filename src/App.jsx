@@ -65,6 +65,7 @@ const GameApp = () => {
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [showVersus, setShowVersus] = useState(false);
   const manualExitRef = useRef(false);
+  const prevActiveModalRef = useRef(null);
 
   const { playSound } = useAudio();
 
@@ -210,7 +211,6 @@ const GameApp = () => {
     const hex = board.find(h => h.id === hexId);
     if (hex.owner === 'player1' || hex.owner === 'player2') return;
 
-    playSound('click');
     const q = await getRandomQuestionForConfig();
     const newModal = { hexId, question: q, phase: 'reveal' };
     setActiveModal(newModal);
@@ -233,6 +233,14 @@ const GameApp = () => {
   useEffect(() => {
     if (winner) playSound('winner');
   }, [winner, playSound]);
+
+  // Centralized "Click" sound when any modal opens (Local, Bot, or Online)
+  useEffect(() => {
+    if (activeModal && !prevActiveModalRef.current) {
+      playSound('click');
+    }
+    prevActiveModalRef.current = activeModal;
+  }, [activeModal, playSound]);
 
   const handleTogglePause = async () => {
     if (gameMode !== '1v1_online' || !activeGameId) return;

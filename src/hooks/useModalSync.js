@@ -41,9 +41,6 @@ export const useModalSync = ({
                         if (isDbReverting) return prev;
                     }
 
-                    if (!prev && dbModal && currentPlayer !== localPlayerNum) {
-                        playSound('click');
-                    }
                     return dbModal;
                 }
                 return prev;
