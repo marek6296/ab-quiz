@@ -199,6 +199,20 @@ const GameApp = () => {
     }
   }, [gameMode, activeGameId, user?.id]);
 
+  // Sync active_modal from DB to opponent
+  useEffect(() => {
+    if (gameMode === '1v1_online' && gameData) {
+      setActiveModal(prev => {
+        const dbModalStr = JSON.stringify(gameData.active_modal || null);
+        const locModalStr = JSON.stringify(prev || null);
+        if (dbModalStr !== locModalStr) {
+          return gameData.active_modal || null;
+        }
+        return prev;
+      });
+    }
+  }, [gameMode, gameData?.active_modal]);
+
   const handleAcceptInvite = async (gameId, rules) => {
     // Update game status to active
     const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
@@ -235,7 +249,12 @@ const GameApp = () => {
 
     playSound('click');
     const q = await getRandomQuestionForConfig();
-    setActiveModal({ hexId, question: q });
+    const newModal = { hexId, question: q };
+    setActiveModal(newModal);
+
+    if (gameMode === '1v1_online' && activeGameId) {
+      await supabase.from('games').update({ active_modal: newModal }).eq('id', activeGameId);
+    }
   };
 
   // BOT Turn automation

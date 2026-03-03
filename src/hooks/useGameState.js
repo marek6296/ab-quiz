@@ -185,6 +185,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 p2_score: newP2Score,
                 p1_combo: newP1Combo,
                 p2_combo: newP2Combo,
+                active_modal: null,
                 updated_at: new Date()
             };
             if (finalWinnerId) {
