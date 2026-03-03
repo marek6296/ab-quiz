@@ -122,7 +122,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         const { addDebugLog } = useGameStore.getState();
 
         // Log the outcome
-        if (targetOwner === 'unowned') {
+        if (targetOwner === 'unowned' || targetOwner === 'black') {
             addDebugLog(`Hexagón ${hexId} neobsadený (zle zodpovedaná otázka)`);
         } else {
             const pointsText = pointsEarned > 0 ? ` (+${pointsEarned}b)` : '';
@@ -183,7 +183,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
 
         } else {
             // Local Mode
-            if (targetOwner !== 'unowned') {
+            if (targetOwner === 'player1' || targetOwner === 'player2' || targetOwner === 'black') {
                 setBoard(updateBoardWithClaim(board, hexId, targetOwner));
             }
             setCurrentPlayer(getNextTurnPlayer(currentPlayer));

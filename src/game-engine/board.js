@@ -12,14 +12,14 @@ export const generateInitialBoard = (rules) => {
 
 export const updateBoardWithClaim = (board, hexId, targetOwner) => {
     return board.map(hex =>
-        (hex.id === hexId && hex.owner === 'unowned')
+        (hex.id === hexId && (hex.owner === 'unowned' || hex.owner === 'black'))
             ? { ...hex, owner: targetOwner }
             : hex
     );
 };
 
 export const isBoardFull = (board) => {
-    return board.every(h => h.owner !== 'unowned');
+    return board.every(h => h.owner !== 'unowned' && h.owner !== 'black');
 };
 
 export const getPlayerNodes = (board, player) => {

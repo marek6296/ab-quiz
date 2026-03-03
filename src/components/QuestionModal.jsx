@@ -221,7 +221,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setPhase('feedbackSecondaryBlack');
                     if (!resolvedRef.current) {
                         resolvedRef.current = true;
-                        setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                        setTimeout(() => onResolveRef.current('black', 0, true), 5000);
                     }
                 }
             }, thinkTime);
@@ -270,7 +270,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
                             if (!resolvedRef.current) {
                                 resolvedRef.current = true;
-                                setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                                setTimeout(() => onResolveRef.current('black', 0, true), 5000);
                             }
                         }
                     }
@@ -331,7 +331,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
             if (!resolvedRef.current) {
                 resolvedRef.current = true;
-                setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                setTimeout(() => onResolveRef.current('black', 0, true), 5000);
             }
         }
     };
@@ -345,7 +345,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
         if (!resolvedRef.current) {
             resolvedRef.current = true;
-            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+            setTimeout(() => onResolveRef.current('black', 0, true), 5000);
         }
     };
 

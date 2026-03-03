@@ -15,13 +15,13 @@ export const evaluateWinCondition = ({
         if (p2Score >= 150) return 2;
 
         // Check if board is full for tiebreaker
-        const isFull = board.every(h => h.owner !== 'unowned');
+        const isFull = board.every(h => h.owner !== 'unowned' && h.owner !== 'black');
         if (isFull) {
             return p1Score >= p2Score ? 1 : 2;
         }
     } else {
         // Hex logic
-        if (targetOwner !== 'unowned') {
+        if (targetOwner === 'player1' || targetOwner === 'player2') {
             const playerNum = targetOwner === 'player1' ? 1 : 2;
             const targetNodes = board.filter(h => h.owner === targetOwner).map(h => h.id);
             if (checkWin(targetNodes, playerNum)) {

@@ -100,7 +100,7 @@ serve(async (req) => {
         } else if (targetOwner === 'player2') {
             p2Score += hex.special === 'double' ? pointsEarned * 2 : pointsEarned;
             p2Combo += 1;
-        } else if (targetOwner === 'unowned' && breakCombo) {
+        } else if ((targetOwner === 'unowned' || targetOwner === 'black') && breakCombo) {
             if (currentPlayerInt === 1) {
                 p1Combo = 0; if (hex.special === 'risk') p1Score = Math.max(0, p1Score - 15);
             } else {
@@ -110,7 +110,7 @@ serve(async (req) => {
 
         // New Board State
         const newBoard = targetOwner !== 'unowned'
-            ? game.board_state.map((h: any) => h.id === hexId && h.owner === 'unowned' ? { ...h, owner: targetOwner } : h)
+            ? game.board_state.map((h: any) => h.id === hexId && (h.owner === 'unowned' || h.owner === 'black') ? { ...h, owner: targetOwner } : h)
             : game.board_state;
 
         // Win Verification
@@ -120,7 +120,7 @@ serve(async (req) => {
         if (game.game_type === 'points') {
             if (p1Score >= 150) winnerId = game.player1_id;
             else if (p2Score >= 150) winnerId = game.player2_id;
-            else if (newBoard.every((h: any) => h.owner !== 'unowned')) {
+            else if (newBoard.every((h: any) => h.owner !== 'unowned' && h.owner !== 'black')) {
                 winnerId = p1Score >= p2Score ? game.player1_id : game.player2_id;
             }
         } else {

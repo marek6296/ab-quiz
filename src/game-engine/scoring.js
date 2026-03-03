@@ -20,7 +20,7 @@ export const calculateClaimResults = ({
         const actualPoints = hexSpecialInfo === 'double' ? pointsEarned * 2 : pointsEarned;
         p2Score += actualPoints;
         p2Combo += 1;
-    } else if (targetOwner === 'unowned' && breakCombo) {
+    } else if ((targetOwner === 'unowned' || targetOwner === 'black') && breakCombo) {
         if (currentPlayer === 1) {
             p1Combo = 0;
             if (hexSpecialInfo === 'risk') p1Score = Math.max(0, p1Score - 15);
