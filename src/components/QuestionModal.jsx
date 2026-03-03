@@ -127,7 +127,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         }
     };
 
-    // Synchronize with the global mobile input located in App.jsx
+    // Vždy držať klávesnicu zapnutú – blur zakázaný!
     useEffect(() => {
         const globalInput = document.getElementById('global-mobile-input');
         if (!globalInput) return;
@@ -142,48 +142,60 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             (phase === 'opponent' && isLocalSecondary);
 
         // Keep local value in sync
-        const handleInput = (e) => setInputValue(e.target.value);
+        const handleInput = (e) => {
+            if (isSelfTurnActive) {
+                setInputValue(e.target.value);
+            } else {
+                // Prevent typing strictly in the background during opponent's turn
+                globalInput.value = '';
+            }
+        };
 
         // Handle enter key globally
         const handleKeyDown = (e) => {
             if (e.key === 'Enter') {
-                if (phase === 'currentPlayer') handleSubmitPrimary();
-                else if (phase === 'opponent') handleSubmitSecondary();
+                if (isSelfTurnActive) {
+                    if (phase === 'currentPlayer') handleSubmitPrimary();
+                    else if (phase === 'opponent') handleSubmitSecondary();
+                } else {
+                    e.preventDefault();
+                }
             }
         };
 
-        if (isSelfTurnActive) {
-            // Re-focus the global input periodically just to be safe if it was lost
-            if (document.activeElement !== globalInput) {
-                globalInput.focus();
-                globalInput.click(); // Pokus o simulované kliknutie podľa požiadavky
-            }
-
-            // Agresívna snaha udržať fokus pri prechodoch fáz
-            const focusInterval = setInterval(() => {
-                if (document.activeElement !== globalInput) {
-                    globalInput.focus();
-                    globalInput.click();
-                }
-            }, 200);
-
-            globalInput.addEventListener('input', handleInput);
-            globalInput.addEventListener('keydown', handleKeyDown);
-
-            return () => {
-                clearInterval(focusInterval);
-                globalInput.removeEventListener('input', handleInput);
-                globalInput.removeEventListener('keydown', handleKeyDown);
-            };
-        } else {
-            // Not our turn, blur to hide keyboard
-            globalInput.blur();
+        // Agresívna snaha udržať fokus pri všetkých fázach = klávesnica sa nikdy nezatvára
+        if (document.activeElement !== globalInput) {
+            globalInput.focus();
+            globalInput.click();
         }
 
-        return () => {
+        const focusInterval = setInterval(() => {
+            if (document.activeElement !== globalInput) {
+                globalInput.focus();
+                globalInput.click();
+            }
+        }, 300);
 
+        globalInput.addEventListener('input', handleInput);
+        globalInput.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            clearInterval(focusInterval);
+            globalInput.removeEventListener('input', handleInput);
+            globalInput.removeEventListener('keydown', handleKeyDown);
         };
     }, [phase, isLocalPrimary, isLocalSecondary, handleSubmitPrimary, handleSubmitSecondary]);
+
+    // Očistenie a zhodenie klávesnice, AŽ KEĎ SA UKONČÍ OTÁZKA (keď sa vrátime na board)
+    useEffect(() => {
+        return () => {
+            const globalInput = document.getElementById('global-mobile-input');
+            if (globalInput) {
+                globalInput.blur();
+                globalInput.value = '';
+            }
+        };
+    }, []);
 
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
