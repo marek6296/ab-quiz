@@ -76,7 +76,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   // Fetch current user profile
   useEffect(() => {
     if (user?.id) {
-      supabase.from('profiles').select('username').eq('id', user.id).single()
+      supabase.from('profiles').select('username, is_admin').eq('id', user.id).single()
         .then(({ data }) => setProfile(data));
     }
   }, [user]);
