@@ -28,6 +28,14 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const isBotPrimaryTurn = gameMode === '1vbot' && currentPlayer === 2 && phase === 'currentPlayer';
     const isBotSecondaryTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponent';
 
+    // Auto-skip 'opponentChoice' phase for the Bot
+    useEffect(() => {
+        if (phase === 'opponentChoice' && gameMode === '1vbot' && opponent === 2) {
+            setPhase('opponent'); // Proceed to answer
+            setTimeLeft(15);
+        }
+    }, [phase, gameMode, opponent]);
+
     const currentPlayerName = currentPlayer === 1 ? playerNames.player1 : playerNames.player2;
     const opponentName = opponent === 1 ? playerNames.player1 : playerNames.player2;
 
@@ -73,13 +81,13 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setPhase('feedbackPrimaryIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
             setTimeout(() => {
-                setPhase('opponent');
+                setPhase('opponentChoice');
                 setInputValue('');
                 setErrorMsg('');
-                setTimeLeft(15);
+                setTimeLeft(5); // 5 seconds timer for choice
                 setLastAnswer(''); // Ready for opponent guess
                 setIsSubmitting(false); // Allow secondary guess input
-                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                if (onSyncModal) onSyncModal({ phase: 'opponentChoice', lastAnswer: '' });
             }, 2500);
         }
     };
@@ -163,27 +171,31 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }
         };
 
-        // Agresívna snaha udržať fokus pri všetkých fázach = klávesnica sa nikdy nezatvára
-        if (document.activeElement !== globalInput) {
-            globalInput.focus();
-            globalInput.click();
-        }
-
-        const focusInterval = setInterval(() => {
+        if (isSelfTurnActive) {
+            // Agresívna snaha udržať fokus pri lokálnom type = klávesnica sa drží
             if (document.activeElement !== globalInput) {
                 globalInput.focus();
-                globalInput.click();
             }
-        }, 300);
 
-        globalInput.addEventListener('input', handleInput);
-        globalInput.addEventListener('keydown', handleKeyDown);
+            const focusInterval = setInterval(() => {
+                if (document.activeElement !== globalInput) {
+                    globalInput.focus();
+                }
+            }, 300);
 
-        return () => {
-            clearInterval(focusInterval);
-            globalInput.removeEventListener('input', handleInput);
-            globalInput.removeEventListener('keydown', handleKeyDown);
-        };
+            globalInput.addEventListener('input', handleInput);
+            globalInput.addEventListener('keydown', handleKeyDown);
+
+            return () => {
+                clearInterval(focusInterval);
+                globalInput.removeEventListener('input', handleInput);
+                globalInput.removeEventListener('keydown', handleKeyDown);
+            };
+        } else {
+            // Zavrie klávesnicu, keď prebiehajú animácie, čakanie a voľba
+            globalInput.blur();
+        }
+
     }, [phase, isLocalPrimary, isLocalSecondary, handleSubmitPrimary, handleSubmitSecondary]);
 
     // Očistenie a zhodenie klávesnice, AŽ KEĎ SA UKONČÍ OTÁZKA (keď sa vrátime na board)
@@ -363,10 +375,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackPrimaryIncorrect');
                     setTimeout(() => {
-                        setPhase('opponent'); // BOT didn't know, pass
+                        setPhase('opponentChoice'); // BOT didn't know, pass
                         setInputValue('');
                         setErrorMsg('');
-                        setTimeLeft(15);
+                        setTimeLeft(5);
                         setLastAnswer(''); // Clear for next phase
                     }, 2500);
                 }
@@ -398,13 +410,15 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     // Timer Logic - Strictly based on absolute time elapsed to prevent browser background throttling issues
     useEffect(() => {
-        if (phase === 'currentPlayer' || phase === 'opponent') {
+        if (phase === 'currentPlayer' || phase === 'opponent' || phase === 'opponentChoice') {
             phaseStartRef.current = Date.now(); // Record exact start time of this phase locally
             let timeoutTriggered = false; // Prevent multiple triggers in local instance
 
+            const maxTime = phase === 'opponentChoice' ? 5 : 15;
+
             const timer = setInterval(() => {
                 const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
-                let next = 15 - elapsedSeconds;
+                let next = maxTime - elapsedSeconds;
                 if (next < 0) next = 0;
                 setTimeLeft(next);
 
@@ -412,7 +426,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     const authority = phase === 'currentPlayer' ? isLocalPrimary : isLocalSecondary;
                     // Failsafe: if the authority's tab is minimized and completely asleep, 
                     // allow the other player to force the timeout after a 2.5 second grace period.
-                    const forceTimeoutIfAsleep = elapsedSeconds >= 17.5;
+                    const forceTimeoutIfAsleep = elapsedSeconds >= (maxTime + 2.5);
 
                     if (gameMode !== '1v1_online' || authority || forceTimeoutIfAsleep) {
                         timeoutTriggered = true; // Lock it locally
@@ -423,13 +437,22 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryTime', lastAnswer: 'Čas vypršal' });
 
                             setTimeout(() => {
-                                setPhase('opponent');
+                                setPhase('opponentChoice');
                                 setInputValue('');
                                 setErrorMsg('');
-                                setTimeLeft(15);
+                                setTimeLeft(5);
                                 setLastAnswer('');
-                                if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
+                                if (onSyncModal) onSyncModal({ phase: 'opponentChoice', lastAnswer: '' });
                             }, 2500);
+                        } else if (phase === 'opponentChoice') {
+                            setPhase('feedbackSecondaryBlackTime');
+                            setLastAnswer('Čas vypršal');
+                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
+
+                            if (!resolvedRef.current) {
+                                resolvedRef.current = true;
+                                setTimeout(() => onResolveRef.current('black', 0, true), 5000);
+                            }
                         } else {
                             setPhase('feedbackSecondaryBlackTime');
                             setLastAnswer('Čas vypršal');
@@ -495,6 +518,44 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true, true)}
                 {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false, false)}
                 {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false, false)}
+
+                {/* Secondary Guess Choice Phase */}
+                {phase === 'opponentChoice' && (
+                    <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                        <div className="question-text">{question.question_text || question.text}</div>
+
+                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
+                            Súper zaváhal! Máš šancu, {opponentName} ({opponentColor})
+                        </h3>
+                        {/* Timer Bar for opponent */}
+                        <div className="timer-bar-container">
+                            <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
+                        </div>
+                        <p style={{ marginBottom: '1.5rem' }}>{timeLeft.toFixed(1)} sekúnd na rozhodnutie!</p>
+
+                        {isLocalSecondary ? (
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button className="primary" onClick={() => {
+                                    setPhase('opponent');
+                                    setTimeLeft(15);
+                                    // Fyzický klik vyvolá focus
+                                    setTimeout(() => {
+                                        const globalInput = document.getElementById('global-mobile-input');
+                                        if (globalInput) globalInput.focus();
+                                    }, 50);
+                                    if (onSyncModal) onSyncModal({ phase: 'opponent' });
+                                }}>
+                                    Zobrať otázku
+                                </button>
+                                <button className="neutral" onClick={handleDeclineSecondary}>
+                                    Zahodiť
+                                </button>
+                            </div>
+                        ) : (
+                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým sa {opponentName} rozhodne...</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Secondary Guess Phase (Opponent Chance) */}
                 {phase === 'opponent' && (
