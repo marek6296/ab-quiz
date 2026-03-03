@@ -37,23 +37,26 @@ export const useAudio = () => {
         if (!file) return;
 
         try {
-            // Create or reuse audio instance
+            // Create base cache instance if it doesn't exist
             if (!audioCache[soundName]) {
                 audioCache[soundName] = new Audio(file);
+                // Preload to keep memory fast
+                audioCache[soundName].load();
             }
 
-            const audio = audioCache[soundName];
-            audio.volume = volume;
-
-            // Reset playback position if it's already playing (allows rapid clicking)
-            audio.currentTime = 0;
-
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    // Autoplay was prevented or audio failed to load.
-                    console.warn(`Audio playback failed for ${soundName}:`, error);
-                });
+            if (soundName === 'tick') {
+                // Re-use the same element for ticking so we can stop it later
+                const audio = audioCache[soundName];
+                audio.volume = volume;
+                audio.loop = true; // Odteraz bude tikanie samostatne plynulo loopovať dokola
+                audio.play().catch(error => console.warn(`Audio playback failed for ${soundName}:`, error));
+            } else {
+                // Pre všetky ostatné zvuky (kliknutia, správne, nesprávne) vyklonujeme element.
+                // Toto zabezpečí, že sa dajú prehrať okamžite aj viackrát po sebe (cez seba) bez toho, 
+                // aby sa prerušil pôvodný prehrávací promise, čo iOS Safari inak vníma ako chybu a zvuk natrvalo odmlčí.
+                const clonedAudio = audioCache[soundName].cloneNode(true);
+                clonedAudio.volume = volume;
+                clonedAudio.play().catch(error => console.warn(`Audio playback failed for ${soundName}:`, error));
             }
         } catch (e) {
             console.warn('Audio play error:', e);
