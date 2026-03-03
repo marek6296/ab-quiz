@@ -1257,6 +1257,45 @@ button.small {
   }
 }
 
+.logo-brutal {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  background: linear-gradient(to right,
+      #fff 20%,
+      #38bdf8 40%,
+      #3b82f6 60%,
+      #fff 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+  animation: logoShimmer 3s linear infinite, logoPulse 2s ease-in-out infinite alternate;
+  display: inline-block;
+  cursor: default;
+}
+
+@keyframes logoShimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes logoPulse {
+  from {
+    transform: scale(1);
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+  }
+
+  to {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.7));
+  }
+}
+
 .mobile-only-logo {
   display: none;
 }
@@ -1290,12 +1329,8 @@ button.small {
 }
 
 .sidebar-logo h1 {
-  font-size: 2rem;
-  background-image: var(--primary-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
+  font-size: 2.2rem;
+  padding: 0.5rem;
 }
 
 .sidebar-nav {
@@ -1476,13 +1511,7 @@ button.small {
   }
 
   .mobile-only-logo h1 {
-    font-size: 2rem;
-    margin-bottom: 0;
-    background-image: var(--primary-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 800;
+    font-size: 2.5rem;
   }
 
   .nav-item {
