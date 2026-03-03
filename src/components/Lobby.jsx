@@ -75,13 +75,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
             <audio ref={audioRef} src="/chrono-echoes.mp3" autoPlay loop />
 
             <aside className="dashboard-sidebar">
-                <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-                    <h1 style={{ fontSize: '2rem', backgroundImage: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <div className="sidebar-logo">
+                    <h1>
                         AB Kvíz
                     </h1>
                 </div>
 
-                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <nav className="sidebar-nav">
                     <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setSetupMode(null); }}>
                         <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
                     </button>
@@ -107,6 +107,9 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
             </aside>
 
             <main className="dashboard-content">
+                <div className="mobile-only-logo">
+                    <h1>AB Kvíz</h1>
+                </div>
                 {activeTab === 'play' && !setupMode && (
                     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
