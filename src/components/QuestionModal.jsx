@@ -555,7 +555,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content">
+            <div className="modal-content question-modal-fixed">
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
                     <div className="reveal-animation">

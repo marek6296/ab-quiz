@@ -448,6 +448,13 @@ h2 {
   animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.question-modal-fixed {
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 @media (max-width: 768px) {
   .modal-content {
     margin-top: 10px;
@@ -457,6 +464,16 @@ h2 {
     max-height: 85vh;
     overflow-y: auto;
     /* Ak text pretečie na menšom mobile, bude sa dať prejsť vnútri panela, nie na celej stránke */
+  }
+
+  .question-modal-fixed {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 768px) and (max-height: 550px) {
+  .question-modal-fixed {
+    min-height: auto;
   }
 }
 
