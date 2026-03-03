@@ -429,9 +429,9 @@ export const Admin = ({ onBack }) => {
 
                                         const count = parseInt(document.getElementById('gen_count').value);
                                         const diff = parseInt(document.getElementById('gen_diff').value);
-                                        let diffDesc = "ĽAHKÁ (Základné, všeobecne známe fakty pre bežného konzumenta.)";
-                                        if (diff === 2) diffDesc = "STREDNÁ (Špecifickejšie fakty, ktoré pozná priemerný fanúšik.)";
-                                        if (diff === 3) diffDesc = "ŤAŽKÁ (Veľmi ojedinelé detaily, roky, mená začiatočných postáv. Pre expertov.)";
+                                        let diffDesc = "ĽAHKÁ (Očakáva sa BANÁLNA obtiažnosť. Pýtaj sa len na najznámejšie, ikonické fakty a úplne základné veci, ktoré s istotou vie 95% ľudí. Učivo 1. stupňa ZŠ, najznámejší herci, hlavné mestá veľkých štátov.)";
+                                        if (diff === 2) diffDesc = "STREDNÁ (Fakty pre bežného diváka. Nie tá najzákladnejšia vec, ale stále známa informácia. Napr. konkrétny rok začatia 2. sv. vojny, hlavné mesto menšieho štátu.)";
+                                        if (diff === 3) diffDesc = "ŤAŽKÁ (Detaily, mená vedľajších postáv, ojedinelé historické fakty, štatistiky. Pre naozajstných expertov a zarytých fanúšikov danej témy.)";
                                         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
                                         if (finalCategories.length === 0) return alert('Vyber aspoň jednu kategóriu!');
@@ -469,16 +469,16 @@ export const Admin = ({ onBack }) => {
                                                         messages: [
                                                             {
                                                                 role: "system",
-                                                                content: `Si PROFESIONÁLNY autor kvízových otázok pre slovenskú obdobu AZ-KVÍZu. Tvojou úlohou je tvoriť otázky vysokej kvality, ktoré sú JEDNOZNÁČNÉ a majú IBA JEDNU možnú odpoveď.
+                                                                content: `Si PROFESIONÁLNY moderátor kvízových relácií (ako AZ-Kvíz na Slovensku). Tvojou úlohou je tvoriť otázky, ktoré sú presné, jednoznačné, majú len jednu možnú odpoveď a sú výborne štylisticky položené.
 
     STRIKTNÉ KRITÉRIÁ:
-    1. KONTEXT V OTÁZKE: Otázka musí obsahovať dostatok informácií, aby bola odpoveď unikátna. (Zlé: 'V ktorom meste je hrad?', Dobré: 'V ktorom slovenskom meste na sútoku Váhu a Nitry stojí protiturecká pevnosť?')
-    2. JEDNOZNAČNOSŤ: Vyhni sa všeobecným názvom. Ak sa pýtaš na album '1989', musíš špecifikovať speváčku (Taylor Swift) ALEBO ak sa pýtaš na Taylor Swift, musíš uviesť špecifický rekord/fakt, ktorý ju odlišuje.
-    3. SLOVENSKÉ ŠPECIFIKÁ:
-       - 'Slovensko': Zameraj sa na unikátne geografické a historické fakty (najvyššie, najstaršie, jediné).
-       - 'Streameri a YouTuberi': Používaj výhradne CZ/SK mená a špecifické projekty (napr. Madmonq, RealGeek, mená ich psov, legendárne herné série).
-       - 'Logika a Hádanky': Odpoveď musí byť hmotný predmet alebo zvieratko, jedno slovo.
-    4. JAZYK: Používaj spisovnú slovenčinu a profesionálnu formuláciu.
+    1. PRIAMOČIAROSŤ A ŠTÝL: Pýtaj sa jasne a priamo. Žiadne zbytočné a zdĺhavé robotické opisy. Formulácia musí znieť prirodzene z úst moderátora (Napr. namiesto "Aký je názov filmu, v ktorom..." použi "V ktorom slávnom filme...").
+    2. JEDNOZNAČNOSŤ: Odpoveď musí byť nespochybniteľná. Pri osobách vždy uveď národnosť a povolanie (napr. 'Ktorá americká popová speváčka...').
+    3. ÚDERNOŤ ODPOVEDÍ: Odpovede udržuj čo najkratšie – ideálne 1 až 2 slová. (napr. namiesto "Mesto Bratislava" použi iba "Bratislava").
+    4. ŠPECIFIKÁ TÉM:
+       - 'Slovensko': Len unikátne slovenské fakty (najvyššie, najstaršie, jediné).
+       - 'Streameri a YouTuberi': Čisto CZ/SK mená a ich legendárne storky.
+       - 'Logika a Hádanky': Klasické vtipné hádanky, kde je odpoveď zväčša predmet alebo zviera.
     5. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                             },
                                                             {
