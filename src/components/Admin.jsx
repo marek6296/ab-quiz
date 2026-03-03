@@ -150,28 +150,28 @@ export const Admin = ({ onBack }) => {
                                     🗑️ Zmazať všetko
                                 </button>
                             </div>
-                            <div style={{ maxHeight: '600px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <div className="admin-table-wrapper">
+                                <table className="admin-table">
                                     <thead>
-                                        <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
-                                            <th style={{ padding: '1rem' }}>Otázka</th>
-                                            <th style={{ padding: '1rem' }}>Odpoveď</th>
-                                            <th style={{ padding: '1rem' }}>Kat.</th>
-                                            <th style={{ padding: '1rem' }}>Úroveň</th>
-                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Akcie</th>
+                                        <tr>
+                                            <th>Otázka</th>
+                                            <th>Odpoveď</th>
+                                            <th className="hide-mobile">Kat.</th>
+                                            <th className="hide-mobile">Úroveň</th>
+                                            <th style={{ textAlign: 'center' }}>Akcie</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {questions.map(q => (
-                                            <tr key={q.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <td style={{ padding: '0.8rem', fontSize: '0.9rem' }}>{q.question_text}</td>
-                                                <td style={{ padding: '0.8rem', fontSize: '0.9rem', color: '#4ade80' }}>{q.answer}</td>
-                                                <td style={{ padding: '0.8rem', fontSize: '0.8rem', color: '#94a3b8' }}>{q.category}</td>
-                                                <td style={{ padding: '0.8rem', textAlign: 'center' }}>{q.difficulty}</td>
-                                                <td style={{ padding: '0.8rem', textAlign: 'center' }}>
+                                            <tr key={q.id}>
+                                                <td className="q-text">{q.question_text}</td>
+                                                <td className="q-answer">{q.answer}</td>
+                                                <td className="q-cat hide-mobile">{q.category}</td>
+                                                <td className="q-diff hide-mobile">{q.difficulty}</td>
+                                                <td className="q-actions">
                                                     <button
                                                         onClick={() => handleDeleteQuestion(q.id)}
-                                                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem', fontSize: '1.2rem' }}
+                                                        className="delete-btn"
                                                         title="Vymazať"
                                                     >
                                                         ❌
@@ -181,7 +181,7 @@ export const Admin = ({ onBack }) => {
                                         ))}
                                     </tbody>
                                 </table>
-                                {loading && <div style={{ padding: '2rem', textAlign: 'center' }}>Načítavam...</div>}
+                                {loading && <div className="loading-spinner">Načítavam...</div>}
                             </div>
                         </>
                     )}
@@ -258,7 +258,7 @@ export const Admin = ({ onBack }) => {
                                         </button>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div className="category-container">
                                         {PREDEFINED_CAT.map(cat => {
                                             const isSelected = genCategories.includes(cat);
                                             return (
@@ -266,16 +266,11 @@ export const Admin = ({ onBack }) => {
                                                     key={cat}
                                                     type="button"
                                                     onClick={() => toggleGenCategory(cat)}
+                                                    className={`category-chip ${isSelected ? 'selected' : ''}`}
                                                     style={{
-                                                        padding: '0.5rem 1rem',
-                                                        borderRadius: '20px',
-                                                        fontSize: '0.85rem',
                                                         background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
                                                         color: isSelected ? '#38bdf8' : '#94a3b8',
                                                         border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s',
-                                                        margin: 0
                                                     }}
                                                 >
                                                     {cat}
