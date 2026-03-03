@@ -232,6 +232,13 @@ const ABQuizApp = ({ onBackToPortal }) => {
   };
 
   const handleHexClick = async (hexId) => {
+    // Okamžite zamerať globálny vstup, predtým než asynchrónna logika a stavové zmeny zablokujú focus (iOS restriction)
+    const mobileInput = document.getElementById('global-mobile-input');
+    if (mobileInput) {
+      mobileInput.value = ''; // Vymaž všetky staré hodnoty
+      mobileInput.focus();
+    }
+
     if (gameMode === '1vbot' && currentPlayer === 2) return;
     if (gameMode === '1v1_online' && gameData?.paused_by) return;
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
@@ -449,6 +456,32 @@ const ABQuizApp = ({ onBackToPortal }) => {
           </div>
 
           <GameBoard board={board} onHexClick={handleHexClick} />
+
+          {/* 
+            Globálny neviditeľný input, ktorý musí byť už vyrenderovaný v DOM strome.
+            Tým pádom naň vieme zavolať .focus() počas "onClick" v hexagóne 
+            a klávesnica nám stabilne ostane vysunutá, kým QuestionModal nevyčíta jeho hodnoty.
+          */}
+          <input
+            id="global-mobile-input"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            style={{
+              position: 'absolute',
+              top: '-9999px',
+              left: '-9999px',
+              opacity: 0,
+              width: '1px',
+              height: '1px',
+              padding: 0,
+              border: 'none',
+              pointerEvents: 'none'
+            }}
+          />
 
           {activeModal && (
             <QuestionModal

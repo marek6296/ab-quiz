@@ -54,26 +54,49 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const [earnedPoints, setEarnedPoints] = useState(0);
 
-    const inputRef = useRef(null);
-
-    // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
-    // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
+    // Synchronize with the global mobile input located in App.jsx
     useEffect(() => {
+        const globalInput = document.getElementById('global-mobile-input');
+        if (!globalInput) return;
+
+        // Ensure the physical input reflects whatever state we have (important for clearing)
+        if (globalInput.value !== inputValue) {
+            globalInput.value = inputValue;
+        }
+
         const isSelfTurnActive = (phase === 'reveal' && isLocalPrimary) ||
             (phase === 'currentPlayer' && isLocalPrimary) ||
             (phase === 'opponent' && isLocalSecondary);
 
-        if (isSelfTurnActive && inputRef.current) {
-            // A tiny timeout ensures modal animation has started and DOM is ready for focus grabbing on Safari/mobile
-            const timer1 = setTimeout(() => inputRef.current?.focus(), 50);
-            const timer2 = setTimeout(() => inputRef.current?.focus(), 300);
+        // Keep local value in sync
+        const handleInput = (e) => setInputValue(e.target.value);
 
-            return () => {
-                clearTimeout(timer1);
-                clearTimeout(timer2);
-            };
+        // Handle enter key globally
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                if (phase === 'currentPlayer') handleSubmitPrimary();
+                else if (phase === 'opponent') handleSubmitSecondary();
+            }
+        };
+
+        if (isSelfTurnActive) {
+            // Re-focus the global input periodically just to be safe if it was lost
+            if (document.activeElement !== globalInput) {
+                globalInput.focus();
+            }
+
+            globalInput.addEventListener('input', handleInput);
+            globalInput.addEventListener('keydown', handleKeyDown);
+        } else {
+            // Not our turn, blur to hide keyboard
+            globalInput.blur();
         }
-    }, [phase, isLocalPrimary, isLocalSecondary]);
+
+        return () => {
+            globalInput.removeEventListener('input', handleInput);
+            globalInput.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [phase, isLocalPrimary, isLocalSecondary, handleSubmitPrimary, handleSubmitSecondary]);
 
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
@@ -92,7 +115,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return (
             <div
                 className="placeholder-container"
-                onClick={() => isSelfTurnActive && inputRef.current && inputRef.current.focus()}
+                onClick={() => {
+                    if (isSelfTurnActive) {
+                        const globalInput = document.getElementById('global-mobile-input');
+                        if (globalInput) globalInput.focus();
+                    }
+                }}
                 style={{ cursor: isSelfTurn ? 'text' : 'default', position: 'relative' }}
             >
 
@@ -398,45 +426,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                {/* Global Mobile Input - Always present when local player needs to answer, to capture synchronous focus on mount */}
-                {((phase === 'reveal' && isLocalPrimary) ||
-                    (phase === 'currentPlayer' && isLocalPrimary) ||
-                    (phase === 'opponent' && isLocalSecondary)) && (
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    if (phase === 'currentPlayer') handleSubmitPrimary();
-                                    else if (phase === 'opponent') handleSubmitSecondary();
-                                }
-                            }}
-                            autoFocus
-                            inputMode="text"
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="off"
-                            spellCheck="false"
-                            style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                opacity: 0,
-                                zIndex: -1,
-                                width: '1px',
-                                height: '1px',
-                                fontSize: '16px', // Prevents iOS zoom
-                                pointerEvents: 'none',
-                                background: 'transparent',
-                                color: 'transparent',
-                                caretColor: 'transparent'
-                            }}
-                        />
-                    )}
-
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
                     <div className="reveal-animation">
