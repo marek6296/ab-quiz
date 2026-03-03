@@ -262,6 +262,9 @@ const GameApp = () => {
         <div className="vs-title">Bitka začína!</div>
       </div>
 
+      {/* Game start sound plays when game begins. Placed outside of vs overlay to ensure it's not paused by any browser CSS optimizations */}
+      <audio src="/game-start.mp3" autoPlay />
+
       <div className="game-container game-entrance">
         <h1 className="game-title">
           <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>

@@ -11,8 +11,10 @@ export const Lobby = ({ onStart1vBot }) => {
     const audioRef = React.useRef(null);
 
     React.useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.volume = 0.15; // Set volume to 15%
+        const audio = audioRef.current;
+        if (audio) {
+            audio.volume = 0.05; // Set volume to 5% (drastically reduced)
+            audio.play().catch(e => console.log('Autoplay prevented:', e)); // Attempt to play immediately
         }
     }, []);
 
