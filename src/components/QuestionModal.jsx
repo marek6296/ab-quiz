@@ -116,7 +116,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             border: 'none',
                             outline: 'none',
                             background: 'transparent',
-                            color: 'transparent' // Hide native caret
+                            color: 'transparent', // Hide native text
+                            caretColor: 'transparent' // Explicitly hide native caret
                         }}
                     />
                 )}
