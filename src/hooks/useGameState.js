@@ -5,7 +5,7 @@ import { calculateClaimResults } from '../game-engine/scoring';
 import { evaluateWinCondition, getNextTurnPlayer, getNextTurnDbId } from '../game-engine/turnManager';
 import { useGameStore } from '../game-engine/store';
 
-export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId }) => {
+export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId, manualExitRef }) => {
     const [board, setBoard] = useState(generateInitialBoard(gameRules));
     const [currentPlayer, setCurrentPlayer] = useState(1);
     const [winner, setWinner] = useState(null);
@@ -51,6 +51,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 filter: `id=eq.${activeGameId}`
             }, (payload) => {
                 if (payload.eventType === 'DELETE') {
+                    if (manualExitRef?.current) return; // Silent for the leaver
                     // Game was abandoned by the other player or deleted
                     alert("Hra bola ukončená druhým hráčom.");
                     useGameStore.getState().resetToLobby();
@@ -66,6 +67,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setP2Combo(newData.p2_combo || 0);
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
                     if (newData.status === 'finished' && !newData.winner_id) {
+                        if (manualExitRef?.current) return; // Silent for the leaver
                         alert("Súper opustil hru.");
                         useGameStore.getState().resetToLobby();
                         return;
