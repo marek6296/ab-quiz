@@ -156,12 +156,14 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             // Re-focus the global input periodically just to be safe if it was lost
             if (document.activeElement !== globalInput) {
                 globalInput.focus();
+                globalInput.click(); // Pokus o simulované kliknutie podľa požiadavky
             }
 
             // Agresívna snaha udržať fokus pri prechodoch fáz
             const focusInterval = setInterval(() => {
                 if (document.activeElement !== globalInput) {
                     globalInput.focus();
+                    globalInput.click();
                 }
             }, 200);
 
