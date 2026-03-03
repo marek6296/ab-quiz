@@ -21,8 +21,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const { playSound, stopSound } = useAudio();
 
     const opponent = currentPlayer === 1 ? 2 : 1;
-    const isLocalPrimary = gameMode !== '1v1_online' || currentPlayer === localPlayerNum;
-    const isLocalSecondary = gameMode !== '1v1_online' || opponent === localPlayerNum;
+    // V 1vbot móde je lokálny hráč VŽDY hráč 1.
+    const isLocalPrimary = gameMode === '1v1_online' ? currentPlayer === localPlayerNum : currentPlayer === 1;
+    const isLocalSecondary = gameMode === '1v1_online' ? opponent === localPlayerNum : opponent === 1;
 
     const isBotPrimaryTurn = gameMode === '1vbot' && currentPlayer === 2 && phase === 'currentPlayer';
     const isBotSecondaryTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponent';
