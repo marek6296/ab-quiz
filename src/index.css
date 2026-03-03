@@ -1262,7 +1262,8 @@ button.small {
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: -0.05em;
-  line-height: 1;
+  line-height: 1.2;
+  padding: 0.5rem 0;
   background: linear-gradient(to right,
       #fff 20%,
       #38bdf8 40%,
@@ -1512,7 +1513,7 @@ button.small {
   }
 
   .mobile-only-logo h1 {
-    font-size: 3.5rem;
+    font-size: 3.2rem;
   }
 
   .nav-item {
