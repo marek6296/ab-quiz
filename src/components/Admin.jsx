@@ -454,25 +454,21 @@ export const Admin = ({ onBack }) => {
                                                 },
                                                 body: JSON.stringify({
                                                     model: "gpt-4o",
-                                                    temperature: 0.7, // Slightly higher for better variety
+                                                    temperature: 0.4, // Lower temperature for more factual and less random content
                                                     messages: [
                                                         {
                                                             role: "system",
-                                                            content: `Si ELITNÝ expert na tvorbu kvízov pre slovenskú verziu AZ-KVÍZ (AB Kvíz).
-    Tvojou úlohou je vygenerovať presne požadovaný počet otázok.
+                                                            content: `Si PROFESIONÁLNY autor kvízových otázok pre slovenskú obdobu AZ-KVÍZu. Tvojou úlohou je tvoriť otázky vysokej kvality, ktoré sú JEDNOZNÁČNÉ a majú IBA JEDNU možnú odpoveď.
 
-    STRIKTNÉ PRAVIDLÁ KVALITY:
-    1. PRAVDIVOSŤ: Odpovede musia byť 100% fakticky overiteľné. Žiadne výmysly.
-    2. JEDNOZNAČNOSŤ: Na otázku musí existovať jedna stručná a nespochybniteľná odpoveď.
-    3. ŠTRUKTÚRA KATEDÓRIÍ:
-       - 'Streameri a YouTuberi': Iba CZ/SK scéna (Gogo, Duklock, Restt, Agraelus, Herdyn, Madmonq atď.).
-       - 'Logika a Hádanky': Krátke, úderné hádanky. Odpoveď musí byť podstatné meno (napr. 'Má to kľúče, ale nevie odomknúť?' -> 'Piáno' alebo 'Klavír'). Vyhni sa abstraktným metaforám.
-       - 'Slovensko': Zameranie na hory, mestá, rieky, hrady a známe osobnosti.
-       - 'Slovenský jazyk': Gramatika, pravopis, vybrané slová.
-    4. STRUČNOSŤ: Otázka max 12 slov. Odpoveď max 2 slová.
-    5. MNOŽSTVO: Musíš vygenerovať presne toľko otázok, koľko užívateľ žiada.
-
-    FORMÁT: Vráť JSON objekt: {"questions": [{"question_text": "...", "answer": "...", "category": "..."}]}`
+    STRIKTNÉ KRITÉRIÁ:
+    1. KONTEXT V OTÁZKE: Otázka musí obsahovať dostatok informácií, aby bola odpoveď unikátna. (Zlé: 'V ktorom meste je hrad?', Dobré: 'V ktorom slovenskom meste na sútoku Váhu a Nitry stojí protiturecká pevnosť?')
+    2. JEDNOZNAČNOSŤ: Vyhni sa všeobecným názvom. Ak sa pýtaš na album '1989', musíš špecifikovať speváčku (Taylor Swift) ALEBO ak sa pýtaš na Taylor Swift, musíš uviesť špecifický rekord/fakt, ktorý ju odlišuje.
+    3. SLOVENSKÉ ŠPECIFIKÁ:
+       - 'Slovensko': Zameraj sa na unikátne geografické a historické fakty (najvyššie, najstaršie, jediné).
+       - 'Streameri a YouTuberi': Používaj výhradne CZ/SK mená a špecifické projekty (napr. Madmonq, RealGeek, mená ich psov, legendárne herné série).
+       - 'Logika a Hádanky': Odpoveď musí byť hmotný predmet alebo zvieratko, jedno slovo.
+    4. JAZYK: Používaj spisovnú slovenčinu a profesionálnu formuláciu.
+    5. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                         },
                                                         {
                                                             role: "user",
