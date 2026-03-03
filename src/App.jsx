@@ -479,8 +479,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
               opacity: 0,
               width: '1px',
               height: '1px',
-              padding: 0,
+              color: 'transparent',
+              caretColor: 'transparent',
+              background: 'transparent',
               border: 'none',
+              padding: 0,
               pointerEvents: 'none'
             }}
           />
