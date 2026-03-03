@@ -8,7 +8,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [errorMsg, setErrorMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState(15);
     const [lastAnswer, setLastAnswer] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const phaseStartRef = useRef(Date.now());
+    const resolvedRef = useRef(false);
 
     // Udržanie najaktuálnejšej hodnoty `onResolve`, aby sme nemuseli neustále reštartovať timery.
     const onResolveRef = useRef(onResolve);
@@ -204,11 +206,17 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
-                    setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
+                    if (!resolvedRef.current) {
+                        resolvedRef.current = true;
+                        setTimeout(() => onResolveRef.current('player2', pts, false), 5000);
+                    }
                 } else {
                     setLastAnswer('BOT nevedel odpovedať');
                     setPhase('feedbackSecondaryBlack');
-                    setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                    if (!resolvedRef.current) {
+                        resolvedRef.current = true;
+                        setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                    }
                 }
             }, thinkTime);
         }
@@ -254,7 +262,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             setLastAnswer('Čas vypršal');
                             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
 
-                            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                            if (!resolvedRef.current) {
+                                resolvedRef.current = true;
+                                setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+                            }
                         }
                     }
                 }
@@ -267,7 +278,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     if (!question) return null;
 
     const handleSubmitPrimary = () => {
-        if (!inputValue.trim()) return;
+        if (!inputValue.trim() || isSubmitting) return;
+        setIsSubmitting(true);
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
@@ -275,7 +287,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setEarnedPoints(pts);
             setPhase('feedbackPrimaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryCorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolveRef.current(`player${currentPlayer}`, pts, false), 5000);
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current(`player${currentPlayer}`, pts, false), 5000);
+            }
         } else {
             setPhase('feedbackPrimaryIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: inputValue });
@@ -285,13 +300,15 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 setErrorMsg('');
                 setTimeLeft(15);
                 setLastAnswer(''); // Ready for opponent guess
+                setIsSubmitting(false); // Allow secondary guess input
                 if (onSyncModal) onSyncModal({ phase: 'opponent', lastAnswer: '' });
             }, 2500);
         }
     };
 
     const handleSubmitSecondary = () => {
-        if (!inputValue.trim()) return;
+        if (!inputValue.trim() || isSubmitting) return;
+        setIsSubmitting(true);
         setLastAnswer(inputValue);
 
         if (isAnswerCorrect(inputValue, question.answer)) {
@@ -299,19 +316,31 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             setEarnedPoints(pts);
             setPhase('feedbackSecondaryCorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryCorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolveRef.current(`player${opponent}`, pts, false), 5000);
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current(`player${opponent}`, pts, false), 5000);
+            }
         } else {
             setPhase('feedbackSecondaryBlackIncorrect');
             if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackIncorrect', lastAnswer: inputValue });
-            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+            if (!resolvedRef.current) {
+                resolvedRef.current = true;
+                setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+            }
         }
     };
 
     const handleDeclineSecondary = () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
         if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
-        setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+        if (!resolvedRef.current) {
+            resolvedRef.current = true;
+            setTimeout(() => onResolveRef.current('unowned', 0, true), 5000);
+        }
     };
 
     const handleKeyDown = (e, callback) => {

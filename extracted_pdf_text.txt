@@ -1,0 +1,571 @@
+Realizovateľnosť slovenskej webovej kvízovej hry
+inšpirovanej formátom AZ-kvíz
+Exekutívne zhrnutie
+Vytvoriť slovenskú webovú kvízovú hru „v duchu“ AZ-kvíz (singleplayer aj head‑to‑head) je technicky veľmi
+dobre realizovateľné: ide o ťahovú hru s jasným stavom (hracia mapa, otázka, časovač, výsledok), ktorú je
+možné robustne synchronizovať cez WebSockety a serverom autoritatívne vyhodnocovať. 
+Najväčšia neistota je právno‑licenčná. Samotné „pravidlá/koncept“ hry (napr . princíp ťahovej vedomostnej
+súťaže s obsadzovaním polí) spravidla nie sú predmetom autorského práva ako také; český aj slovenský
+autorský zákon výslovne vylučujú z ochrany samotnú myšlienku, postup, metódu či princíp.  Praktické
+riziko však vzniká pri „vernej kópii“: názov/branding (ochranné známky), špecifická audiovizuálna podoba,
+grafika hernej dosky, hudobné a zvukové prvky, konkrétne znenie otázok a celkové „trade dress“ môžu byť
+chránené a ich napodobnenie môže zakladať kolíziu (vrátane nekalej súťaže). 
+Preto sa ako najrealistickejší kompromis javí prístup B: inšpirovaná varianta (rovnaký „strategický kvíz“, ale
+odlišné pomenovanie, vizuál, mechaniky a dramaturgia) – s výrazne nižším právnym rizikom a stále vysokou
+používateľskou  atraktivitou.  Pri  prístupe  A:  verná  kópia je  odporúčané  počítať  s  potrebou  licencie  od
+držiteľov práv (minimálne k značke a audiovizuálnej identite). 
+Integrácia  ElevenLabs pre  moderátorský  hlas  je  uskutočniteľná  cez  serverové  volania  ich  TTS  API
+(ochrana API kľúča, streaming, cache). Ich dokumentácia priamo popisuje endpoint, hlavičku xi-api-key,
+voľbu modelu, jazykový parameter language_code (ISO 639‑1) a streamingové použitie.  Slovenčina
+je podporovaná (vrátane jazykového kódu sk pri modeloch). 
+Hrubý odhad dodania „MVP“ (singleplayer + základný duel, admin otázok, základná TTS) je typicky  8–14
+týždňov v malom tíme; plnohodnotná verzia so škálovaním, anti‑cheat, ratingom a obsahovou produkciou
+skôr 3–6 mesiacov. (Bez licenčných rokovaní.) Pri licencovaní vernej kópie treba rátať s nepredvídateľným
+trvaním a nákladmi.
+Ako funguje AZ-kvíz v českej verzii
+AZ-kvíz je vedomostná a zároveň taktická súťaž z dielne Česká televize, ktorej jadrom je obsadzovanie
+polí na trojuholníkovej „šesťuholníkovej“ mape a snaha prepojiť tri strany trojuholníka vlastnou farbou. 
+Herný tok epizódy a kolá
+Podľa  oficiálnych  pravidiel  je  priebeh  postavený  na  dvoch  úvodných  kolách  a  finále.  Súťažiaci  sú
+nasadzovaní tak, že noví súťažiaci si žrebujú „číslo 1“ a „číslo 2“; víťaz predošlého dielu hrá 1. kolo proti
+„jednotke“ a finalista predošlého dielu hrá 2. kolo proti „dvojke“. Víťaz 1. kola začína finále. 
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+1
+Dôležitý „seriálový“ prvok: víťaz dielu aj druhý finalista postupujú do ďalšieho dielu, pričom môžu súťažiť
+maximálne päťkrát; pri piatich víťazstvách je spomenutá špeciálna prémia. 
+Ťahy, časovanie, vyhodnocovanie
+V každom kole sa dvaja hráči striedajú vo voľbe otázok; víťazom kola sa stáva ten, kto skôr prepojí tri strany
+hracieho poľa správnymi odpoveďami. Súťažiaci musí zvoliť políčko do 5 sekúnd, inak prechádza právo ťahu
+na súpera. 
+Pre 1. a 2. kolo platí  časový limit 7:30. Ak sa do limitu nepodarí hru ukončiť prepojením strán, kolo sa
+ukončí signálom; dohrá sa práve čítaná (resp. „zvolená“) otázka a víťazom je ten, kto získal viac polí svojej
+farby. Pri rovnosti nasleduje rozstrel: moderátor položí náhradnú otázku typu ANO‑NE, odpovedá ten, kto
+prvý stlačí losovacie zariadenie; nesprávna odpoveď znamená výhru súpera. 
+Typy otázok, „nápovedy“ a špeciálne pravidlá
+Formát  má  zabudovaný  mechanizmus  „nápovedy“:  správna  odpoveď  musí  korešpondovať  s  písmenami
+zobrazenými na obrazovke (t. j. typicky ide o určené začiatočné písmeno/písmená odpovede) a odpoveď
+mimo týchto písmen nemusí byť uznaná. Súťažiaci smie začať odpovedať až po vypočutí celej otázky; opraviť
+sa môže len raz (pri pôvodne zadanej otázke). 
+Ak  súťažiaci  nevie  odpoveď,  môže  ju  zodpovedať  súper  –  ale  bez  možnosti  opravy;  zároveň  môže  aj
+odmietnuť „prevziať“ nezodpovedané políčko a namiesto toho zvoliť iné políčko alebo náhradnú otázku. 
+Nezodpovedané otázky sa vyfarbia na čierno. Pri ďalšej hre, ak si niekto zvolí takto „čierne“ políčko, dostane
+náhradnú  otázku  ANO‑NE:  pri  správnej  odpovedi  políčko  získa,  pri  nesprávnej  automaticky  pripadne
+súperovi. 
+Vo  finále  (tretie  kolo)  súťažiaci  pri  voľbe  písmen  musí  hláskovať  (A  ako  Anna  atď.)  kvôli  riziku  zámien;
+moderátor nemôže otázku zopakovať. 
+Úloha moderátora a UI prvky
+Pravidlá explicitne riešia rolu moderátora a dramaturgie: moderátor dočíta otázku aj pri uplynutí času; pri
+sporných situáciách rozhoduje dramaturgia a jej rozhodnutie je konečné. 
+Z pohľadu UI/TV réžie sú stabilné prvky: (a) veľká trojuholníková mapa s políčkami, (b) farebné obsadzovanie
+polí, (c) „čierne“ blokované polia, (d) časovač pre kolá, (e) bankomatová záverečná obrazovka na výhru.
+„Bankomat“ je priamo uvedený v pravidlách ako mechanizmus, kde víťaz trojitým stlačením „nahrá“ výšku
+finančnej výhry. 
+Ako primárne ukážky oficiálnych video materiálov (užitočné na vizuálne pochopenie scény/rytmu) slúžia
+stránky „Videobonusy“ a konkrétne klipy ako „Jak se točí AZ‑Kvíz (2016)“ či „Pohled do zákulisí (2019)“. 
+10
+10
+10
+10
+10
+10
+10
+10
+11
+12
+2
+Právne a IP posúdenie pre slovenskú webovú verziu
+Čo je „kopírovateľné“ a čo je rizikové
+V Česká republika aj Slovensko platí princíp „idea vs. vyjadrenie“: zákon výslovne hovorí, že autorské
+právo  sa  nevzťahuje  na  samotný  námet/myšlienku/postup/metódu/princíp.   Z  toho  vyplýva,  že
+„abstraktné pravidlá hry“ (napr . striedanie ťahov, obsadzovanie polí, cieľ prepojiť strany) samé osebe typicky
+nebudú autorskoprávne zakázané.
+Riziko však prudko rastie, ak sa priblížite k „replikácii konkrétnej realizácie“, najmä:
+Značka a názov: Názov „AZ kvíz/AZ‑kvíz“ je podľa verejne dohľadateľných údajov vedený ako
+zapísané slovné označenie (vrátane tried služieb ako 41 a ďalších). To znamená, že použitie
+rovnakého alebo zameniteľne podobného názvu pre kvízovú službu môže byť vysokorizikové. 
+Audiovizuálna identita a grafika: konkrétne rozvrhnutie trojuholníkovej mapy, farebnosť,
+„bankomat“ obrazovka, UI animácie, zvučky, hlas moderátora, zvuky správnej/nesprávnej odpovede –
+to všetko je „vyjadrenie“, ktoré je typicky chránené autorským právom a príbuznými právami (vrátane
+práv výrobcu audiovizuálneho záznamu či vysielateľa). Český autorský zákon explicitne ukazuje, že
+„myšlienka/postup“ nie je chránený, ale konkrétne dielo áno. 
+Otázky a databáza otázok: znenie otázok je textový obsah; v praxi treba počítať s tým, že prebratie
+existujúcich otázok (z TV, z castingových testov, z knižných/deskovej verzie) je právne aj reputačne
+rizikové. 
+„Trade dress“ a nekalá súťaž: aj keď samotné pravidlá nie sú chránené, príliš podobná prezentácia a
+marketing môžu viesť k sporom o parazitovanie na povesti alebo vyvolanie zámeny. V oblasti TV
+formátov sa v praxi často uplatňuje kombinácia autorského práva, známok a zmluvného
+licencovania. 
+Formát TV relácie vs. webová hra
+V oblasti TV formátov je dlhodobo známe, že čisté „formátové nápady“ sa chránia ťažko, ale ak je formát
+dostatočne  konkrétne  opísaný  a  preukázateľne  originálny  v  konkrétnom  usporiadaní  prvkov,  spory  sa
+typicky vedú na hrane autorského práva, nekalej súťaže a najmä zmlúv (format licensing). 
+Preto pre webový produkt existujú tri pragmatické cesty:
+Licencovať (ak chcete A – veľmi verný klon): minimalizuje právne riziko, ale zvyšuje náklady a
+neistotu. 
+Navrhnúť inšpirovanú variantu (B): ponechá „strategický kvíz“ ako žáner , no zmení rozlišovacie
+prvky (názov, vizuál, mechaniky, priebeh kôl, systém výhier). 
+Vytvoriť úplne originálny produkt (C): najnižšie IP riziko, vyššie produktové riziko (marketing,
+adopcia).
+13 14
+2
+• 
+15
+• 
+16
+• 
+17
+• 
+18
+19
+• 
+• 
+• 
+3
+Odporúčané kroky na zníženie rizika porušenia práv
+Toto nie je právne poradenstvo; pri komerčnom nasadení je vhodné mať lokálneho právnika pre IP (SK/CZ).
+Praktický „risk‑reduction“ postup však typicky zahŕňa:
+Rebranding a vyhnutie sa zameniteľnosti: nepoužívať názov „AZ kvíz/AZ‑kvíz“, nepodobné logo,
+farby, typografia, názvy režimov. (Riziko známky je reálne pri triedach súvisiacich so zábavou/
+softvérom.) 
+Originálne otázky + preukázateľná tvorba: vlastná databáza otázok s internými zdrojmi, citáciami
+a audit trailom (kto/ kedy/ z akých zdrojov otázku vytvoril). Oficiálne materiály ukazujú, že otázky sú
+core asset a sú spracované dramaturgicky. 
+Vizuál a zvuk „od nuly“: nepoužiť zhodný trojuholníkový layout s rovnakým počtom polí, rovnakú
+bankomatovú minihru, rovnaké zvukové signály. 
+Zmeniť mechaniky, ktoré robia formát rozpoznateľným: napr . nahradiť „bankomat“, písmenové
+nápovedy, špecifické časovanie 7:30, pravidlo čiernych polí s ANO‑NE – alebo ich výrazne
+prepracovať. 
+Zvážiť licenciu, ak chcete „televízny zážitok“: pri komerčnom produkte s vysokou podobnosťou je
+licencia najpriamejšia cesta, lebo TV formáty sa v praxi komercializujú licencovaním. 
+Jurisdikčné poznámky pre SK/CZ a online dostupnosť
+Ak bude hra dostupná online v Európska únia, treba počítať s tým, že potenciálny spor môže riešiť
+jurisdikcia podľa miesta žalovaného, miesta zásahu a cieľového trhu. Z hľadiska autorského práva sú SK a CZ
+veľmi podobné v základnom vylúčení „myšlienok/metód“ z ochrany. 
+Ak plánujete používateľské účty a spracúvanie osobných údajov (e‑mail, IP , logy, profil), spadáte pod GDPR
+(minimálne čl. 2 – vecná pôsobnosť). 
+Technický návrh webovej aplikácie
+Cieľové režimy a základný princíp
+Navrhovaná webová hra má dva hlavné režimy:
+Singleplayer: tréning, kampaň (úrovne), prípadne „asynchrónne“ súboje (porovnanie skóre). 
+Duel 1v1 v reálnom čase: matchmaking, rating, sezóny.
+Kľúčové rozhodnutie: pri multiplayeri má byť server autoritatívny (server je jediný zdroj pravdy o stave hry),
+klient iba renderuje UI a posiela vstupy. To je zásadné pre férovosť aj anti‑cheat.
+Prenos v reálnom čase: WebSocket vs WebRTC
+Pre ťahovú hru s časovačmi je najpriamejšie použiť WebSocket, ktorý umožňuje obojsmernú komunikáciu
+medzi prehliadačom a serverom bez neustáleho „pollingu“. 
+WebRTC má zmysel vtedy, ak chcete P2P audio/video (napr . voice chat medzi hráčmi) alebo P2P dátový
+kanál; pre samotnú synchronizáciu hry je často zbytočne komplexný (signaling, NAT traversal). 
+1. 
+20
+2. 
+21
+3. 
+4. 
+10
+5. 
+18
+22
+2
+23
+• 
+• 
+1
+24
+4
+Bezpečnostná poznámka: WebSocket nemá „built‑in“ autentifikáciu; treba riešiť tokeny/handshake a chrániť
+sa pred Cross‑Site WebSocket Hijacking a podobnými triedami útokov. 
+Referenčná architektúra
+Frontend (web/PWA)
+TypeScript  +  React  (napr .  Next.js)  pre  UI,  animácie  dosky,  prácu  so  zvukom,  offline  cache,  responzívne
+rozloženie (mobil/desktop).
+Backend (API + realtime)
+Node.js (Fastify/NestJS) alebo Go. Dve vrstvy: - REST/GraphQL API pre účty, profil, históriu zápasov, katalóg
+otázok.
+- Realtime gateway pre zápasy (WebSocket „rooms“ podľa match_id).
+Stav zápasu
+- In‑memory stav pre aktívny zápas (pre rýchlosť), periodické snapshoty do Redis/Postgres.
+- Redis Pub/Sub (alebo stream) pre horizontálne škálovanie WebSocket uzlov.
+Databáza
+PostgreSQL pre: - používateľov, rating, zápasy, - otázky, kategórie, odpovede, alternatívne tvary, - audit logy
+(kto editoval otázku).
+Pri citlivých tabuľkách (napr . admin rozhranie) sa dá zvážiť Row Level Security pre dodatočné „defense in
+depth“. 
+Obsah a média
+- Objektové úložisko (S3 kompatibilné) pre TTS audio cache a obrázky otázok.
+- CDN pred statickými assetmi.
+Admin nástroje
+-  Web  admin  (oddelená  rola)  pre  tvorbu  a  schvaľovanie  otázok,  import/export  (CSV/JSON),  „staging“  a
+publikovanie.
+Mermaid diagram architektúry
+flowchart TB
+  subgraph Client["Klient (Web/PWA)"]
+    UI["UI: hracia doska, otázky, timer"]
+    Audio["Audio prehrávač (TTS cache / stream)"]
+  end
+  subgraph Backend["Backend"]
+    API["HTTP API (účty, profil, otázky, história)"]
+    WS["WebSocket Gateway (match rooms)"]
+    Engine["Game Engine (autoritatívna logika)"]
+  end
+25
+26
+5
+  subgraph Data["Dáta"]
+    PG["PostgreSQL (users, matches, questions)"]
+    Redis["Redis (sessions, pub/sub, rate limit)"]
+    Obj["Object Storage (audio, images)"]
+  end
+  subgraph External["Externé služby"]
+    TTS["TTS provider (ElevenLabs)"]
+  end
+  UI --> API
+  UI <--> WS
+  WS --> Engine
+  Engine --> PG
+  Engine --> Redis
+  Audio --> Obj
+  Engine --> Obj
+  Engine --> TTS
+Latencia, férovosť, škálovanie
+Latencia: pri ťahovej hre je tolerancia vyššia než pri FPS; kritické sú iba „buzzer“ momenty (ak pridáte
+rýchlostné prvky). Vtedy rozhoduje serverový timestamp a kompenzácia (napr . uznať prvý serverom
+prijatý event). 
+Škálovanie: WebSocket servery škálujú horizontálne; treba riešiť sticky sessions alebo centrálne
+routovanie roomov. Redis pomáha so zdieľaním stavu/eventov. 
+Anti‑cheat: server nikdy neposiela dopredu odpoveď; klient posiela iba návrh odpovede. Overenie
+beží serverovo nad normalizovanými variantmi odpovedí.
+Integrácia ElevenLabs TTS pre moderátora
+Overenie podpory slovenčiny a voľba modelov
+ElevenLabs deklaruje podporu slovenskej TTS a u konkrétnych modelov uvádza jazykový kód  sk medzi
+podporovanými (napr . pri eleven_multilingual_v2). 
+Pre  nízku  latenciu  pri  „živom  moderovaní“  ponúka  platforma  modely  typu  Flash/Turbo  (marketingovo
+uvádzané ako ultra‑low latency). 
+API integračný vzor
+Najbezpečnejší a najtypickejší vzor je:
+Server‑side syntéza (API kľúč nikdy nie je v prehliadači). 
+Klient si vyžiada „audio asset“ cez vaše API (napr . GET /audio/{hash}), ktoré:
+vráti existujúci súbor z cache, alebo
+spustí generovanie a vráti stream/URL po dokončení.
+• 
+• 
+• 
+7
+27
+1. 
+2. 
+3. 
+4. 
+6
+Z  oficiálnej  dokumentácie:  -  Základný  endpoint  je  POST  /v1/text-to-speech/:voice_id a
+autentifikácia je cez hlavičku xi-api-key. 
+- Voliteľne viete nastaviť  language_code (ISO 639‑1) na vynútenie jazyka a normalizácie (užitočné pre
+čísla, krátke prompty). 
+-  Streaming  použitie  (Python/Node)  je  v  dokumentácii  popísané  vrátane  odporúčania  ukladať  výstup  a
+zdieľať ho (napr . cez objektové úložisko). 
+Cache stratégia pre nízku cenu a nízku latenciu
+Pri kvíze je veľká časť hlasu „statická“ a dá sa veľmi dobre cachovať:
+Predgenerovať: všetky otázky + všetky „štandardné“ moderátorské hlášky („Správne“, „Nesprávne“,
+„Si na rade“, atď.). 
+Kľúč cache: hash(text + voice_id + model_id + voice_settings + language_code + 
+output_format). 
+Umiestnenie cache: S3‑kompatibilné úložisko + CDN. 
+Fallback: ak TTS zlyhá, klient zobrazí textové titulky + použije lokálnu syntézu (Web Speech API)
+alebo tichý režim.
+Zmysel: pri veľkej návštevnosti je náklad na TTS riadený počtom unikátnych textov, nie počtom prehratí.
+Odhad nákladov na TTS
+ElevenLabs uvádza cenník „per 1K characters“ pre Text‑to‑Speech API a zároveň uvádza, koľko znakov je
+zahrnutých v jednotlivých plánoch. 
+Praktická ilustrácia (orientačná, podľa vašich textov):
+Ak vytvoríte 15 000 otázok, a priemerná narrácia na otázku (úvod + otázka) má ~220 znakov, ide o
+~3,3 mil. znakov. 
+Pri cene rádovo $0.06 – $0.12 / 1K znakov (podľa modelu/plánu) je to hrubým rádovo $200 – $400
+jednorazovo na pregenerovanie otázok. 
+Ak by ste naopak generovali TTS „on‑the‑fly“ pre každé hranie bez cache, náklady rastú lineárne s
+počtom odohraných otázok (to je pri populárnej hre typicky neudržateľné).
+Doporučené technické detaily integrácie
+Output format: pre web je praktické MP3 (nižší bitrate pre mobil), prípadne WAV/PCM pre vyššie
+plány; dostupnosť formátov je viazaná na subscription tier . 
+Normalizácia: pre slovenčinu nastavovať language_code="sk" pri krátkych alebo číselných
+promptoch; vyhnete sa zlému čítaniu dátumov/skratiek. 
+Kontinuita hlasu: pri dlhších monológoch (napr . sumarizácia) sa dá využiť „previous_text/next_text“
+alebo „request stitching“ koncepty, aby hlas pôsobil prirodzene. 
+Bezpečnosť: API kľúč držať iba na serveri; ak by ste niekedy šli cestou klient‑side streaming
+WebSocketu, dokumentácia spomína single‑use tokeny, aby sa nemusel posielať API key. 
+28
+29
+30
+• 
+• 
+• 
+• 
+31
+• 
+• 
+31
+• 
+• 
+28
+• 
+32
+• 
+28
+• 
+33
+7
+Návrh slovenskej hernej verzie, UX pravidlá a obsah
+Táto časť je zámerne „produktový návrh“ – cieľom je zachovať príťažlivosť strategického kvízu, ale odlíšiť sa
+od rozpoznateľných prvkov originálu (kvôli IP riziku).
+Navrhované herné režimy a pravidlá
+Režim Solo: „Kampaň“ - Krátke zápasy 5–8 minút, postup cez ligy (Bronz/Striebro/Zlato).
+- Cieľ: získať určitý počet „uzlov“ na mape alebo vytvoriť spojenie medzi dvoma bodmi.
+- Hodnotenie: kombinuje presnosť + rýchlosť + „strategickú hodnotu“ polí (napr . stredové polia dávajú viac
+bodov).
+Režim Duel 1v1: „Aréna“ - Mapa: nie trojuholník, ale napr . šesťuholník alebo kruh so 7–9 sektormi a 25–
+31 políčkami (hex grid), aby sa vizuálne odlíšila.
+- Cieľ: „prepojiť dve protiľahlé brány“ alebo „ovládnuť 3 z 5 regiónov“.
+- Čas: 2× 4 minúty + 60 s „predĺženie“ iba ak je stav vyrovnaný.
+- Ťah: hráč má 6 sekúnd na výber políčka; otázka beží s 10–15 s timerom na odpoveď.
+- Odpoveď: odporúčaná je krátka textová odpoveď (s normalizáciou diakritiky a akceptovanými variantmi)
++ voliteľne výber z 4 možností pri „rýchlostných“ otázkach.
+Mechaniky, ktoré nahrádzajú originálne „signature“ prvky - Namiesto „písmenovej nápovedy“:
+- „kategórie + obtiažnosť“ (ikony), alebo
+- „2 nápovedné slová“ (tagy), alebo
+- „prvé a posledné písmeno“ (ale nie fixne vždy).
+- Namiesto „čiernych polí s ANO‑NE“:
+- „zamknuté pole“ sa odomyká mini‑výzvou (napr . 3‑sekundový bleskový výber), alebo
+- „rizikové pole“: hráč vsadí čas/bodový multiplikátor .
+UX wireframe opis
+Hlavná obrazovka zápasu (desktop) - Hore: avatar hráča A / hráča B, skóre, ping indikátor , globálny timer
+kola.
+- Stred: herná mapa (hex grid) s jasnou farbou vlastníctva, hover zobrazuje typ otázky a riziko.
+- Pravý panel: karta otázky (text + prípadný obrázok), pod tým vstup na odpoveď, tlačidlo „Potvrdiť“.
+- Spodok: „moderátor“ (subtitle transcript), história posledných 5 odpovedí, tlačidlo mute.
+Mobil - Mapa na 2/3 obrazovky, otázka ako spodný „sheet“; odpoveď cez rýchlu klávesnicu; vibračná odozva
+pri zmene ťahu.
+Moderátor a audio flow
+Pred otázkou: krátky zvukový signál + TTS „Si na ťahu“ (cachované). 
+Otázka: prehrať TTS (predgenerované). 
+Odpoveď: pri potvrdení odpovede sa okamžite zobrazí „pending“, výsledok vyhodnotí server . 
+Vyhodnotenie: krátky TTS „Správne/Nesprávne“, potom vizuálna animácia obsadenia poľa. 
+• 
+• 
+• 
+• 
+8
+Obsahový plán
+Aby  hra  fungovala  dlhodobo,  potrebujete  dostatočne  širokú  databázu  otázok a  kontrolu  kvality
+(konzistencia odpovedí, diakritika, kontroverzné témy). Inšpiráciou môže byť aj to, že originál pracuje s
+externými prispievateľmi otázok a dramaturgiou. 
+Kategórie (návrh pre slovenské publikum) - Slovensko (dejiny, geografia, kultúra, reálie) - Svet (geografia,
+dejiny) - Veda a technika (od „ľahkých“ pojmov po populárnu vedu) - Jazyk a literatúra (slovenčina + svetová
+literatúra) - Šport (SK + medzinárodné) - Film/hudba/popkultúra - Logika a „mini‑puzzle“ (krátke numerické/
+verbálne úlohy)
+Progresia obtiažnosti - ELO‑based matchmaking v aréne (ťažšie otázky pri vyššom ranku).
+- V kampani „odomykanie“ tém (najprv reálie, potom mix, potom špecializácie).
+Workflow tvorby otázok a kontrola podvádzania
+Autoring - Editor vytvorí otázku + odpoveď + alternatívne tvary (napr . s/bez diakritiky, skratky).
+- Reviewer skontroluje faktickosť a jazyk (odporúčaný interný štandard: pri každej otázke evidencia zdroja).
+- Publikovanie do „prod“ až po schválení.
+Ochrana pred podvádzaním - Server nikdy neposiela odpoveď klientovi.
+- Rate‑limit na odpovede (aby sa nedalo „spamovať“ variantmi).
+- Detekcia anomálií: extrémne rýchle odpovede naprieč celým spektrom otázok, opakované rovnaké IP/
+device fingerprint, atď.
+- Pre ranked režim: rotácia otázok, väčší question pool, „cooldown“ na opakovanie.
+Roadmap implementácie a porovnanie prístupov
+Porovnanie prístupov A/B/C
+Prístup Čo to je Výhody Nevýhody Právne
+riziko
+Dev
+náročnosť
+Používateľská
+príťažlivosť
+A: Verný
+klon
+Maximálne
+podobné
+pravidlá +
+vizuál +
+„bankomat“
+vibe
+Najľahšie
+vysvetliteľné
+publiku,
+okamžitá
+rozpoznateľnosť
+Vysoké riziko
+známok/„look
+& feel“ sporu;
+pravdepodobná
+potreba licencie
+Vysoké Nízka–
+stredná Vysoká
+34
+9
+Prístup Čo to je Výhody Nevýhody Právne
+riziko
+Dev
+náročnosť
+Používateľská
+príťažlivosť
+B:
+Inšpirovaná
+varianta
+Strategický
+kvíz s
+mapou, ale
+iná značka,
+iné kolá,
+iná mapa,
+iné
+“signature”
+prvky
+Dobrá
+atraktivita +
+výrazne nižšie
+IP riziko; väčší
+priestor na
+inovácie
+Potrebujete
+lepší
+produktový
+dizajn a
+marketing (už
+to nie je „to
+isté“)
+Nízke–
+stredné Stredná Stredná–
+vysoká
+C: Originál
+Úplne nový
+kvízový
+produkt
+(napr . bez
+mapy)
+Najnižšie IP
+riziko; čisté
+vlastníctvo
+značky
+Najvyššie riziko,
+že to „nechytí“;
+viac iterácií
+Nízke Stredná–
+vyššia Neistá
+Milníky, čas a orientačné náklady
+Nižšie je realistický plán pre B (inšpirovaná varianta). Časy a náklady sú hrubé a závisia od tímu, kvality
+dizajnu, množstva obsahu a požiadaviek na infra.
+Milníky - Discovery + právny screening (IP/branding) + produktová špecifikácia: 2–3 týždne
+- Klikateľný prototyp UI + herná slučka (bez multiplayeru): 3–5 týždňov
+- MVP Singleplayer + admin otázok + základné analytiky: 4–6 týždňov
+- MVP Duel (WebSocket, matchmaking, rating beta): 4–8 týždňov
+- TTS integrácia + cache + CDN: 2–4 týždne
+- Beta test + hardening (security, anti‑cheat, load test): 3–6 týždňov
+Rámcové náklady (bez licencie, bez veľkej marketingovej kampane) - Low: 20k–60k € (malý tím, MVP
+kvalita, limitovaný obsah, minimum škálovania)
+- Medium: 60k–180k € (plnohodnotný duel, kvalitný admin, obsahový tím, monitoring)
+- High: 180k–500k € (Kubernetes škálovanie, sezóny, anti‑cheat, rozsiahly obsah, UX polish, hlasové varianty)
+Mermaid časová os
+gantt
+  title Roadmap (inšpirovaná varianta)
+  dateFormat  YYYY-MM-DD
+  section Príprava
+  Produkt + právny screening           :a1, 2026-03-03, 21d
+  Branding + vizuálny štýl             :a2, after a1, 21d
+  section MVP
+10
+  Herný engine + singleplayer          :b1, after a1, 35d
+  Admin otázok + databáza              :b2, after a1, 35d
+  Základný frontend zápasu             :b3, after a1, 35d
+  section Multiplayer
+  WebSocket duel + matchmaking beta    :c1, after b1, 56d
+  Anti-cheat + rating iterácie         :c2, after c1, 28d
+  section Audio/TTS
+  TTS integrácia + cache + CDN         :d1, after b1, 28d
+  section Spustenie
+  Beta test + load/security hardening  :e1, after c2, 35d
+  Launch                               :e2, after e1, 7d
+Primárne zdroje a ukážkové videá
+Kľúčové primárne podklady pre pochopenie originálu (pravidlá, rytmus, vizuál):
+Oficiálne pravidlá (detailný herný poriadok, časovanie, bankomat, postup do ďalších dielov). 
+Oficiálna stránka relácie (základný popis cieľa „prepojiť tri strany a dostať sa k bankomatu“). 
+Videobonusy (zákulisie/ukážky): napr . „Jak se točí AZ‑Kvíz (2016)“. 
+iVysílání (referenčné diely a metadáta stopáže/vysielania). 
+Ukážkový test konkurzu (štýl otázok a forma „na písmeno“). 
+https://developer .mozilla.org/en-US/docs/Web/API/WebSockets_API
+https://developer .mozilla.org/en-US/docs/Web/API/WebSockets_API
+https://www.zakonyprolidi.cz/cs/2000-121
+https://www.zakonyprolidi.cz/cs/2000-121
+https://oz.kurzy.cz/mark/az-kviz-p459785/
+https://oz.kurzy.cz/mark/az-kviz-p459785/
+https://www.ebu.ch/files/live/sites/ebu/files/Publications/EBU-Legal-Copyright-Guide.pdf
+https://www.ebu.ch/files/live/sites/ebu/files/Publications/EBU-Legal-Copyright-Guide.pdf
+https://elevenlabs.io/docs/api-reference/text-to-speech/convert
+https://elevenlabs.io/docs/api-reference/text-to-speech/convert
+https://elevenlabs.io/text-to-speech/slovak
+https://elevenlabs.io/text-to-speech/slovak
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/2286-pravidla/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/2286-pravidla/
+• 10
+• 35
+• 36
+• 37
+• 38
+1
+2 16
+3 13 15 20
+4 18 19
+5 6 8 28 29
+7
+9 35
+10 11 17 21 22
+11
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/bonus/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/bonus/
+https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A02016R0679-20160504
+https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A02016R0679-20160504
+https://developer .mozilla.org/en-US/docs/Web/API/WebRTC_API
+https://developer .mozilla.org/en-US/docs/Web/API/WebRTC_API
+https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+https://elevenlabs.io/
+https://elevenlabs.io/
+https://elevenlabs.io/docs/eleven-api/guides/cookbooks/text-to-speech/streaming
+https://elevenlabs.io/docs/eleven-api/guides/cookbooks/text-to-speech/streaming
+https://elevenlabs.io/pricing/api
+https://elevenlabs.io/pricing/api
+https://help.elevenlabs.io/hc/en-us/articles/19581255545873-How-do-I-select-the-language-and-accent
+https://help.elevenlabs.io/hc/en-us/articles/19581255545873-How-do-I-select-the-language-and-accent
+https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input
+https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input
+AZ-kvíz - O pořadu - Česká televize
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/1-o-poradu/?utm_source=chatgpt.com
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/321291310010019/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/321291310010019/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/2827-minuly-test/
+https://www.ceskatelevize.cz/porady/1097147804-az-kviz/2827-minuly-test/
+12 14 36
+23
+24
+25
+26
+27
+30
+31
+32
+33
+34
+37
+38
+12

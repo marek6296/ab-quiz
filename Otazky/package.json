@@ -1,0 +1,7 @@
+{
+  "name": "ab-quiz-question-generator",
+  "type": "module",
+  "dependencies": {
+    "openai": "^4.28.0"
+  }
+}
