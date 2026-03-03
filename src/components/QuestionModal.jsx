@@ -54,15 +54,21 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const [earnedPoints, setEarnedPoints] = useState(0);
 
-    const generatePlaceholder = (answer) => {
-        if (!answer) return '';
-        return answer.split(' ').map(word => {
-            return word.split('').map(char => {
-                // Keep punctuation like hyphens or dots if they exist, otherwise use underscore
-                if (/[-.']/.test(char)) return char;
-                return '_';
-            }).join(' ');
-        }).join('\u00A0\u00A0\u00A0'); // 3 non-breaking spaces between words
+    const renderPlaceholder = (answer) => {
+        if (!answer) return null;
+        return (
+            <div className="placeholder-container">
+                {answer.split(' ').map((word, wIdx) => (
+                    <span key={wIdx} className="placeholder-word">
+                        {word.split('').map((char, cIdx) => (
+                            <span key={cIdx} className="placeholder-char">
+                                {/[-.']/.test(char) ? char : '_'}
+                            </span>
+                        ))}
+                    </span>
+                ))}
+            </div>
+        );
     };
 
     const renderInput = (onSubmit) => (
@@ -364,9 +370,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        <div style={{ fontSize: '2.5rem', letterSpacing: '0.3rem', margin: '1rem 0', color: '#94a3b8', textShadow: '0 2px 4px rgba(0,0,0,0.5)', fontWeight: 'bold' }}>
-                            {generatePlaceholder(question.answer)}
-                        </div>
+                        {renderPlaceholder(question.answer)}
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Na ťahu je: {currentPlayerName} ({currentPlayerColor})
                         </h3>
@@ -402,9 +406,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        <div style={{ fontSize: '2.5rem', letterSpacing: '0.3rem', margin: '1rem 0', color: '#94a3b8', textShadow: '0 2px 4px rgba(0,0,0,0.5)', fontWeight: 'bold' }}>
-                            {generatePlaceholder(question.answer)}
-                        </div>
+                        {renderPlaceholder(question.answer)}
                         <h3 style={{ width: '100%', marginBottom: '1rem', color: '#fff' }}>
                             Šanca pre súpera: {opponentName} ({opponentColor})
                         </h3>
