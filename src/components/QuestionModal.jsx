@@ -54,7 +54,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     };
 
     const [earnedPoints, setEarnedPoints] = useState(0);
-    const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
     const handleSubmitPrimary = () => {
         if (!inputValue.trim() || isSubmitting) return;
@@ -153,12 +152,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }
         };
 
-        const handleFocus = () => setIsKeyboardFocused(true);
-        const handleBlur = () => setIsKeyboardFocused(false);
-
         if (isSelfTurnActive) {
-            setIsKeyboardFocused(document.activeElement === globalInput);
-
             // Re-focus the global input periodically just to be safe if it was lost
             if (document.activeElement !== globalInput) {
                 globalInput.focus();
@@ -173,15 +167,11 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
             globalInput.addEventListener('input', handleInput);
             globalInput.addEventListener('keydown', handleKeyDown);
-            globalInput.addEventListener('focus', handleFocus);
-            globalInput.addEventListener('blur', handleBlur);
 
             return () => {
                 clearInterval(focusInterval);
                 globalInput.removeEventListener('input', handleInput);
                 globalInput.removeEventListener('keydown', handleKeyDown);
-                globalInput.removeEventListener('focus', handleFocus);
-                globalInput.removeEventListener('blur', handleBlur);
             };
         } else {
             // Not our turn, blur to hide keyboard
@@ -191,7 +181,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return () => {
 
         };
-    }, [phase, isLocalPrimary, isLocalSecondary, handleSubmitPrimary, handleSubmitSecondary, isKeyboardFocused]);
+    }, [phase, isLocalPrimary, isLocalSecondary, handleSubmitPrimary, handleSubmitSecondary]);
 
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
@@ -446,29 +436,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     if (!question) return null;
 
-    const isSelfTurnWithoutFocus =
-        ((phase === 'currentPlayer' && isLocalPrimary) || (phase === 'opponent' && isLocalSecondary)) &&
-        !isKeyboardFocused;
-
     return (
         <div className="modal-overlay">
-            {/* INVISIBLE OVERLAY: Intercepts the *very first* tap on the screen when it's our turn but keyboard is dead, to bypass iOS Safari gesture-blocks */}
-            {isSelfTurnWithoutFocus && (
-                <div
-                    style={{ position: 'absolute', inset: 0, zIndex: 9999, cursor: 'text' }}
-                    onClick={(e) => {
-                        e.stopPropagation(); // Prevenť ďalšie eventy pod týmto
-                        const globalInput = document.getElementById('global-mobile-input');
-                        if (globalInput) globalInput.focus();
-                        setIsKeyboardFocused(true);
-                    }}
-                >
-                    <div style={{ position: 'absolute', top: '15%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(59, 130, 246, 0.9)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: 'bold', fontSize: '1rem', whiteSpace: 'nowrap', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', animation: 'feedbackPop 0.5s ease' }}>
-                        Ťukni kdekoľvek pre zobrazenie klávesnice ⌨️
-                    </div>
-                </div>
-            )}
-
             <div className="modal-content">
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
