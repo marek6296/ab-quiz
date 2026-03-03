@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 import { useAudio } from '../hooks/useAudio';
 
-export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames }) => {
+export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount }) => {
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -41,6 +41,46 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const currentPlayerColor = currentPlayer === 1 ? 'Modrý' : 'Oranžový';
     const opponentColor = opponent === 1 ? 'Modrý' : 'Oranžový';
+
+    // Anti-cheat a Disconnect penáleze
+    useEffect(() => {
+        // Zabraňuje cheatom formou refreshu prehliadača počas lokálnej hry alebo proti BOTovi.
+        // Ak sa načíta komponent a my sme zistili, že sme v strede hry (napríklad phase načítaný z localStorage),
+        // automaticky túto otázku prepadneme, aby sa predĺženie nedalo získať F5-kou.
+        const isReload = (phase === 'currentPlayer' || phase === 'opponent' || phase === 'opponentChoice');
+        if (gameMode !== '1v1_online' && isReload && !window.hasMountedQuestionModalThisSession) {
+            setTimeLeft(0);
+            phaseStartRef.current = 0; // Oklamanie timera aby si myslel, že čas brutálne pretiekol a stlačí enter.
+        }
+        window.hasMountedQuestionModalThisSession = true;
+    }, [gameMode, phase]);
+
+    useEffect(() => {
+        // Enforce zlyhania, ak sa náš súper v Online režime odpojil presne počas svojho ťahu (zbabelý útek / strata pripojenia)
+        if (gameMode === '1v1_online' && presenceCount < 2) {
+            if (!isLocalPrimary && phase === 'currentPlayer') {
+                setPhase('feedbackPrimaryIncorrect');
+                setLastAnswer('Odpojil sa');
+                if (onSyncModal) onSyncModal({ phase: 'feedbackPrimaryIncorrect', lastAnswer: 'Odpojil sa' });
+                setTimeout(() => {
+                    setPhase('opponentChoice');
+                    setInputValue('');
+                    setErrorMsg('');
+                    setTimeLeft(5);
+                    setLastAnswer('');
+                    if (onSyncModal) onSyncModal({ phase: 'opponentChoice', timeLeft: 5 });
+                }, 2500);
+            } else if (!isLocalSecondary && (phase === 'opponentChoice' || phase === 'opponent')) {
+                setPhase('feedbackSecondaryBlack');
+                setLastAnswer('Odpojil sa');
+                if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Odpojil sa' });
+                if (!resolvedRef.current) {
+                    resolvedRef.current = true;
+                    setTimeout(() => onResolveRef.current('black', 0, true), 5000);
+                }
+            }
+        }
+    }, [presenceCount, phase, gameMode, isLocalPrimary, isLocalSecondary, onSyncModal]);
 
     // Calculate Points
     const calculatePoints = (playerNum, timeRemaining) => {

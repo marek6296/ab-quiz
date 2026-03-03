@@ -125,7 +125,25 @@ const ABQuizApp = ({ onBackToPortal }) => {
     resetToLobby, addDebugLog
   } = useGameStore();
 
-  const [activeModal, setActiveModal] = useState(null);
+  const [activeModal, setActiveModal] = useState(() => {
+    if (gameMode !== '1v1_online') {
+      try {
+        const saved = localStorage.getItem('ab_quiz_local_modal');
+        if (saved) return JSON.parse(saved);
+      } catch (e) { }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (gameMode !== '1v1_online') {
+      if (activeModal && activeModal.type !== 'reconnect_wait') {
+        localStorage.setItem('ab_quiz_local_modal', JSON.stringify(activeModal));
+      } else {
+        localStorage.removeItem('ab_quiz_local_modal');
+      }
+    }
+  }, [activeModal, gameMode]);
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -604,6 +622,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
               onClose={() => setActiveModal(null)}
               onSyncModal={handleSyncModal}
               localPlayerNum={localPlayerNum}
+              presenceCount={presenceCount}
               playerNames={{
                 player1: gameMode === '1v1_online'
                   ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
