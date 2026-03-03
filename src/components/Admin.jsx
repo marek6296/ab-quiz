@@ -74,6 +74,32 @@ export const Admin = ({ onBack }) => {
             alert('Chyba: ' + error.message);
         }
     };
+
+    const handleDeleteQuestion = async (id) => {
+        if (!window.confirm('Ste si istý, že chcete vymazať túto otázku?')) return;
+        const { error } = await supabase.from('questions').delete().eq('id', id);
+        if (!error) {
+            fetchQuestions();
+            fetchStats();
+        } else {
+            alert('Chyba pri mazaní: ' + error.message);
+        }
+    };
+
+    const handleDeleteAllQuestions = async () => {
+        if (!window.confirm('VAROVANIE: Naozaj chcete natrvalo ZMAZAŤ ÚPLNE VŠETKY otázky z databázy?')) return;
+        if (!window.confirm('Ste si absolútne istý? Túto akciu nie je možné vrátiť späť!')) return;
+
+        // Supabase requires a filter for deletes on all rows, mapping an always true condition
+        const { error } = await supabase.from('questions').delete().gte('difficulty', 0);
+        if (!error) {
+            setQuestions([]);
+            fetchStats();
+            alert('Všetky otázky boli úspešne vymazané.');
+        } else {
+            alert('Chyba pri mazaní všetkých otázok: ' + error.message);
+        }
+    };
     // --------------------------
 
     return (
@@ -110,14 +136,20 @@ export const Admin = ({ onBack }) => {
 
                     {activeTab === 'list' && (
                         <>
-                            <div className="form-group" style={{ marginBottom: '1rem' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Hľadať v otázkach..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && fetchQuestions()}
-                                />
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
+                                <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Hľadať v otázkach..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && fetchQuestions()}
+                                        style={{ margin: 0 }}
+                                    />
+                                </div>
+                                <button className="danger" onClick={handleDeleteAllQuestions} style={{ margin: 0, whiteSpace: 'nowrap', padding: '0.8rem 1.5rem', alignSelf: 'stretch' }}>
+                                    🗑️ Zmazať všetky
+                                </button>
                             </div>
                             <div style={{ maxHeight: '600px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -127,6 +159,7 @@ export const Admin = ({ onBack }) => {
                                             <th style={{ padding: '1rem' }}>Odpoveď</th>
                                             <th style={{ padding: '1rem' }}>Kat.</th>
                                             <th style={{ padding: '1rem' }}>Úroveň</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Akcie</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -136,6 +169,15 @@ export const Admin = ({ onBack }) => {
                                                 <td style={{ padding: '0.8rem', fontSize: '0.9rem', color: '#4ade80' }}>{q.answer}</td>
                                                 <td style={{ padding: '0.8rem', fontSize: '0.8rem', color: '#94a3b8' }}>{q.category}</td>
                                                 <td style={{ padding: '0.8rem', textAlign: 'center' }}>{q.difficulty}</td>
+                                                <td style={{ padding: '0.8rem', textAlign: 'center' }}>
+                                                    <button
+                                                        onClick={() => handleDeleteQuestion(q.id)}
+                                                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem', fontSize: '1.2rem' }}
+                                                        title="Vymazať"
+                                                    >
+                                                        ❌
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
