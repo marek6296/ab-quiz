@@ -1914,4 +1914,44 @@ button.small {
   .form-row {
     grid-template-columns: 1fr !important;
   }
+
+  /* VS Animation Mobile Fixes */
+  .versus-content {
+    gap: 1rem !important;
+    flex-direction: row !important;
+    /* Keep them horizontal but closer */
+    align-items: center !important;
+  }
+
+  .vs-text {
+    font-size: 3.5rem !important;
+    padding: 0 0.5rem !important;
+    margin: 0 -0.5rem !important;
+  }
+
+  .vs-avatar {
+    width: 80px !important;
+    height: 80px !important;
+    font-size: 2rem !important;
+  }
+
+  .vs-player {
+    gap: 0.75rem !important;
+    width: 35%;
+    /* Constraints for names */
+  }
+
+  .vs-player span {
+    font-size: 1rem !important;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .vs-title {
+    font-size: 1.5rem !important;
+    margin-top: 3rem !important;
+  }
 }
