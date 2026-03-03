@@ -287,10 +287,27 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                                    <button className="primary" onClick={handleReviewQuestions} style={{ whiteSpace: 'nowrap' }}>
-                                        🪄 AI Kontrola zobrazených
+                                    <button
+                                        className="primary"
+                                        onClick={handleReviewQuestions}
+                                        disabled={loading}
+                                        style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <div className="loader" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                                                <span style={{ fontSize: '0.9rem' }}>{loadingStatus || 'Kontrolujem...'}</span>
+                                            </>
+                                        ) : (
+                                            '🪄 AI Kontrola zobrazených'
+                                        )}
                                     </button>
-                                    <button className="danger delete-all-btn" onClick={handleDeleteAllQuestions} style={{ whiteSpace: 'nowrap' }}>
+                                    <button
+                                        className="danger delete-all-btn"
+                                        onClick={handleDeleteAllQuestions}
+                                        disabled={loading}
+                                        style={{ whiteSpace: 'nowrap' }}
+                                    >
                                         🗑️ Zmazať všetko
                                     </button>
                                 </div>
