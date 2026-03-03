@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { generateInitialBoard, updateBoardWithClaim } from '../game-engine/board';
+import { updateBoardWithClaim, generateInitialBoard } from '../game-engine/board';
 import { calculateClaimResults } from '../game-engine/scoring';
 import { evaluateWinCondition, getNextTurnPlayer, getNextTurnDbId } from '../game-engine/turnManager';
+import { useGameStore } from '../game-engine/store';
 
 export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId }) => {
     const [board, setBoard] = useState(generateInitialBoard(gameRules));
@@ -106,6 +107,17 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
 
         const { newP1Score, newP2Score, newP1Combo, newP2Combo } = results;
 
+        // Získanie loggera
+        const { addDebugLog } = useGameStore.getState();
+
+        // Log the outcome
+        if (targetOwner === 'unowned') {
+            addDebugLog(`Hexagón ${hexId} neobsadený (zle zodpovedaná otázka)`);
+        } else {
+            const pointsText = pointsEarned > 0 ? ` (+${pointsEarned}b)` : '';
+            addDebugLog(`Hráč ${targetOwner} obsadil hexagón ${hexId}${pointsText}`);
+        }
+
         // Apply state locally immediately
         setP1Score(newP1Score);
         setP2Score(newP2Score);
@@ -133,27 +145,26 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 finalWinnerId = newWinnerNum === 1 ? gameData.player1_id : gameData.player2_id;
             }
 
-            // Immediately apply locally to avoid lag
+            // Immediately apply locally to avoid lag (Optimistic UI)
             setBoard(newBoard);
             setCurrentPlayer(getNextTurnPlayer(currentPlayer));
             if (newWinnerNum) setWinner(newWinnerNum);
 
-            const updates = {
-                board_state: newBoard,
-                current_turn: nextTurnId,
-                p1_score: newP1Score,
-                p2_score: newP2Score,
-                p1_combo: newP1Combo,
-                p2_combo: newP2Combo,
-                active_modal: null,
-                updated_at: new Date()
-            };
-            if (finalWinnerId) {
-                updates.winner_id = finalWinnerId;
-                updates.status = 'finished';
-            }
+            // Let the server validate and permanently save the move
+            const { error } = await supabase.functions.invoke('process-move', {
+                body: {
+                    gameId: activeGameId,
+                    hexId,
+                    targetOwner,
+                    pointsEarned,
+                    breakCombo
+                }
+            });
 
-            await supabase.from('games').update(updates).eq('id', activeGameId);
+            if (error) {
+                console.error("Server zamietol ťah:", error);
+                // In a perfect system, we'd revert the optimistic UI on error here
+            }
 
         } else {
             // Local Mode

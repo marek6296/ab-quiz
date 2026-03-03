@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { generateInitialBoard } from '../../hooks/useGameState';
+import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
 export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1 }) => {

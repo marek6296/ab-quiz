@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthTabs } from './components/auth/AuthTabs';
 import { Lobby } from './components/Lobby';
@@ -7,10 +7,17 @@ import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
 import { Matchmaking } from './components/Matchmaking';
+import { DebuggerPanel } from './components/DebuggerPanel';
 import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 import { useGameStore, APP_STATES } from './game-engine/store';
+
+// Custom Hooks pre logiku hry
+import { useBlockNavigation } from './hooks/useBlockNavigation';
+import { useGameInvites } from './hooks/useGameInvites';
+import { useModalSync } from './hooks/useModalSync';
+import { useBotTurn } from './hooks/useBotTurn';
 
 const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
   if (!isOpen) return null;
@@ -43,30 +50,24 @@ const GameApp = () => {
     gameMode, setGameMode,
     gameRules, setGameRules,
     activeGameId, setActiveGameId,
-    resetToLobby
+    resetToLobby, addDebugLog
   } = useGameStore();
 
   const [activeModal, setActiveModal] = useState(null);
-
-  // Keep a ref of activeModal specifically for safe asynchronous database dispatching
-  const activeModalRef = useRef(activeModal);
-  useEffect(() => {
-    activeModalRef.current = activeModal;
-  }, [activeModal]);
-
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [allQuestions, setAllQuestions] = useState([]);
+
+  // States pre lokálne spustenie
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState(1);
+  const [incomingInvite, setIncomingInvite] = useState(null);
+
   const { playSound } = useAudio();
 
-  // questions will now be fetched on-demand from Supabase
-  useEffect(() => {
-    setAllQuestions([]);
-  }, []);
+  // Blokovanie navigácie späť počas aktívnej hry
+  useBlockNavigation(appState === APP_STATES.IN_GAME, () => setShowExitConfirm(true));
 
   // Fetch current user profile
   useEffect(() => {
@@ -83,8 +84,6 @@ const GameApp = () => {
     gameRules,
     activeGameId
   });
-
-  const [incomingInvite, setIncomingInvite] = useState(null);
 
   const getRandomQuestionForConfig = useCallback(async () => {
     let cats = Array.isArray(localCategory) ? localCategory : [];
@@ -106,8 +105,6 @@ const GameApp = () => {
     }
     query = query.eq('difficulty', diff);
 
-    // We fetch a batch and pick random on client for simplicity, 
-    // or we could use a random offset. Let's do a slightly larger batch and pick random.
     const { data: pool } = await query.limit(100);
 
     if (!pool || pool.length === 0) {
@@ -126,24 +123,23 @@ const GameApp = () => {
     setLocalCategory(cat);
     setLocalDifficulty(diff);
 
-    // If it's a matchmaking mode, redirect to the matchmaking screen
     if (['1v1_quick', '1v1_private_create', '1v1_private_join'].includes(mode)) {
       setAppState(APP_STATES.MATCHMAKING);
+      addDebugLog(`Matchmaking spustený (${mode})`);
       return;
     }
 
     setAppState(APP_STATES.IN_GAME);
+    addDebugLog(`Hra začala (${mode} - ${rules})`);
 
     if (mode === '1v1_online' && gameId) {
-      // Set status playing
       supabase.from('profiles').update({ online_status: 'playing' }).eq('id', user.id).then();
     } else {
       resetGame();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, resetGame, setGameMode, setActiveGameId, setAppState]);
+  }, [user, resetGame, setGameMode, setGameRules, setActiveGameId, setAppState, addDebugLog]);
 
-  // Resume active game if we have one and we're not currently in a game
+  // Resume active game if we have one
   useEffect(() => {
     if (user?.id && !activeGameId) {
       supabase.from('games').select('*')
@@ -158,54 +154,14 @@ const GameApp = () => {
     }
   }, [user, activeGameId, handleStartGame]);
 
-  // Listen for Online Game Invites
-  useEffect(() => {
-    if (!user) return;
+  // Logic extractions
+  useGameInvites({ user, activeGameId, handleStartGame, setIncomingInvite });
+  useBotTurn({ gameMode, currentPlayer, winner, activeModal, showExitConfirm, board, getRandomQuestionForConfig, setActiveModal });
+  const { handleSyncModal } = useModalSync({
+    gameMode, activeGameId, gameData, currentPlayer, localPlayerNum, playSound, activeModal, setActiveModal
+  });
 
-    // Set status to online
-    supabase.from('profiles').update({ online_status: 'online' }).eq('id', user.id).then();
-
-    const subscription = supabase
-      .channel('game_invites')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'games',
-        filter: `player2_id=eq.${user.id}`
-      }, async (payload) => {
-        // If we are already in a game, probably should ignore. But we'll show it for now.
-        if (payload.new.status === 'waiting') {
-          // Fetch challenger name
-          const { data } = await supabase.from('profiles').select('username').eq('id', payload.new.player1_id).single();
-          setIncomingInvite({
-            gameId: payload.new.id,
-            gameRules: payload.new.game_type || 'hex',
-            challengerName: data?.username || 'Neznámy Hráč'
-          });
-        }
-      })
-      // we also want to redirect if a game we created gets accepted
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'games',
-        filter: `player1_id=eq.${user.id}`
-      }, (payload) => {
-        if (payload.new.status === 'active' && !activeGameId) {
-          // Our invite was accepted!
-          handleStartGame('1v1_online', payload.new.game_type || 'hex', payload.new.id);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-      // Set offline
-      if (user) supabase.from('profiles').update({ online_status: 'offline' }).eq('id', user.id).then();
-    };
-  }, [user, activeGameId, handleStartGame]);
-
-  // Fetch opponent name when in online game
+  // Fetch opponent name
   useEffect(() => {
     if (gameMode === '1v1_online' && activeGameId) {
       const fetchOpponent = async () => {
@@ -222,26 +178,7 @@ const GameApp = () => {
     }
   }, [gameMode, activeGameId, user?.id]);
 
-  // Sync active_modal from DB to opponent
-  useEffect(() => {
-    if (gameMode === '1v1_online' && gameData) {
-      setActiveModal(prev => {
-        const dbModalStr = JSON.stringify(gameData.active_modal || null);
-        const locModalStr = JSON.stringify(prev || null);
-        if (dbModalStr !== locModalStr) {
-          if (!prev && gameData.active_modal && currentPlayer !== localPlayerNum) {
-            playSound('click');
-          }
-          return gameData.active_modal || null;
-        }
-        return prev;
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameMode, gameData?.active_modal, currentPlayer, localPlayerNum, playSound]);
-
   const handleAcceptInvite = async (gameId, rules) => {
-    // Update game status to active
     const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
     if (!error) {
       setIncomingInvite(null);
@@ -255,24 +192,15 @@ const GameApp = () => {
   };
 
   const handleHexClick = async (hexId) => {
-    // If it's BOT's turn, ignore manual clicks
     if (gameMode === '1vbot' && currentPlayer === 2) return;
-
-    // Online: if it's paused, ignore clicks
-    if (gameMode === '1v1_online' && gameData?.paused_by) {
-      return;
-    }
-
-    // Online: if it's not your turn, ignore clicks
+    if (gameMode === '1v1_online' && gameData?.paused_by) return;
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
       alert("Teraz je na ťahu súper!");
       return;
     }
 
     const hex = board.find(h => h.id === hexId);
-    if (hex.owner === 'player1' || hex.owner === 'player2') {
-      return;
-    }
+    if (hex.owner === 'player1' || hex.owner === 'player2') return;
 
     playSound('click');
     const q = await getRandomQuestionForConfig();
@@ -280,37 +208,12 @@ const GameApp = () => {
     setActiveModal(newModal);
 
     if (gameMode === '1v1_online' && activeGameId) {
+      addDebugLog(`Hexagon ${hexId} otvorený, beží online synchronizácia...`);
       await supabase.from('games').update({ active_modal: newModal }).eq('id', activeGameId);
+    } else {
+      addDebugLog(`Hexagon ${hexId} otvorený.`);
     }
   };
-
-  const handleSyncModal = useCallback((updates) => {
-    if (gameMode === '1v1_online' && activeGameId && activeModalRef.current) {
-      const merged = { ...activeModalRef.current, ...updates };
-      setActiveModal(merged); // Instantly update locally
-
-      // Safely push to database OUTSIDE of the state updater pure function.
-      // This guarantees React won't swallow the update.
-      supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId).then();
-    }
-  }, [gameMode, activeGameId]);
-
-  // BOT Turn automation
-  useEffect(() => {
-    if (gameMode === '1vbot' && currentPlayer === 2 && !winner && !activeModal && !showExitConfirm) {
-      // Pick a random available hex after a short delay
-      const availableHexes = board.filter(h => h.owner !== 'player1' && h.owner !== 'player2');
-      if (availableHexes.length > 0) {
-        const timeout = setTimeout(() => {
-          const randomHex = availableHexes[Math.floor(Math.random() * availableHexes.length)];
-          getRandomQuestionForConfig().then(q => {
-            setActiveModal({ hexId: randomHex.id, question: q });
-          });
-        }, 1500);
-        return () => clearTimeout(timeout);
-      }
-    }
-  }, [currentPlayer, gameMode, board, winner, activeModal, showExitConfirm]);
 
   const handleResolveQuestion = (targetOwner, pointsEarned = 0, breakCombo = false) => {
     if (activeModal) {
@@ -319,36 +222,30 @@ const GameApp = () => {
     }
   };
 
-  // Win condition sound
   useEffect(() => {
-    if (winner) {
-      playSound('winner');
-    }
+    if (winner) playSound('winner');
   }, [winner, playSound]);
 
   const handleTogglePause = async () => {
     if (gameMode !== '1v1_online' || !activeGameId) return;
     const isCurrentlyPaused = !!gameData?.paused_by;
-
-    // Only the player who paused it can unpause
     if (isCurrentlyPaused && gameData.paused_by !== user.id) return;
-
     const newPausedBy = isCurrentlyPaused ? null : user.id;
+    addDebugLog(isCurrentlyPaused ? "Hra odpauzovaná." : "Hra pozastavená.");
     await supabase.from('games').update({ paused_by: newPausedBy }).eq('id', activeGameId);
   };
 
   const handleRestart = async () => {
     if (activeGameId) {
-      // Delete the game entirely when leaving
       await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
     resetToLobby();
     setShowExitConfirm(false);
     resetGame();
+    addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
   };
 
-  // Not logged in -> Show Auth screens
   if (!user) {
     return (
       <div className="game-container start-screen">
@@ -358,14 +255,10 @@ const GameApp = () => {
     );
   }
 
-  // Admin Mode
   if (showAdmin) {
-    return (
-      <Admin onBack={() => setShowAdmin(false)} />
-    );
+    return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
-  // Logged in, no game mode selected -> Show Lobby
   if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
     return (
       <>
@@ -383,16 +276,13 @@ const GameApp = () => {
     );
   }
 
-  // Matchmaking Active
   if (appState === APP_STATES.MATCHMAKING) {
     return <Matchmaking user={user} />;
   }
 
-  // Game is active
   if (appState === APP_STATES.IN_GAME) {
     return (
       <>
-        {/* Versus Animation Overlay */}
         <div className="versus-overlay">
           <div className="versus-content">
             <div className="vs-player">
@@ -420,12 +310,7 @@ const GameApp = () => {
           <div className="vs-title">Bitka začína!</div>
         </div>
 
-        {/* Game start sound plays when game begins. Placed outside of vs overlay to ensure it's not paused by any browser CSS optimizations */}
-        <audio
-          src="/game-start.mp3"
-          autoPlay
-          ref={el => { if (el) el.volume = 0.15; }}
-        />
+        <audio src="/game-start.mp3" autoPlay ref={el => { if (el) el.volume = 0.15; }} />
 
         <div className="game-container game-entrance">
           {gameMode === '1v1_online' && gameData?.paused_by && (
@@ -433,9 +318,7 @@ const GameApp = () => {
               <div className="versus-content" style={{ flexDirection: 'column', gap: '2rem' }}>
                 <h2 style={{ color: '#facc15', fontSize: '2.5rem' }}>HRA JE POZASTAVENÁ</h2>
                 <p style={{ fontSize: '1.2rem', color: 'white', textAlign: 'center' }}>
-                  {gameData.paused_by === user.id
-                    ? "Vy ste pozastavili hru."
-                    : "Súper pozastavil hru. Čaká sa..."}
+                  {gameData.paused_by === user.id ? "Vy ste pozastavili hru." : "Súper pozastavil hru. Čaká sa..."}
                 </p>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                   {gameData.paused_by === user.id && (
@@ -467,7 +350,6 @@ const GameApp = () => {
           )}
 
           <div className="status-board">
-            {/* Player 1: Dot on the left */}
             <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
               <div className="dot player1-bg" />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
@@ -487,14 +369,11 @@ const GameApp = () => {
 
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               {gameMode === '1v1_online' && !activeModal && !winner && (
-                <button className="secondary" onClick={handleTogglePause}>
-                  Pauza
-                </button>
+                <button className="secondary" onClick={handleTogglePause}>Pauza</button>
               )}
               <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
             </div>
 
-            {/* Player 2: Dot on the right */}
             <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, paddingRight: '4px' }}>
                 <span className="player2-text" style={{ lineHeight: '1.2' }}>
@@ -519,7 +398,7 @@ const GameApp = () => {
 
           {activeModal && (
             <QuestionModal
-              modalData={activeModal} // Used for synchronization
+              modalData={activeModal}
               hexId={activeModal.hexId}
               question={activeModal.question}
               currentPlayer={currentPlayer}
@@ -544,23 +423,15 @@ const GameApp = () => {
             />
           )}
 
-          <ConfirmExitModal
-            isOpen={showExitConfirm}
-            onConfirm={handleRestart}
-            onCancel={() => setShowExitConfirm(false)}
-          />
+          <ConfirmExitModal isOpen={showExitConfirm} onConfirm={handleRestart} onCancel={() => setShowExitConfirm(false)} />
+          <GameInviteModal invite={incomingInvite} onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)} onDecline={handleDeclineInvite} />
 
-          <GameInviteModal
-            invite={incomingInvite}
-            onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
-            onDecline={handleDeclineInvite}
-          />
+          <DebuggerPanel gameData={gameData} currentPlayer={currentPlayer} p1Score={p1Score} p2Score={p2Score} p1Combo={p1Combo} p2Combo={p2Combo} />
         </div>
       </>
     );
   }
 
-  // Fallback for unknown states
   return null;
 };
 

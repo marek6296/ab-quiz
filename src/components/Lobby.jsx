@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
@@ -6,14 +6,20 @@ import { useAudio } from '../hooks/useAudio';
 
 export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
     const { user, signOut } = useAuth();
-    const [profile, setProfile] = React.useState(null);
-    const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
-    const [availableCategories, setAvailableCategories] = React.useState([]);
-    const [selectedCategories, setSelectedCategories] = React.useState([]); // empty means All
-    const [difficulty, setDifficulty] = React.useState(1);
-    const { playSound } = useAudio();
+    const [profile, setProfile] = useState(null);
+    const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
 
-    React.useEffect(() => {
+    // Game Setup State
+    const [setupMode, setSetupMode] = useState(null); // null means showing Mode selection
+    const [gameRules, setGameRules] = useState('hex');
+    const [availableCategories, setAvailableCategories] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [difficulty, setDifficulty] = useState(1);
+
+    const { playSound } = useAudio();
+    const audioRef = useRef(null);
+
+    useEffect(() => {
         const fetchCategories = async () => {
             const { data } = await supabase.from('questions').select('category', { count: 'exact' });
             if (data) {
@@ -24,27 +30,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
         fetchCategories();
     }, []);
 
-    const toggleCategory = (cat) => {
-        setSelectedCategories(prev =>
-            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-        );
-    };
-
-    const isAllSelected = selectedCategories.length === 0;
-
-    const audioRef = React.useRef(null);
-
-    React.useEffect(() => {
+    useEffect(() => {
         const audio = audioRef.current;
         if (audio) {
-            audio.volume = 0.006; // Set volume to 0.6% (reduced by 60% from 0.015)
-
-            // Handle modern browser autoplay policies
+            audio.volume = 0.006;
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => {
-                    // Auto-play was prevented by the browser. 
-                    // Wait for the first click anywhere on the page to start music.
                     const playOnInteraction = () => {
                         audio.play();
                         document.removeEventListener('click', playOnInteraction);
@@ -55,165 +47,206 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin }) => {
         }
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (user?.id) {
             supabase.from('profiles').select('*').eq('id', user.id).single()
                 .then(({ data }) => setProfile(data));
         }
     }, [user]);
 
+    const handleStartFromSetup = () => {
+        if (setupMode === '1vbot') {
+            onStart1vBot(gameRules, selectedCategories, difficulty);
+        } else {
+            onStartMatchmaking(setupMode, gameRules, selectedCategories, difficulty);
+        }
+    };
+
+    const toggleCategory = (cat) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
+    };
+
+    const isAllSelected = selectedCategories.length === 0;
+
     return (
-        <div className="game-container start-screen lobby">
-            {/* Background Music Loop */}
+        <div className="dashboard-layout">
             <audio ref={audioRef} src="/chrono-echoes.mp3" autoPlay loop />
 
-            <div className="lobby-header">
-                <h1>AB Kvíz</h1>
-                <div className="user-info">
+            <aside className="dashboard-sidebar">
+                <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+                    <h1 style={{ fontSize: '2rem', backgroundImage: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        AB Kvíz
+                    </h1>
+                </div>
+
+                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setSetupMode(null); }}>
+                        <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
+                    </button>
+                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
+                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
+                    </button>
+                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
+                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
+                    </button>
                     {profile?.is_admin && (
-                        <button className="secondary" onClick={onShowAdmin} style={{ marginRight: '1rem', background: '#38bdf8', color: '#0f172a' }}>
-                            Administrácia
+                        <button className="nav-item" onClick={onShowAdmin} style={{ color: '#fbbf24' }}>
+                            <span style={{ fontSize: '1.5rem' }}>⚙️</span> Admin
                         </button>
                     )}
-                    <span>Prihlásený ako: <strong>{profile?.username || user?.email}</strong></span>
-                    <button className="text-button" onClick={() => signOut()}>Odhlásiť sa</button>
-                </div>
-            </div>
+                </nav>
 
-            <div className="lobby-content">
-                <div className="lobby-panel">
-                    <h2>Herné Módy</h2>
-
-                    {/* Game Rules Selector */}
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '12px' }}>
-                        <button
-                            className={`secondary ${gameRules === 'hex' ? 'active' : ''}`}
-                            style={{ flex: 1, margin: 0, opacity: gameRules === 'hex' ? 1 : 0.5, border: gameRules === 'hex' ? '1px solid var(--player1-color)' : 'none' }}
-                            onClick={() => setGameRules('hex')}
-                        >
-                            Hex (Cesta)
-                        </button>
-                        <button
-                            className={`secondary ${gameRules === 'points' ? 'active' : ''}`}
-                            style={{ flex: 1, margin: 0, opacity: gameRules === 'points' ? 1 : 0.5, border: gameRules === 'points' ? '1px solid var(--player2-color)' : 'none' }}
-                            onClick={() => setGameRules('points')}
-                        >
-                            Body (Rýchlosť)
-                        </button>
+                <div className="user-profile" style={{ marginTop: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{profile?.username || 'Hráč'}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Online</div>
                     </div>
+                </div>
+            </aside>
 
-                    {/* Category & Difficulty Selectors */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <label style={{ color: '#94a3b8', fontSize: '1rem', fontWeight: 'bold' }}>Kategórie Otázok</label>
+            <main className="dashboard-content">
+                {activeTab === 'play' && !setupMode && (
+                    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
+                        <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a proti komu chcete hrať.</p>
 
-                            <div style={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '0.6rem',
-                                maxHeight: '220px',
-                                overflowY: 'auto',
-                                paddingRight: '0.5rem',
-                                alignContent: 'flex-start'
-                            }}>
-                                <button
-                                    onClick={(e) => { e.preventDefault(); setSelectedCategories([]); }}
-                                    style={{
-                                        padding: '0.4rem 0.8rem',
-                                        borderRadius: '20px',
-                                        fontSize: '0.85rem',
-                                        fontWeight: isAllSelected ? 'bold' : 'normal',
-                                        background: isAllSelected ? 'var(--player1-color)' : 'rgba(255,255,255,0.05)',
-                                        color: isAllSelected ? '#0f172a' : '#cbd5e1',
-                                        border: `1px solid ${isAllSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        margin: 0
-                                    }}
-                                >
-                                    ✨ Všetky kategórie
-                                </button>
-                                {availableCategories.map(c => {
-                                    const isSelected = selectedCategories.includes(c);
-                                    return (
-                                        <button
-                                            key={c}
-                                            onClick={(e) => { e.preventDefault(); toggleCategory(c); }}
-                                            style={{
-                                                padding: '0.4rem 0.8rem',
-                                                borderRadius: '20px',
-                                                fontSize: '0.85rem',
-                                                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
-                                                color: isSelected ? '#38bdf8' : '#94a3b8',
-                                                border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                margin: 0
-                                            }}
-                                        >
-                                            {c}
+                        <div className="mode-grid">
+                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_quick')}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
+                                <h3>Rýchla Hra</h3>
+                                <p>Náhodne ťa prepojíme s iným aktívnym hráčom, ktorý práve čaká na zápas.</p>
+                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
+                            </div>
+
+                            <div className="mode-card" onClick={() => setSetupMode('1v1_private_create')}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+                                <h3>Založiť Miestnosť</h3>
+                                <p>Vytvor privátnu hru s vlastnými pravidlami a pošli kód kamošovi.</p>
+                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
+                            </div>
+
+                            <div className="mode-card" onClick={() => setSetupMode('1v1_private_join')}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
+                                <h3>Pripojiť sa</h3>
+                                <p>Máš kód od kamaráta? Zadaj ho do vyhľadávača a prepoj sa na neho.</p>
+                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
+                            </div>
+
+                            <div className="mode-card" onClick={() => setSetupMode('1vbot')}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
+                                <h3>Tréning s BOTom</h3>
+                                <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
+                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'play' && setupMode && (
+                    <div className="setup-panel">
+                        <button onClick={() => setSetupMode(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1rem', cursor: 'pointer', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>←</span> Späť na výber
+                        </button>
+
+                        <h2 style={{ fontSize: '2rem', marginBottom: '2rem', color: '#f8fafc' }}>Konfigurácia Hry</h2>
+
+                        {setupMode !== '1v1_private_join' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                {/* Rules Selection */}
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Herné Pravidlá</label>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => setGameRules('hex')}>
+                                            Hex (Cesta)
                                         </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                                        <button className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => setGameRules('points')}>
+                                            Body (Rýchlosť)
+                                        </button>
+                                    </div>
+                                </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <label style={{ color: '#94a3b8', fontSize: '1rem', fontWeight: 'bold' }}>Náročnosť</label>
-                            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem', borderRadius: '12px' }}>
-                                {[
-                                    { level: 1, label: 'Ľahké', color: '#4ade80' },
-                                    { level: 2, label: 'Stredné', color: '#fbbf24' },
-                                    { level: 3, label: 'Ťažké', color: '#ef4444' }
-                                ].map(diff => (
-                                    <button
-                                        key={diff.level}
-                                        onClick={(e) => { e.preventDefault(); setDifficulty(diff.level); }}
-                                        style={{
-                                            flex: 1,
-                                            margin: 0,
-                                            padding: '0.6rem 0',
-                                            borderRadius: '8px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 'bold',
-                                            background: difficulty === diff.level ? diff.color : 'transparent',
-                                            color: difficulty === diff.level ? '#0f172a' : '#cbd5e1',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {diff.label}
-                                    </button>
-                                ))}
+                                {/* Difficulty Selection */}
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Náročnosť Otázok</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
+                                        {[
+                                            { level: 1, label: 'Ľahké', color: '#4ade80' },
+                                            { level: 2, label: 'Stredné', color: '#fbbf24' },
+                                            { level: 3, label: 'Ťažké', color: '#ef4444' }
+                                        ].map(diff => (
+                                            <button key={diff.level} onClick={() => setDifficulty(diff.level)} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: difficulty === diff.level ? diff.color : 'transparent', color: difficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                {diff.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Category Selection */}
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Kategórie</label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                        <button onClick={() => setSelectedCategories([])} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', fontWeight: isAllSelected ? 'bold' : 'normal', background: isAllSelected ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: isAllSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isAllSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                                            ✨ Všetky
+                                        </button>
+                                        {availableCategories.map(c => {
+                                            const isSelected = selectedCategories.includes(c);
+                                            return (
+                                                <button key={c} onClick={() => toggleCategory(c)} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#38bdf8' : '#94a3b8', border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                                                    {c}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', marginTop: '1rem' }} onClick={handleStartFromSetup}>
+                                    Potvrdiť a Spustiť 🚀
+                                </button>
                             </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Pre pripojenie k existujúcej miestnosti pokračujte tlačidlom nižšie, ktoré vám otvorí panel na zadanie kódu miestnosti.</p>
+                                <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', width: '100%' }} onClick={handleStartFromSetup}>
+                                    Prejsť na zadávanie Kódu 🔑
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'friends' && (
+                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                            <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', margin: 0 }}>Social a Priatelia</h2>
+                        </div>
+                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov, pridávať si ich a rovno ich vyzývať do napínavých duelov.</p>
+                            <FriendsList selectedGameRules={gameRules} selectedCategory={selectedCategories} selectedDifficulty={difficulty} />
                         </div>
                     </div>
+                )}
 
-                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-                        <button className="primary" style={{ padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #38bdf8, #2563eb)' }} onClick={() => onStartMatchmaking('1v1_quick', gameRules, selectedCategories, difficulty)}>
-                            🚀 Rýchla Hra (1v1 Online)
-                        </button>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button className="secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => onStartMatchmaking('1v1_private_create', gameRules, selectedCategories, difficulty)}>
-                                🔒 Vytvoriť Miestnosť
-                            </button>
-                            <button className="neutral" style={{ flex: 1, padding: '1rem' }} onClick={() => onStartMatchmaking('1v1_private_join', gameRules, selectedCategories, difficulty)}>
-                                🔑 Pripojiť sa cez Kód
+                {activeTab === 'profile' && (
+                    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', marginBottom: '2rem' }}>Môj Profil</h2>
+                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ width: '100px', height: '100px', background: 'var(--primary-gradient)', borderRadius: '50%', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
+                                👤
+                            </div>
+                            <h3 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '0.5rem' }}>{profile?.username}</h3>
+                            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{user?.email}</p>
+
+                            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', marginBottom: '2rem' }} />
+
+                            <button className="neutral" onClick={() => signOut()} style={{ padding: '1rem 2rem', border: '1px solid #ef4444', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}>
+                                Odhlásiť sa zo systému
                             </button>
                         </div>
-                        <button className="neutral" style={{ padding: '1rem', border: '1px solid #475569', background: 'transparent' }} onClick={() => onStart1vBot(gameRules, selectedCategories, difficulty)}>
-                            🤖 Tréning proti BOT-ovi
-                        </button>
                     </div>
-                </div>
-
-                <div className="lobby-panel friends-panel">
-                    <h2>Priatelia a Hráči</h2>
-                    <FriendsList selectedGameRules={gameRules} selectedCategory={selectedCategories} selectedDifficulty={difficulty} />
-                </div>
-            </div>
+                )}
+            </main>
         </div>
     );
 };
-

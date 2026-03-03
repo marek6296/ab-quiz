@@ -33,6 +33,12 @@ export const useGameStore = create(
                 gameMode: null,
                 activeGameId: null
             }),
+
+            // Debug Logs
+            debugLogs: [],
+            addDebugLog: (msg) => set(state => ({
+                debugLogs: [`[${new Date().toLocaleTimeString()}] ${msg}`, ...state.debugLogs].slice(0, 50)
+            })),
         }),
         {
             name: 'ab-quiz-game-storage', // key in local storage
