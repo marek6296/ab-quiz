@@ -54,6 +54,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const [earnedPoints, setEarnedPoints] = useState(0);
 
+    const inputRef = useRef(null);
+
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
 
@@ -62,7 +64,11 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         let typedIndex = 0;
 
         return (
-            <div className="placeholder-container">
+            <div
+                className="placeholder-container"
+                onClick={() => inputRef.current && inputRef.current.focus()}
+                style={{ cursor: 'text' }}
+            >
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
                         {word.split('').map((char, cIdx) => {
@@ -91,15 +97,22 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     };
 
     const renderInput = (onSubmit) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '400px', margin: '0 auto', position: 'relative' }}>
             <input
+                ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, onSubmit)}
-                placeholder="Zadajte odpoveď..."
                 autoFocus
-                style={{ textAlign: 'center', fontSize: '1.2rem' }}
+                style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    top: 0,
+                    left: '-9999px',
+                    width: '1px',
+                    height: '1px'
+                }}
             />
             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMsg}</div>}
         </div>
