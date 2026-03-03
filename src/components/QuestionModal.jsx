@@ -57,11 +57,13 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const inputRef = useRef(null);
 
     // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
+    // Explicitly auto-focus the hidden input whenever it renders (helps mobile keyboards immediately pop open on turn transition/modal open)
     useEffect(() => {
-        const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
+        const isSelfTurnActive = (phase === 'reveal' && isLocalPrimary) ||
+            (phase === 'currentPlayer' && isLocalPrimary) ||
             (phase === 'opponent' && isLocalSecondary);
 
-        if (isSelfTurn && inputRef.current) {
+        if (isSelfTurnActive && inputRef.current) {
             // A tiny timeout ensures modal animation has started and DOM is ready for focus grabbing on Safari/mobile
             const timer1 = setTimeout(() => inputRef.current?.focus(), 50);
             const timer2 = setTimeout(() => inputRef.current?.focus(), 300);
@@ -73,8 +75,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         }
     }, [phase, isLocalPrimary, isLocalSecondary]);
 
-    const renderPlaceholder = (answer, onSubmit) => {
+    const renderPlaceholder = (answer) => {
         if (!answer) return null;
+
+        const isSelfTurnActive = (phase === 'reveal' && isLocalPrimary) ||
+            (phase === 'currentPlayer' && isLocalPrimary) ||
+            (phase === 'opponent' && isLocalSecondary);
 
         const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
             (phase === 'opponent' && isLocalSecondary);
@@ -86,41 +92,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         return (
             <div
                 className="placeholder-container"
-                onClick={() => isSelfTurn && inputRef.current && inputRef.current.focus()}
+                onClick={() => isSelfTurnActive && inputRef.current && inputRef.current.focus()}
                 style={{ cursor: isSelfTurn ? 'text' : 'default', position: 'relative' }}
             >
-                {/* 
-                    Hidden input placed INSIDE the container to instantly grab mobile focus without layout jumps.
-                */}
-                {isSelfTurn && (
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, onSubmit)}
-                        autoFocus
-                        inputMode="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            opacity: 0,
-                            zIndex: 10,
-                            width: '100%',
-                            height: '100%',
-                            fontSize: '16px', // Prevents iOS zoom
-                            border: 'none',
-                            outline: 'none',
-                            background: 'transparent',
-                            color: 'transparent', // Hide native text
-                            caretColor: 'transparent' // Explicitly hide native caret
-                        }}
-                    />
-                )}
 
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
@@ -424,6 +398,45 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     return (
         <div className="modal-overlay">
             <div className="modal-content">
+                {/* Global Mobile Input - Always present when local player needs to answer, to capture synchronous focus on mount */}
+                {((phase === 'reveal' && isLocalPrimary) ||
+                    (phase === 'currentPlayer' && isLocalPrimary) ||
+                    (phase === 'opponent' && isLocalSecondary)) && (
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    if (phase === 'currentPlayer') handleSubmitPrimary();
+                                    else if (phase === 'opponent') handleSubmitSecondary();
+                                }
+                            }}
+                            autoFocus
+                            inputMode="text"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                opacity: 0,
+                                zIndex: -1,
+                                width: '1px',
+                                height: '1px',
+                                fontSize: '16px', // Prevents iOS zoom
+                                pointerEvents: 'none',
+                                background: 'transparent',
+                                color: 'transparent',
+                                caretColor: 'transparent'
+                            }}
+                        />
+                    )}
+
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
                     <div className="reveal-animation">
@@ -436,7 +449,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'currentPlayer' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer, handleSubmitPrimary)}
+                        {renderPlaceholder(question.answer)}
                         {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
                         <h3 style={{ width: '100%', margin: '1rem 0', color: '#fff' }}>
@@ -471,7 +484,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'opponent' && (
                     <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
                         <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer, handleSubmitSecondary)}
+                        {renderPlaceholder(question.answer)}
                         {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
                         <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
