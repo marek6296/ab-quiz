@@ -6,16 +6,46 @@ import { evaluateWinCondition, getNextTurnPlayer, getNextTurnDbId } from '../gam
 import { useGameStore } from '../game-engine/store';
 
 export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId, manualExitRef }) => {
-    const [board, setBoard] = useState(generateInitialBoard(gameRules));
-    const [currentPlayer, setCurrentPlayer] = useState(1);
-    const [winner, setWinner] = useState(null);
+    // Attempt to load from localStorage first if it's a local game
+    const loadLocalState = () => {
+        if (gameMode !== '1v1_online') {
+            try {
+                const saved = localStorage.getItem('ab_quiz_local_state');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.gameRules === gameRules) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load local state", e);
+            }
+        }
+        return null;
+    };
+
+    const localInitial = loadLocalState();
+
+    const [board, setBoard] = useState(localInitial?.board || generateInitialBoard(gameRules));
+    const [currentPlayer, setCurrentPlayer] = useState(localInitial?.currentPlayer || 1);
+    const [winner, setWinner] = useState(localInitial?.winner || null);
     const [gameData, setGameData] = useState(null); // stores player mappings
+    const [presenceCount, setPresenceCount] = useState(1); // Track online players
 
     // Points Mode State
-    const [p1Score, setP1Score] = useState(0);
-    const [p2Score, setP2Score] = useState(0);
-    const [p1Combo, setP1Combo] = useState(0);
-    const [p2Combo, setP2Combo] = useState(0);
+    const [p1Score, setP1Score] = useState(localInitial?.p1Score || 0);
+    const [p2Score, setP2Score] = useState(localInitial?.p2Score || 0);
+    const [p1Combo, setP1Combo] = useState(localInitial?.p1Combo || 0);
+    const [p2Combo, setP2Combo] = useState(localInitial?.p2Combo || 0);
+
+    // Continuous Persistence for Local Games
+    useEffect(() => {
+        if (gameMode !== '1v1_online' && board && board.length > 0) {
+            localStorage.setItem('ab_quiz_local_state', JSON.stringify({
+                gameRules, board, currentPlayer, winner, p1Score, p2Score, p1Combo, p2Combo
+            }));
+        }
+    }, [gameMode, gameRules, board, currentPlayer, winner, p1Score, p2Score, p1Combo, p2Combo]);
 
     // Load initial board or subscribe to realtime if online
     useEffect(() => {
@@ -43,7 +73,17 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         fetchGame();
 
         const subscription = supabase
-            .channel(`game_${activeGameId}`)
+            .channel(`game_${activeGameId}`, {
+                config: {
+                    presence: {
+                        key: userId,
+                    },
+                },
+            })
+            .on('presence', { event: 'sync' }, () => {
+                const newState = subscription.presenceState();
+                setPresenceCount(Object.keys(newState).length);
+            })
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
@@ -75,7 +115,11 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
                 }
             })
-            .subscribe();
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await subscription.track({ online_at: new Date().toISOString() });
+                }
+            });
 
         return () => {
             supabase.removeChannel(subscription);
@@ -198,6 +242,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         setP2Score(0);
         setP1Combo(0);
         setP2Combo(0);
+        localStorage.removeItem('ab_quiz_local_state');
     }, [gameRules]);
 
     // For App.jsx, we need a way to know WHICH player the local user is to restrict clicks
@@ -216,6 +261,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         p2Score,
         p1Combo,
         p2Combo,
-        gameData
+        gameData,
+        presenceCount
     };
 };

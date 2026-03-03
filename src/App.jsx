@@ -43,6 +43,77 @@ const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
   );
 };
 
+const ReconnectModal = ({ activeModal, activeGameId, presenceCount, user, onCancel }) => {
+  const [timeLeft, setTimeLeft] = useState(10);
+  const isBothHere = presenceCount >= 2;
+  const isReady = activeModal?.ready?.includes(user?.id);
+
+  useEffect(() => {
+    if (isBothHere) {
+      const t = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(t);
+            onCancel();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(t);
+    } else {
+      setTimeLeft(10);
+    }
+  }, [isBothHere, onCancel]);
+
+  const handleReady = async () => {
+    if (isReady) return;
+    const newReady = [...(activeModal?.ready || []), user?.id];
+    if (newReady.length >= 2) {
+      await supabase.from('games').update({ active_modal: null }).eq('id', activeGameId);
+    } else {
+      await supabase.from('games').update({ active_modal: { ...activeModal, ready: newReady } }).eq('id', activeGameId);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 10002 }}>
+      <div className="modal-content glass-panel" style={{ textAlign: 'center', padding: '2.5rem', maxWidth: '450px' }}>
+        <h2 style={{ color: isBothHere ? '#4ade80' : '#facc15', marginBottom: '1rem', fontSize: '1.8rem' }}>
+          {isBothHere ? "Obaja hráči sú späť!" : "Súper sa odpojil..."}
+        </h2>
+        <p style={{ fontSize: '1.1rem', margin: '0 0 2rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+          {isBothHere
+            ? "Máte obmedzený čas na potvrdenie pokračovania v hre."
+            : "Čakáme na návrat súpera do hry. Hra je zatiaľ pozastavená."}
+        </p>
+
+        {isBothHere && (
+          <>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', margin: '1rem 0', color: '#4ade80', textShadow: '0 0 10px rgba(74,222,128,0.5)' }}>
+              {timeLeft}s
+            </div>
+            <button
+              className={isReady ? 'neutral' : 'primary'}
+              onClick={handleReady}
+              disabled={isReady}
+              style={{ minWidth: '200px', fontSize: '1.2rem', padding: '1rem 2rem' }}
+            >
+              {isReady ? 'Čakám na súpera...' : 'Pripravený na hru'}
+            </button>
+          </>
+        )}
+
+        {!isBothHere && (
+          <button className="danger" onClick={onCancel} style={{ marginTop: '2rem' }}>
+            Zrušiť hru a odísť
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal }) => {
   const { user } = useAuth();
@@ -83,7 +154,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   }, [user]);
 
   // Pass necessary info down to the game engine
-  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData } = useGameState({
+  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData, presenceCount } = useGameState({
     userId: user?.id,
     gameMode,
     gameRules,
@@ -180,6 +251,27 @@ const ABQuizApp = ({ onBackToPortal }) => {
       resetGame();
     }
   }, [user, resetGame, setGameMode, setGameRules, setActiveGameId, setAppState, addDebugLog]);
+
+  const [reconnectCheckEnabled, setReconnectCheckEnabled] = useState(false);
+
+  // Enable reconnect checking slightly after game starts to give players time to join
+  useEffect(() => {
+    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online') {
+      const t = setTimeout(() => setReconnectCheckEnabled(true), 6000);
+      return () => clearTimeout(t);
+    } else {
+      setReconnectCheckEnabled(false);
+    }
+  }, [appState, gameMode]);
+
+  // Handle reconnect waits
+  useEffect(() => {
+    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && activeGameId && reconnectCheckEnabled) {
+      if (presenceCount < 2 && !activeModal && gameData?.status === 'active') {
+        supabase.from('games').update({ active_modal: { type: 'reconnect_wait', ready: [] } }).eq('id', activeGameId).then();
+      }
+    }
+  }, [appState, gameMode, activeGameId, presenceCount, activeModal, gameData?.status, reconnectCheckEnabled]);
 
   // Resume active game if we have one
   useEffect(() => {
@@ -488,7 +580,17 @@ const ABQuizApp = ({ onBackToPortal }) => {
             }}
           />
 
-          {activeModal && (
+          {activeModal?.type === 'reconnect_wait' && (
+            <ReconnectModal
+              activeModal={activeModal}
+              activeGameId={activeGameId}
+              presenceCount={presenceCount}
+              user={user}
+              onCancel={handleRestart}
+            />
+          )}
+
+          {activeModal && activeModal.type !== 'reconnect_wait' && (
             <QuestionModal
               modalData={activeModal}
               hexId={activeModal.hexId}
