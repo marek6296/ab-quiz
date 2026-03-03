@@ -43,7 +43,7 @@ const GameApp = () => {
   const [opponentName, setOpponentName] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [allQuestions, setAllQuestions] = useState([]);
-  const [localCategory, setLocalCategory] = useState('Všetky kategórie');
+  const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState(1);
   const { playSound } = useAudio();
 
@@ -73,16 +73,22 @@ const GameApp = () => {
   const [incomingInvite, setIncomingInvite] = useState(null);
 
   const getRandomQuestionForConfig = useCallback(() => {
-    let cat = localCategory;
+    let cats = Array.isArray(localCategory) ? localCategory : [];
     let diff = localDifficulty;
+
     if (gameMode === '1v1_online' && gameData) {
-      cat = gameData.category || 'Všetky kategórie';
+      try {
+        const parsed = JSON.parse(gameData.category);
+        cats = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        cats = [];
+      }
       diff = gameData.difficulty || 1;
     }
 
     let pool = allQuestions;
-    if (cat !== 'Všetky kategórie') {
-      pool = pool.filter(q => q.category === cat);
+    if (cats.length > 0) {
+      pool = pool.filter(q => cats.includes(q.category));
     }
     pool = pool.filter(q => q.difficulty === diff);
 
@@ -94,7 +100,7 @@ const GameApp = () => {
     return pool[Math.floor(Math.random() * pool.length)];
   }, [allQuestions, localCategory, localDifficulty, gameMode, gameData]);
 
-  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = 'Všetky kategórie', diff = 1) => {
+  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1) => {
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);

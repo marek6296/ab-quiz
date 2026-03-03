@@ -8,19 +8,29 @@ export const Lobby = ({ onStart1vBot }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = React.useState(null);
     const [gameRules, setGameRules] = React.useState('hex'); // 'hex' or 'points'
-    const [category, setCategory] = React.useState('Všetky kategórie');
+    const [availableCategories, setAvailableCategories] = React.useState([]);
+    const [selectedCategories, setSelectedCategories] = React.useState([]); // empty means All
     const [difficulty, setDifficulty] = React.useState(1);
     const { playSound } = useAudio();
 
-    const CATEGORIES = [
-        "Všetky kategórie",
-        "Aktuálne dianie", "Anatómia", "Biológia", "Botanika", "Chémia",
-        "Cudzie jazyky", "Dejiny", "Filmy a seriály", "Fyzika", "Gastro",
-        "Geografia", "Hry a hračky", "Hudba", "IT", "Literatúra",
-        "Logika a hádanky", "Mytológia", "Móda", "Náboženstvo", "Politika",
-        "Popkultúra a celebrity", "Ríša zvierat", "Slovenský jazyk",
-        "Technológie", "Výtvarné umenie", "Šport"
-    ];
+    React.useEffect(() => {
+        fetch('/questions.json')
+            .then(res => res.json())
+            .then(data => {
+                if (data.metadata?.categories) {
+                    setAvailableCategories(data.metadata.categories);
+                }
+            })
+            .catch(err => console.error("Failed to load categories", err));
+    }, []);
+
+    const toggleCategory = (cat) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
+    };
+
+    const isAllSelected = selectedCategories.length === 0;
 
     const audioRef = React.useRef(null);
 
@@ -88,39 +98,95 @@ export const Lobby = ({ onStart1vBot }) => {
                     </div>
 
                     {/* Category & Difficulty Selectors */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>Kategória Otázok</label>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-                            >
-                                {CATEGORIES.map(c => <option key={c} value={c} style={{ color: '#000' }}>{c}</option>)}
-                            </select>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <label style={{ color: '#94a3b8', fontSize: '1rem', fontWeight: 'bold' }}>Kategórie Otázok</label>
+
+                            <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '0.6rem',
+                                maxHeight: '220px',
+                                overflowY: 'auto',
+                                paddingRight: '0.5rem',
+                                alignContent: 'flex-start'
+                            }}>
+                                <button
+                                    onClick={(e) => { e.preventDefault(); setSelectedCategories([]); }}
+                                    style={{
+                                        padding: '0.4rem 0.8rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: isAllSelected ? 'bold' : 'normal',
+                                        background: isAllSelected ? 'var(--player1-color)' : 'rgba(255,255,255,0.05)',
+                                        color: isAllSelected ? '#0f172a' : '#cbd5e1',
+                                        border: `1px solid ${isAllSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        margin: 0
+                                    }}
+                                >
+                                    ✨ Všetky kategórie
+                                </button>
+                                {availableCategories.map(c => {
+                                    const isSelected = selectedCategories.includes(c);
+                                    return (
+                                        <button
+                                            key={c}
+                                            onClick={(e) => { e.preventDefault(); toggleCategory(c); }}
+                                            style={{
+                                                padding: '0.4rem 0.8rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
+                                                color: isSelected ? '#38bdf8' : '#94a3b8',
+                                                border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                margin: 0
+                                            }}
+                                        >
+                                            {c}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>Náročnosť ({difficulty === 1 ? 'Ľahké' : difficulty === 2 ? 'Stredné' : 'Ťažké'})</label>
-                            <input
-                                type="range"
-                                min="1"
-                                max="3"
-                                step="1"
-                                value={difficulty}
-                                onChange={(e) => setDifficulty(parseInt(e.target.value, 10))}
-                                style={{ width: '100%' }}
-                            />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.8rem' }}>
-                                <span>1</span>
-                                <span>2</span>
-                                <span>3</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <label style={{ color: '#94a3b8', fontSize: '1rem', fontWeight: 'bold' }}>Náročnosť</label>
+                            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem', borderRadius: '12px' }}>
+                                {[
+                                    { level: 1, label: 'Ľahké', color: '#4ade80' },
+                                    { level: 2, label: 'Stredné', color: '#fbbf24' },
+                                    { level: 3, label: 'Ťažké', color: '#ef4444' }
+                                ].map(diff => (
+                                    <button
+                                        key={diff.level}
+                                        onClick={(e) => { e.preventDefault(); setDifficulty(diff.level); }}
+                                        style={{
+                                            flex: 1,
+                                            margin: 0,
+                                            padding: '0.6rem 0',
+                                            borderRadius: '8px',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 'bold',
+                                            background: difficulty === diff.level ? diff.color : 'transparent',
+                                            color: difficulty === diff.level ? '#0f172a' : '#cbd5e1',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {diff.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
 
                     <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                        <button className="primary" onClick={() => onStart1vBot(gameRules, category, difficulty)}>
+                        <button className="primary" onClick={() => onStart1vBot(gameRules, selectedCategories, difficulty)}>
                             Hrať proti BOT-ovi
                         </button>
                         <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
@@ -131,7 +197,7 @@ export const Lobby = ({ onStart1vBot }) => {
 
                 <div className="lobby-panel friends-panel">
                     <h2>Priatelia a Hráči</h2>
-                    <FriendsList selectedGameRules={gameRules} selectedCategory={category} selectedDifficulty={difficulty} />
+                    <FriendsList selectedGameRules={gameRules} selectedCategory={selectedCategories} selectedDifficulty={difficulty} />
                 </div>
             </div>
         </div>
