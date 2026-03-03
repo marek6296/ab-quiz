@@ -47,11 +47,15 @@ export const isAnswerCorrect = (input, expected) => {
     // Direct match
     if (cleanInput === cleanExpected) return true;
 
-    // Exact match <= 1 typo (if the word is at least 3 chars long, otherwise 0 typos)
+    // For very short words, require exact match (or max 1 typo for 4 letter words)
     if (cleanExpected.length <= 3) {
         return cleanInput === cleanExpected;
     }
 
+    // For 4-letter words, 1 typo is enough to totally change the meaning, so max 1.
+    // For longer words (5+), we allow 2 typos.
+    const maxTyposAllowed = cleanExpected.length <= 4 ? 1 : 2;
+
     const distance = levenshteinDistance(cleanInput, cleanExpected);
-    return distance <= 1;
+    return distance <= maxTyposAllowed;
 };
