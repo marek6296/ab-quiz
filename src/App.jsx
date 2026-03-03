@@ -197,6 +197,13 @@ const GameApp = () => {
     }
   };
 
+  // Win condition sound
+  useEffect(() => {
+    if (winner) {
+      playSound('winner');
+    }
+  }, [winner, playSound]);
+
   const handleRestart = async () => {
     if (activeGameId) {
       await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);

@@ -26,6 +26,10 @@ export const useAudio = () => {
                 file = '/ticking.mp3';
                 volume = 0.4;
                 break;
+            case 'winner':
+                file = '/winner.mp3';
+                volume = 0.8;
+                break;
             default:
                 return;
         }
