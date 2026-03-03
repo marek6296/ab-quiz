@@ -178,7 +178,7 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                         <p className="question-text" style={{ fontSize: '1.2rem', margin: '2rem 0' }}>
                             Vyzvali ste hráča <strong>{outgoingInvite.partnerName}</strong>
                         </p>
-                        <button className="neutral" onClick={cancelChallenge}>Zrušiť výzvu</button>
+                        <button className="neutral" onClick={handleCancelGameInvite}>Zrušiť výzvu</button>
                     </div>
                 </div>
             )}
@@ -221,7 +221,7 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                             <li key={req.id} className="friend-item pending">
                                 <span>{req.sender.username}</span>
                                 <div className="actions">
-                                    <button className="primary small" onClick={() => acceptRequest(req.id)}>Prijať</button>
+                                    <button className="primary small" onClick={() => processRequest(req.id, 'accepted')}>Prijať</button>
                                     <button className="danger small" onClick={() => removeFriend(req.id)}>Odmietnuť</button>
                                 </div>
                             </li>
