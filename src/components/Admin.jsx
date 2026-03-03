@@ -406,7 +406,7 @@ export const Admin = ({ onBack }) => {
 
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label>Počet otázok CELKOM (1-50)</label>
+                                        <label>Počet otázok NA KATEGÓRIU (1-50)</label>
                                         <input type="number" id="gen_count" defaultValue={10} min={1} max={50} />
                                     </div>
                                     <div className="form-group">
@@ -472,7 +472,7 @@ export const Admin = ({ onBack }) => {
                                                         },
                                                         {
                                                             role: "user",
-                                                            content: `Vygeneruj PRESNE ${count} unikátnych otázok rozdelených medzi tieto kategórie: ${finalCategories.join(', ')}. Obecná náročnosť level ${diff} z 3. ${avoidList}`
+                                                            content: `Vygeneruj PRESNE ${count} unikátnych otázok PRE KAŽDÚ JEDNU z týchto kategórií (Celkom teda očakávam striktne ${count * finalCategories.length} otázok): ${finalCategories.join(', ')}. Obecná náročnosť level ${diff} z 3. ${avoidList}`
                                                         }
                                                     ],
                                                     response_format: { type: "json_object" }
