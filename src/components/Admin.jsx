@@ -8,6 +8,7 @@ export const Admin = ({ onBack }) => {
     const [stats, setStats] = useState({ total: 0, byCategory: {} });
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterDifficulty, setFilterDifficulty] = useState('');
     const [activeTab, setActiveTab] = useState('list');
 
     // Edit State
@@ -45,13 +46,20 @@ export const Admin = ({ onBack }) => {
     }, []);
 
     const fetchStats = async () => {
-        const { data, error } = await supabase.from('questions').select('category');
+        const { data, error } = await supabase.from('questions').select('category, difficulty');
         if (data) {
-            const counts = data.reduce((acc, q) => {
-                acc[q.category] = (acc[q.category] || 0) + 1;
+            const statsObj = data.reduce((acc, q) => {
+                const diff = q.difficulty || 1;
+                if (!acc[q.category]) {
+                    acc[q.category] = { total: 0, 1: 0, 2: 0, 3: 0 };
+                }
+                acc[q.category].total += 1;
+                if (acc[q.category][diff] !== undefined) {
+                    acc[q.category][diff] += 1;
+                }
                 return acc;
             }, {});
-            setStats({ total: data.length, byCategory: counts });
+            setStats({ total: data.length, byCategory: statsObj });
         }
     };
 
@@ -67,6 +75,10 @@ export const Admin = ({ onBack }) => {
             query = query.eq('category', filterCategory);
         }
 
+        if (filterDifficulty) {
+            query = query.eq('difficulty', parseInt(filterDifficulty));
+        }
+
         const { data, error } = await query;
         if (data) setQuestions(data);
         setLoading(false);
@@ -74,7 +86,7 @@ export const Admin = ({ onBack }) => {
 
     useEffect(() => {
         fetchQuestions();
-    }, [filterCategory]);
+    }, [filterCategory, filterDifficulty]);
 
     const handleAddQuestion = async (e) => {
         e.preventDefault();
@@ -247,10 +259,17 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                         Celkom: <strong>{stats.total}</strong>
                     </div>
                     <div className="admin-stats-list">
-                        {Object.entries(stats.byCategory).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
-                            <div key={cat} className="admin-stat-row">
-                                <span className="stat-cat">{cat}</span>
-                                <span className="stat-count">{count}</span>
+                        {Object.entries(stats.byCategory).sort((a, b) => b[1].total - a[1].total).map(([cat, counts]) => (
+                            <div key={cat} className="admin-stat-row" style={{ display: 'flex', flexDirection: 'column', marginBottom: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.8rem', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <strong className="stat-cat" style={{ color: '#38bdf8' }}>{cat}</strong>
+                                    <span className="stat-count" style={{ fontWeight: 'bold' }}>{counts.total}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                    <span title="Ľahké (1)">🟢 {counts[1]}</span>
+                                    <span title="Stredné (2)">🟡 {counts[2]}</span>
+                                    <span title="Ťažké (3)">🔴 {counts[3]}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -276,7 +295,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                         onKeyDown={(e) => e.key === 'Enter' && fetchQuestions()}
                                     />
                                 </div>
-                                <div className="form-group" style={{ flex: 1 }}>
+                                <div className="form-group" style={{ flex: 1, minWidth: '150px' }}>
                                     <select
                                         value={filterCategory}
                                         onChange={(e) => setFilterCategory(e.target.value)}
@@ -284,8 +303,20 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                     >
                                         <option value="">Všetky kategórie</option>
                                         {Object.keys(stats.byCategory).sort().map(cat => (
-                                            <option key={cat} value={cat}>{cat} ({stats.byCategory[cat]})</option>
+                                            <option key={cat} value={cat}>{cat} ({stats.byCategory[cat].total})</option>
                                         ))}
+                                    </select>
+                                </div>
+                                <div className="form-group" style={{ width: '160px' }}>
+                                    <select
+                                        value={filterDifficulty}
+                                        onChange={(e) => setFilterDifficulty(e.target.value)}
+                                        style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px', width: '100%' }}
+                                    >
+                                        <option value="">Akákoľvek Obtiaž.</option>
+                                        <option value="1">1 - Ľahká</option>
+                                        <option value="2">2 - Stredná</option>
+                                        <option value="3">3 - Ťažká</option>
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
