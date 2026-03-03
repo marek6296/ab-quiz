@@ -1507,11 +1507,12 @@ button.small {
   .mobile-only-logo {
     display: block;
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2.5rem;
   }
 
   .mobile-only-logo h1 {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
   }
 
   .nav-item {
