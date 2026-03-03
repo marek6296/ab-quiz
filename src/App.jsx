@@ -63,6 +63,8 @@ const GameApp = () => {
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState(1);
   const [incomingInvite, setIncomingInvite] = useState(null);
+  const [showVersus, setShowVersus] = useState(false);
+  const manualExitRef = useRef(false);
 
   const { playSound } = useAudio();
 
@@ -130,9 +132,13 @@ const GameApp = () => {
     }
 
     setAppState(APP_STATES.IN_GAME);
+    setShowVersus(true); // Trigger animation
+    setTimeout(() => setShowVersus(false), 3500); // Auto hide after 3.5s
+
     addDebugLog(`Hra začala (${mode} - ${rules})`);
 
     if (mode === '1v1_online' && gameId) {
+      manualExitRef.current = false; // Reset exit flag on new game
       supabase.from('profiles').update({ online_status: 'playing' }).eq('id', user.id).then();
     } else {
       resetGame();
@@ -141,13 +147,13 @@ const GameApp = () => {
 
   // Resume active game if we have one
   useEffect(() => {
-    if (user?.id && !activeGameId) {
+    if (user?.id && !activeGameId && !manualExitRef.current) {
       supabase.from('games').select('*')
         .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
         .eq('status', 'active')
         .single()
         .then(({ data }) => {
-          if (data && !activeGameId) {
+          if (data && !activeGameId && !manualExitRef.current) {
             handleStartGame('1v1_online', data.game_type || 'hex', data.id);
           }
         });
@@ -187,6 +193,7 @@ const GameApp = () => {
   };
 
   const handleDeclineInvite = async (gameId) => {
+    manualExitRef.current = true;
     await supabase.from('games').delete().eq('id', gameId);
     setIncomingInvite(null);
   };
@@ -237,6 +244,9 @@ const GameApp = () => {
 
   const handleRestart = async () => {
     if (activeGameId) {
+      manualExitRef.current = true;
+      // Use both status update AND delete for maximum cross-client reliability
+      await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);
       await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
@@ -283,34 +293,36 @@ const GameApp = () => {
   if (appState === APP_STATES.IN_GAME) {
     return (
       <>
-        <div className="versus-overlay">
-          <div className="versus-content">
-            <div className="vs-player">
-              <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
-              <span style={{ fontWeight: 700 }}>
-                {gameMode === '1v1_online'
-                  ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
-                  : profile?.username || 'Vy'
-                }
-              </span>
+        {showVersus && (
+          <div className="versus-overlay">
+            <div className="versus-content">
+              <div className="vs-player">
+                <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
+                <span style={{ fontWeight: 700 }}>
+                  {gameMode === '1v1_online'
+                    ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                    : profile?.username || 'Vy'
+                  }
+                </span>
+              </div>
+              <div className="vs-text">VS</div>
+              <div className="vs-player">
+                <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
+                <span style={{ fontWeight: 700 }}>
+                  {gameMode === '1vbot'
+                    ? 'BOT'
+                    : (gameMode === '1v1_online'
+                      ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
+                      : 'Hráč 2')
+                  }
+                </span>
+              </div>
             </div>
-            <div className="vs-text">VS</div>
-            <div className="vs-player">
-              <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
-              <span style={{ fontWeight: 700 }}>
-                {gameMode === '1vbot'
-                  ? 'BOT'
-                  : (gameMode === '1v1_online'
-                    ? (localPlayerNum === 2 ? profile?.username || 'Vy' : opponentName || 'Súper')
-                    : 'Hráč 2')
-                }
-              </span>
-            </div>
+            <div className="vs-title">Bitka začína!</div>
           </div>
-          <div className="vs-title">Bitka začína!</div>
-        </div>
+        )}
 
-        <audio src="/game-start.mp3" autoPlay ref={el => { if (el) el.volume = 0.15; }} />
+        {showVersus && <audio src="/game-start.mp3" autoPlay ref={el => { if (el) el.volume = 0.15; }} />}
 
         <div className="game-container game-entrance">
           {gameMode === '1v1_online' && gameData?.paused_by && (

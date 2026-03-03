@@ -65,6 +65,11 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setP1Combo(newData.p1_combo || 0);
                     setP2Combo(newData.p2_combo || 0);
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
+                    if (newData.status === 'finished' && !newData.winner_id) {
+                        alert("Súper opustil hru.");
+                        useGameStore.getState().resetToLobby();
+                        return;
+                    }
                     if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
                 }
             })
