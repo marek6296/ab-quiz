@@ -19,7 +19,7 @@ export const Admin = ({ onBack }) => {
     const [customCat, setCustomCat] = useState('');
 
     const PREDEFINED_CAT = [
-        'Slovensko', 'Hry', 'Streameri a YouTuberi', 'Geografia', 'História', 'Šport', 'Veda a Technika',
+        'Slovensko', 'Hry', 'Geografia', 'História', 'Šport', 'Veda a Technika',
         'Kultúra a Umenie', 'Príroda', 'Slovenský jazyk', 'Literatúra',
         'Filmy a Seriály', 'Hudba', 'Logika a Hádanky', 'Všeobecný prehľad'
     ];
@@ -588,7 +588,6 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
     3. ÚDERNOŤ ODPOVEDÍ: Odpovede udržuj čo najkratšie – ideálne 1 až 2 slová. (napr. namiesto "Mesto Bratislava" použi iba "Bratislava").
     4. ŠPECIFIKÁ TÉM:
        - 'Slovensko': Len unikátne slovenské fakty (najvyššie, najstaršie, jediné).
-       - 'Streameri a YouTuberi': Čisto CZ/SK mená a ich legendárne storky.
        - 'Logika a Hádanky': Klasické vtipné hádanky, kde je odpoveď zväčša predmet alebo zviera.
     5. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                             },
