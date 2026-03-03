@@ -405,6 +405,13 @@ h2 {
   font-family: 'Outfit', sans-serif;
   min-width: 1.2rem;
   text-align: center;
+  transition: all 0.1s ease-out;
+}
+
+.placeholder-char.filled {
+  color: #f8fafc;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.7), 0 0 20px var(--player1-color);
+  transform: scale(1.1) translateY(-2px);
 }
 
 @media (max-width: 768px) {

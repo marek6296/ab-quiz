@@ -56,15 +56,34 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const renderPlaceholder = (answer) => {
         if (!answer) return null;
+
+        // Remove spaces to match the typed characters index against the actual letter positions
+        const cleanTyped = inputValue.replace(/\s+/g, '');
+        let typedIndex = 0;
+
         return (
             <div className="placeholder-container">
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
-                        {word.split('').map((char, cIdx) => (
-                            <span key={cIdx} className="placeholder-char">
-                                {/[-.']/.test(char) ? char : '_'}
-                            </span>
-                        ))}
+                        {word.split('').map((char, cIdx) => {
+                            const isSpecial = /[-.']/.test(char);
+                            let displayChar = '_';
+                            let isFilled = false;
+
+                            if (isSpecial) {
+                                displayChar = char;
+                            } else if (typedIndex < cleanTyped.length) {
+                                displayChar = cleanTyped[typedIndex].toUpperCase();
+                                isFilled = true;
+                                typedIndex++;
+                            }
+
+                            return (
+                                <span key={cIdx} className={`placeholder-char ${isFilled ? 'filled' : ''}`}>
+                                    {displayChar}
+                                </span>
+                            );
+                        })}
                     </span>
                 ))}
             </div>
