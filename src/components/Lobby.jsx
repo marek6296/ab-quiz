@@ -16,86 +16,18 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [difficulty, setDifficulty] = useState(1);
 
-    const { playSound } = useAudio();
-    const audioRef = useRef(null);
-
-    useEffect(() => {
-        const fetchCategories = async () => {
-            const { data } = await supabase.from('questions').select('category', { count: 'exact' });
-            if (data) {
-                const unique = [...new Set(data.map(q => q.category))].sort();
-                setAvailableCategories(unique);
-            }
-        };
-        fetchCategories();
     }, []);
 
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (audio) {
-            audio.volume = 0.006;
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    const playOnInteraction = () => {
-                        audio.play();
-                        document.removeEventListener('click', playOnInteraction);
-                    };
-                    document.addEventListener('click', playOnInteraction);
-                });
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        if (user?.id) {
-            supabase.from('profiles').select('*').eq('id', user.id).single()
-                .then(({ data }) => setProfile(data));
-        }
-    }, [user]);
-
-    const handleStartFromSetup = () => {
-        if (setupMode === '1vbot') {
-            onStart1vBot(gameRules, selectedCategories, difficulty);
-        } else {
-            onStartMatchmaking(setupMode, gameRules, selectedCategories, difficulty);
-        }
-    };
-
-    const toggleCategory = (cat) => {
-        setSelectedCategories(prev =>
-            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-        );
-    };
 
     const isAllSelected = selectedCategories.length === 0;
 
     return (
         <div className="dashboard-layout">
-            <audio ref={audioRef} src="/chrono-echoes.mp3" autoPlay loop />
 
             <aside className="dashboard-sidebar">
                 <div className="sidebar-logo">
                     <h1 className="logo-brutal">
                         AB Kvíz
-                    </h1>
-                </div>
-
-                <nav className="sidebar-nav">
-                    <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setSetupMode(null); }}>
-                        <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
-                    </button>
-                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
-                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
-                    </button>
-                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
-                    </button>
-                    {profile?.is_admin && (
-                        <button className="nav-item" onClick={onShowAdmin} style={{ color: '#fbbf24' }}>
-                            <span style={{ fontSize: '1.5rem' }}>⚙️</span> Admin
-                        </button>
-                    )}
                 </nav>
 
                 <div style={{ marginTop: 'auto', marginBottom: '1rem' }}>
@@ -121,7 +53,6 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                         <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
                         <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a proti komu chcete hrať.</p>
 
-                        <div className="mode-grid">
                             <div className="mode-card primary" onClick={() => setSetupMode('1v1_quick')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
                                 <h3>Rýchla Hra</h3>

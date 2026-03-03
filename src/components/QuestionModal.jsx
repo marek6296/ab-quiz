@@ -159,16 +159,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                         </div>
                     )}
                 </div>
-            )}
-            {showAnswer && <p style={{ marginTop: '2rem', color: '#64748b', fontSize: '0.9rem' }}>Okno sa zavrie o chvíľu...</p>}
-        </div>
-    );
-
-    // Reset state on new question
-    useEffect(() => {
-        if (!modalData?.phase || modalData.phase === 'reveal') {
-            setPhase('reveal');
-            setInputValue('');
             setErrorMsg('');
             setTimeLeft(15);
             setLastAnswer('');
