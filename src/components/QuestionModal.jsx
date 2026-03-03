@@ -242,9 +242,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             let displayChar = '_';
                             let isFilled = false;
 
-                            // Check if this specific character represents the current cursor position
-                            const isCaretPosition = !isSpecial && typedIndex === cleanTyped.length;
-
                             if (isSpecial) {
                                 displayChar = char;
                             } else if (typedIndex < cleanTyped.length) {
@@ -254,7 +251,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             }
 
                             return (
-                                <span key={cIdx} className={`placeholder-char ${isFilled ? 'filled' : ''} ${isCaretPosition && isSelfTurn ? 'has-caret' : ''}`}>
+                                <span key={cIdx} className={`placeholder-char ${isFilled ? 'filled' : ''}`}>
                                     {displayChar}
                                 </span>
                             );
