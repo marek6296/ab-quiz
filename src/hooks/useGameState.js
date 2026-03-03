@@ -50,20 +50,28 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         const subscription = supabase
             .channel(`game_${activeGameId}`)
             .on('postgres_changes', {
-                event: 'UPDATE',
+                event: '*',
                 schema: 'public',
                 table: 'games',
                 filter: `id=eq.${activeGameId}`
             }, (payload) => {
-                const newData = payload.new;
-                setGameData(newData);
-                setBoard(newData.board_state);
-                setP1Score(newData.p1_score || 0);
-                setP2Score(newData.p2_score || 0);
-                setP1Combo(newData.p1_combo || 0);
-                setP2Combo(newData.p2_combo || 0);
-                setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
-                if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
+                if (payload.eventType === 'DELETE') {
+                    // Game was abandoned by the other player or deleted
+                    alert("Hra bola ukončená druhým hráčom.");
+                    window.location.reload();
+                    return;
+                }
+                if (payload.eventType === 'UPDATE') {
+                    const newData = payload.new;
+                    setGameData(newData);
+                    setBoard(newData.board_state);
+                    setP1Score(newData.p1_score || 0);
+                    setP2Score(newData.p2_score || 0);
+                    setP1Combo(newData.p1_combo || 0);
+                    setP2Combo(newData.p2_combo || 0);
+                    setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
+                    if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
+                }
             })
             .subscribe();
 

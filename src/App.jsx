@@ -62,6 +62,21 @@ const GameApp = () => {
     }
   }, [user]);
 
+  // Resume active game if we have one and we're not currently in a game
+  useEffect(() => {
+    if (user?.id && !activeGameId) {
+      supabase.from('games').select('*')
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .eq('status', 'active')
+        .single()
+        .then(({ data }) => {
+          if (data && !activeGameId) {
+            handleStartGame('1v1_online', data.game_type || 'hex', data.id);
+          }
+        });
+    }
+  }, [user, activeGameId, handleStartGame]);
+
   // Pass necessary info down to the game engine
   const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData } = useGameState({
     userId: user?.id,
@@ -155,7 +170,7 @@ const GameApp = () => {
       }, (payload) => {
         if (payload.new.status === 'active' && !activeGameId) {
           // Our invite was accepted!
-          handleStartGame('1v1_online', payload.new.id);
+          handleStartGame('1v1_online', payload.new.game_type || 'hex', payload.new.id);
         }
       })
       .subscribe();
@@ -201,6 +216,11 @@ const GameApp = () => {
   const handleHexClick = async (hexId) => {
     // If it's BOT's turn, ignore manual clicks
     if (gameMode === '1vbot' && currentPlayer === 2) return;
+
+    // Online: if it's paused, ignore clicks
+    if (gameMode === '1v1_online' && gameData?.paused_by) {
+      return;
+    }
 
     // Online: if it's not your turn, ignore clicks
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
@@ -249,9 +269,21 @@ const GameApp = () => {
     }
   }, [winner, playSound]);
 
+  const handleTogglePause = async () => {
+    if (gameMode !== '1v1_online' || !activeGameId) return;
+    const isCurrentlyPaused = !!gameData?.paused_by;
+
+    // Only the player who paused it can unpause
+    if (isCurrentlyPaused && gameData.paused_by !== user.id) return;
+
+    const newPausedBy = isCurrentlyPaused ? null : user.id;
+    await supabase.from('games').update({ paused_by: newPausedBy }).eq('id', activeGameId);
+  };
+
   const handleRestart = async () => {
     if (activeGameId) {
-      await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);
+      // Delete the game entirely when leaving
+      await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
     setGameMode(null);
@@ -333,6 +365,29 @@ const GameApp = () => {
       />
 
       <div className="game-container game-entrance">
+        {gameMode === '1v1_online' && gameData?.paused_by && (
+          <div className="versus-overlay" style={{ background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
+            <div className="versus-content" style={{ flexDirection: 'column', gap: '2rem' }}>
+              <h2 style={{ color: '#facc15', fontSize: '2.5rem' }}>HRA JE POZASTAVENÁ</h2>
+              <p style={{ fontSize: '1.2rem', color: 'white', textAlign: 'center' }}>
+                {gameData.paused_by === user.id
+                  ? "Vy ste pozastavili hru."
+                  : "Súper pozastavil hru. Čaká sa..."}
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                {gameData.paused_by === user.id && (
+                  <button className="primary" onClick={handleTogglePause} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
+                    Pokračovať v hre
+                  </button>
+                )}
+                <button className="neutral" onClick={() => setShowExitConfirm(true)} style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
+                  Opustiť hru
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <h1 className="game-title">
           <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
           <span className="vs">VS</span>
@@ -367,7 +422,14 @@ const GameApp = () => {
             </div>
           </div>
 
-          <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {gameMode === '1v1_online' && !activeModal && !winner && (
+              <button className="secondary" onClick={handleTogglePause}>
+                Pauza
+              </button>
+            )}
+            <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
+          </div>
 
           {/* Player 2: Dot on the right */}
           <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
