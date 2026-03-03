@@ -260,7 +260,6 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
     };
 
     const handleDeclineSecondary = () => {
-        playSound('click');
         setLastAnswer('Hráč nevyužil šancu');
         setPhase('feedbackSecondaryBlack');
         setTimeout(() => onResolve('unowned', 0, true), 5000);
@@ -300,9 +299,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                             <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
                         ) : isLocalPrimary ? (
                             <>
-                                {renderInput(() => { playSound('click'); handleSubmitPrimary(); })}
+                                {renderInput(handleSubmitPrimary)}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                    <button className="primary" onClick={() => { playSound('click'); handleSubmitPrimary(); }}>
+                                    <button className="primary" onClick={handleSubmitPrimary}>
                                         Odoslať odpoveď
                                     </button>
                                 </div>
@@ -336,9 +335,9 @@ export const QuestionModal = ({ question, hexId, currentPlayer, gameMode, gameRu
                             <p style={{ width: '100%', color: '#94a3b8' }}>BOT sa snaží využiť šancu a premýšľa...</p>
                         ) : isLocalSecondary ? (
                             <>
-                                {renderInput(() => { playSound('click'); handleSubmitSecondary(); })}
+                                {renderInput(handleSubmitSecondary)}
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                    <button className="secondary" onClick={() => { playSound('click'); handleSubmitSecondary(); }}>
+                                    <button className="secondary" onClick={handleSubmitSecondary}>
                                         Odoslať odpoveď
                                     </button>
                                     <button className="danger" onClick={handleDeclineSecondary}>
