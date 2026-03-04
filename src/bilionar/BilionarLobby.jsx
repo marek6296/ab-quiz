@@ -172,8 +172,7 @@ export const BilionarLobby = ({
             return playerError;
         }
 
-        setActiveGame(game);
-        await fetchPlayers(game.id);
+        onSetGame(game);
         setView('room');
         setActiveTab('play');
         setLoading(false);
@@ -230,8 +229,7 @@ export const BilionarLobby = ({
             }], { onConflict: 'game_id,user_id' });
 
             if (!joinError) {
-                setActiveGame(availableLobby);
-                await fetchPlayers(availableLobby.id);
+                onSetGame(availableLobby);
                 setView('room');
                 setLoading(false);
                 return;
@@ -265,8 +263,7 @@ export const BilionarLobby = ({
                     is_bot: false,
                     color: COLOR_PALETTE[0]
                 }]);
-                setActiveGame(newGame);
-                await fetchPlayers(newGame.id);
+                onSetGame(newGame);
                 setView('room');
             } else {
                 setErrorMsg('Chyba pri vytváraní: ' + createError.message);
