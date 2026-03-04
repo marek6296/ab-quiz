@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export const GamePortal = ({ onSelectGame }) => {
+export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
     const { user, signOut } = useAuth();
 
     return (
@@ -37,10 +37,46 @@ export const GamePortal = ({ onSelectGame }) => {
                 gap: '2.5rem',
                 flexWrap: 'wrap',
                 justifyContent: 'center',
-                maxWidth: '1100px',
+                maxWidth: '1200px',
                 width: '100%',
-                padding: '1rem'
+                padding: '1rem',
+                paddingBottom: '3rem'
             }}>
+                {/* LOBBY CARD */}
+                <div
+                    className="portal-grid-item portal-card-glass entrance-fade"
+                    onClick={onOpenLobby}
+                    style={{
+                        animationDelay: '0.4s',
+                        minWidth: '280px',
+                        flex: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        padding: '2.5rem 1.5rem',
+                        background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)'
+                    }}
+                >
+                    <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 30px rgba(16, 185, 129, 0.6)' }}>🎮</div>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#34d399', fontWeight: '800' }}>Multiplayer Lobby</h3>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
+                        Vytvorte si súkromnú miestnosť, pozvite priateľov a spoločne si vyberte z našich hier!
+                    </p>
+                    <span className="glow-btn" style={{
+                        color: '#0f172a',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        marginTop: 'auto',
+                        background: '#34d399',
+                        padding: '0.8rem 2.5rem',
+                        borderRadius: '16px',
+                        boxShadow: '0 0 20px rgba(52, 211, 153, 0.4)'
+                    }}>VSTÚPIŤ DO LOBBY</span>
+                </div>
                 {/* KVÍZ DUEL CARD */}
                 <div
                     className="portal-grid-item portal-card-glass portal-card-blue entrance-fade"
@@ -104,6 +140,40 @@ export const GamePortal = ({ onSelectGame }) => {
                         fontSize: '1.1rem',
                         marginTop: 'auto',
                         background: '#facc15',
+                        padding: '0.8rem 2.5rem',
+                        borderRadius: '16px'
+                    }}>HRAŤ TERAZ →</span>
+                </div>
+
+                {/* VYŠŠIE ALEBO NIŽŠIE CARD */}
+                <div
+                    className="portal-grid-item portal-card-glass entrance-fade"
+                    onClick={() => onSelectGame('higher_lower')}
+                    style={{
+                        animationDelay: '0.9s',
+                        minWidth: '280px',
+                        flex: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        padding: '2.5rem 1.5rem',
+                        background: 'linear-gradient(180deg, rgba(236, 72, 153, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+                    }}
+                >
+                    <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 30px rgba(236, 72, 153, 0.4)', animationDelay: '-2s' }}>⚖️</div>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#f472b6', fontWeight: '800' }}>Vyššie Nižšie</h3>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
+                        Rýchla postrehová hra s porovnávaním čísel v tónoch adrenalínu. Kto prežije dlhšie?
+                    </p>
+                    <span className="glow-btn" style={{
+                        color: '#0f172a',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        marginTop: 'auto',
+                        background: '#ec4899',
                         padding: '0.8rem 2.5rem',
                         borderRadius: '16px'
                     }}>HRAŤ TERAZ →</span>
