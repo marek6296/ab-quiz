@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1 }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set() }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -241,16 +241,20 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                     <ul>
                         {acceptedFriends.map(friend => {
                             const partner = friend.user_id === user.id ? friend.receiver : friend.sender;
+                            const isOnline = onlineUserIds.has(partner.id);
+                            const onlineClass = isOnline ? 'online' : (partner.online_status === 'playing' ? 'online' : 'offline');
+
                             return (
                                 <li key={friend.id} className="friend-item">
                                     <div className="friend-info">
-                                        <span className={`status-dot ${partner.online_status}`}></span>
+                                        <span className={`status-dot ${onlineClass}`}></span>
                                         <span>{partner.username}</span>
+                                        {partner.online_status === 'playing' && <span style={{ fontSize: '0.7rem', color: '#fbbf24', marginLeft: '0.5rem' }}>• V hre</span>}
                                     </div>
                                     <div className="actions">
                                         <button
                                             className="primary small"
-                                            disabled={partner.online_status !== 'online'}
+                                            disabled={!isOnline || partner.online_status === 'playing'}
                                             onClick={() => handleChallenge(partner)}
                                         >
                                             Vyzvať

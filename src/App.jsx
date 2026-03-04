@@ -146,6 +146,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   }, [activeModal, gameMode]);
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
+  const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
 
@@ -169,6 +170,27 @@ const ABQuizApp = ({ onBackToPortal }) => {
     if (user?.id) {
       supabase.from('profiles').select('username, is_admin').eq('id', user.id).single()
         .then(({ data }) => setProfile(data));
+
+      // Global Presence Tracking
+      const channel = supabase.channel('global-presence', {
+        config: { presence: { key: user.id } }
+      });
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const onlineIds = new Set(Object.keys(state));
+          setOnlineUserIds(onlineIds);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({ online_at: new Date().toISOString() });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -446,6 +468,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
           onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
           onShowAdmin={() => setShowAdmin(true)}
           onBackToPortal={onBackToPortal}
+          onlineUserIds={onlineUserIds}
         />
         <GameInviteModal
           invite={incomingInvite}

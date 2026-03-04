@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendsList } from './auth/FriendsList';
 
-export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToPortal }) => {
+export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToPortal, onlineUserIds }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = useState(null);
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
