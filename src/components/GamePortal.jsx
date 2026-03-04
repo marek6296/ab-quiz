@@ -6,9 +6,9 @@ export const GamePortal = ({ onSelectGame }) => {
 
     return (
         <div className="game-container game-portal" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem' }}>
-            <div style={{ width: '100%', maxWidth: '1200px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '4rem', position: 'relative' }}>
-                <h1 className="logo-brutal" style={{ fontSize: '3rem', margin: 0 }}>Quizovník</h1>
-                <button className="neutral" onClick={signOut} style={{ position: 'absolute', right: 0, padding: '0.8rem 1.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ width: '100%', maxWidth: '1200px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '6rem', position: 'relative' }}>
+                <h1 className="hero-logo">Quizovník</h1>
+                <button className="neutral" onClick={signOut} style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', padding: '0.8rem 1.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                     Odhlásiť sa
                 </button>
             </div>
