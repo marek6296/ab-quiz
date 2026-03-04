@@ -20,6 +20,31 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
     const [loading, setLoading] = useState(true);
     const [countdown, setCountdown] = useState(null);
 
+    // -- GAME SETTINGS STATE --
+    const [gameRules, setGameRules] = useState('hex'); // 'hex' vs 'points'
+    const [difficulty, setDifficulty] = useState([2]);
+    const [botDifficulty, setBotDifficulty] = useState(2);
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [availableQuizCategories, setAvailableQuizCategories] = useState([]);
+    const [availableBilionarCategories, setAvailableBilionarCategories] = useState([]);
+
+    // Fetch categories on mount
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data: qData } = await supabase.from('questions').select('category');
+            if (qData) {
+                const unique = [...new Set(qData.map(q => q.category).filter(Boolean))].sort();
+                setAvailableQuizCategories(unique);
+            }
+            const { data: bData } = await supabase.from('bilionar_questions').select('category');
+            if (bData) {
+                const unique = [...new Set(bData.map(q => q.category).filter(Boolean))].sort();
+                setAvailableBilionarCategories(unique);
+            }
+        };
+        fetchCategories();
+    }, []);
+
     // Initializácia domovskej permanentnej Lobby
     useEffect(() => {
         if (initialLobbyId || !user?.id) return;
@@ -131,7 +156,17 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
     const handleSelectGame = async (gameId) => {
         if (!isHost) return;
         setLobby(prev => ({ ...prev, selected_game: gameId }));
+        // Reset categories when switching games
+        setSelectedCategories([]);
         await supabase.from('platform_lobbies').update({ selected_game: gameId }).eq('id', lobbyId);
+    };
+
+    const handleToggleCategory = (cat) => {
+        if (!isHost) return;
+        setSelectedCategories(prev => {
+            if (prev.includes(cat)) return prev.filter(c => c !== cat);
+            return [...prev, cat];
+        });
     };
 
     const handleAddBot = async () => {
@@ -221,10 +256,10 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 is_public: false,
                 settings: {
                     questions_count: 10,
-                    difficulty: 2,
-                    categories: [],
-                    difficulty_levels: [1, 2, 3],
-                    bot_difficulty: 2
+                    difficulty: difficulty[0] || 2,
+                    categories: selectedCategories,
+                    difficulty_levels: difficulty && difficulty.length > 0 ? difficulty : [2],
+                    bot_difficulty: botDifficulty
                 },
                 state: { phase: 'init' }
             }]).select().single();
@@ -252,10 +287,10 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 const { data: qGame } = await supabase.from('games').insert([{
                     player1_id: players[0]?.user_id || user.id,
                     player2_id: players[1]?.user_id || null,
-                    game_type: 'hex',
+                    game_type: gameRules,
                     status: 'active',
-                    category: JSON.stringify({ cats: [], diffs: [1] }),
-                    difficulty: 1
+                    category: JSON.stringify({ cats: selectedCategories, diffs: difficulty && difficulty.length > 0 ? difficulty : [1] }),
+                    difficulty: difficulty[0] || 1
                 }]).select().single();
 
                 if (qGame) {
@@ -366,6 +401,95 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                         )}
                     </div>
                 </div>
+
+                {/* NASTAVENIA HRY */}
+                {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '1.5rem', marginBottom: '2rem' }}>
+                        <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            ⚙️ Nastavenia Hry {!isHost && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(Upravuje Hostiteľ)</span>}
+                        </h3>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {lobby.selected_game === 'quiz' && (
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Herné Pravidlá</label>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button disabled={!isHost} className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => setGameRules('hex')}>
+                                            Hex (Cesta)
+                                        </button>
+                                        <button disabled={!isHost} className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => setGameRules('points')}>
+                                            Body (Rýchlosť)
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Náročnosť Otázok</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
+                                    {[
+                                        { level: 1, label: 'Ľahké', color: '#4ade80' },
+                                        { level: 2, label: 'Stredné', color: '#fbbf24' },
+                                        { level: 3, label: 'Ťažké', color: '#ef4444' }
+                                    ].map(diff => {
+                                        const isSelected = difficulty.includes(diff.level);
+                                        return (
+                                            <button
+                                                key={diff.level}
+                                                disabled={!isHost}
+                                                onClick={() => setDifficulty(prev => {
+                                                    if (prev.includes(diff.level)) {
+                                                        if (prev.length === 1) return prev;
+                                                        return prev.filter(d => d !== diff.level);
+                                                    } else {
+                                                        return [...prev, diff.level];
+                                                    }
+                                                })}
+                                                style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default', transition: 'all 0.2s', opacity: isHost ? 1 : (isSelected ? 1 : 0.5) }}>
+                                                {diff.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Sila bota, len ak je aspon jeden hrac bot */}
+                            {players.some(p => p.is_bot) && (
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Sila BOTa (Nervozita, IQ a postreh)</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
+                                        {[
+                                            { level: 1, label: 'Ľahký', color: '#4ade80' },
+                                            { level: 2, label: 'Stredný', color: '#fbbf24' },
+                                            { level: 3, label: 'Ťažký', color: '#ef4444' }
+                                        ].map(diff => (
+                                            <button key={diff.level} disabled={!isHost} onClick={() => setBotDifficulty(diff.level)} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', background: botDifficulty === diff.level ? diff.color : 'transparent', color: botDifficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: isHost ? 'pointer' : 'default', transition: 'all 0.2s', opacity: isHost ? 1 : (botDifficulty === diff.level ? 1 : 0.5) }}>
+                                                {diff.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Kategórie</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                    <button disabled={!isHost} onClick={() => setSelectedCategories([])} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: selectedCategories.length === 0 ? 'bold' : 'normal', background: selectedCategories.length === 0 ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#0f172a' : '#cbd5e1', border: `1px solid ${selectedCategories.length === 0 ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default' }}>
+                                        ✨ Všetky
+                                    </button>
+                                    {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
+                                        const isSelected = selectedCategories.includes(c);
+                                        return (
+                                            <button disabled={!isHost} key={c} onClick={() => handleToggleCategory(c)} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#38bdf8' : '#94a3b8', border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default', opacity: isHost ? 1 : (isSelected ? 1 : 0.5) }}>
+                                                {c}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Hráči v Míestnosti */}
                 <div>

@@ -1,98 +1,72 @@
 export const HL_DATASET = [
     {
-        category: "Priemerný mesačný plat (€)", items: [
-            { name: "Programátor (Slovensko)", value: 2500 },
-            { name: "Lekár s atestáciou", value: 3800 },
-            { name: "Učiteľ ZŠ", value: 1400 },
-            { name: "Predavač/ka", value: 1100 },
-            { name: "Pekár", value: 1200 },
-            { name: "Zubár", value: 4500 }
+        category: "Priemerný mesačný plat (€)",
+        metric: "€",
+        items: [
+            { name: "Programátor (SVK)", value: 2500, image: "💻" },
+            { name: "Lekár s atestáciou", value: 3800, image: "⚕️" },
+            { name: "Učiteľ ZŠ", value: 1400, image: "🏫" },
+            { name: "Predavač/ka", value: 1100, image: "🛒" },
+            { name: "Pekár", value: 1200, image: "🥖" },
+            { name: "Zubár", value: 4500, image: "🦷" },
+            { name: "Právnik", value: 3000, image: "⚖️" },
+            { name: "Automechanik", value: 1500, image: "🔧" }
         ]
     },
     {
-        category: "Počet vyhľadávaní na Google (mesačne SR/ČR)", items: [
-            { name: "Počasie", value: 1500000 },
-            { name: "Facebook", value: 2000000 },
-            { name: "YouTube", value: 3500000 },
-            { name: "Prekladač", value: 1200000 },
-            { name: "Recepty", value: 800000 },
-            { name: "Minecraft", value: 450000 }
+        category: "Mesačné vyhľadávania na Google",
+        metric: "vyhľadávaní",
+        items: [
+            { name: "Počasie", value: 1500000, image: "🌤️" },
+            { name: "Facebook", value: 2000000, image: "📱" },
+            { name: "YouTube", value: 3500000, image: "▶️" },
+            { name: "Prekladač", value: 1200000, image: "🌐" },
+            { name: "Recepty", value: 800000, image: "🍳" },
+            { name: "Minecraft", value: 450000, image: "⛏️" },
+            { name: "Tesla", value: 300000, image: "🚗" },
+            { name: "Netflix", value: 900000, image: "🍿" }
         ]
     },
     {
-        category: "Kalórie (na 100g)", items: [
-            { name: "Jablko", value: 52 },
-            { name: "Banán", value: 89 },
-            { name: "Mliečna čokoláda", value: 535 },
-            { name: "Vlašské orechy", value: 654 },
-            { name: "Avokádo", value: 160 },
-            { name: "Bravčová masť", value: 898 }
-        ]
-    },
-    {
-        category: "Rýchlosť zvierat (km/h)", items: [
-            { name: "Gepard", value: 110 },
-            { name: "Lev", value: 80 },
-            { name: "Kôň", value: 70 },
-            { name: "Sliepka", value: 15 },
-            { name: "Zajac", value: 55 },
-            { name: "Medveď hnedý", value: 50 },
-            { name: "Sokol sťahovavý", value: 389 }
-        ]
-    },
-    {
-        category: "Doba rozkladu v prírode (roky)", items: [
-            { name: "Ohryzok z jablka", value: 0.1 }, // cca mesiac
-            { name: "Papierová servítka", value: 0.2 }, // cca 2-3 mesiace
-            { name: "Žuvačka", value: 50 },
-            { name: "Plastová fľaša", value: 450 },
-            { name: "Plechovka", value: 50 },
-            { name: "Sklenená fľaša", value: 4000 }
-        ]
-    },
-    {
-        category: "Priemerná dĺžka života zvierat (roky)", items: [
-            { name: "Pes", value: 13 },
-            { name: "Mačka domáca", value: 15 },
-            { name: "Slon africký", value: 70 },
-            { name: "Myš", value: 2 },
-            { name: "Korytnačka obrovská", value: 150 },
-            { name: "Papagáj (Ara)", value: 50 }
-        ]
-    },
-    {
-        category: "Nasledovatelia na Instagrame (v miliónoch)", items: [
-            { name: "Cristiano Ronaldo", value: 620 },
-            { name: "Lionel Messi", value: 500 },
-            { name: "Selena Gomez", value: 429 },
-            { name: "Kim Kardashian", value: 364 },
-            { name: "National Geographic", value: 283 },
-            { name: "Zendaya", value: 184 }
-        ]
-    },
-    {
-        category: "Výška známych budov/štruktúr (metre)", items: [
-            { name: "Eiffelova veža", value: 330 },
-            { name: "Burdž Chalífa", value: 828 },
-            { name: "Socha Slobody", value: 93 },
-            { name: "Veľká pyramída v Gíze", value: 138 },
-            { name: "Empire State Building", value: 443 },
-            { name: "Bratislavský hrad (výška od Dunaja)", value: 85 }
+        category: "Kalórie (na 100g)",
+        metric: "kcal",
+        items: [
+            { name: "Jablko", value: 52, image: "🍎" },
+            { name: "Banán", value: 89, image: "🍌" },
+            { name: "Mliečna čokoláda", value: 535, image: "🍫" },
+            { name: "Vlašské orechy", value: 654, image: "🌰" },
+            { name: "Avokádo", value: 160, image: "🥑" },
+            { name: "Bravčová masť", value: 898, image: "🥓" },
+            { name: "Zemiakové lupienky", value: 536, image: "🥔" },
+            { name: "Cukor", value: 387, image: "🧂" }
         ]
     }
 ];
 
-export const getRandomRoundData = () => {
-    // Pick random category
+// Returns a single random category object, with its items shuffled
+export const getRandomGameSequence = (length = 100) => {
     const cat = HL_DATASET[Math.floor(Math.random() * HL_DATASET.length)];
-    // Pick two distinct items
-    let i1 = Math.floor(Math.random() * cat.items.length);
-    let i2 = Math.floor(Math.random() * cat.items.length);
-    while (i2 === i1) i2 = Math.floor(Math.random() * cat.items.length);
+    let items = [...cat.items];
+
+    // Shuffle items
+    items.sort(() => Math.random() - 0.5);
+
+    // If we need more than we have, we will repeat but make sure no direct duplicates
+    let sequence = [];
+    let lastItem = null;
+
+    for (let i = 0; i < length; i++) {
+        let candidates = items.filter(it => it.name !== lastItem?.name);
+        if (candidates.length === 0) candidates = items; // Fallback
+
+        let picked = candidates[Math.floor(Math.random() * candidates.length)];
+        sequence.push(picked);
+        lastItem = picked;
+    }
 
     return {
         topic: cat.category,
-        first: cat.items[i1],
-        second: cat.items[i2]
+        metric: cat.metric,
+        sequence
     };
 };

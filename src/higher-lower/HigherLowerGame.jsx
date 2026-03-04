@@ -1,50 +1,63 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { getRandomRoundData } from './hlDataset';
+import { getRandomGameSequence } from './hlDataset';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+
+const CountUp = ({ value, isRevealing }) => {
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, Math.round);
+
+    useEffect(() => {
+        if (isRevealing) {
+            const controls = animate(count, value, { duration: 1, ease: 'easeOut' });
+            return controls.stop;
+        } else {
+            count.set(value); // instant if not revealing
+        }
+    }, [value, isRevealing, count]);
+
+    return <motion.span>{rounded}</motion.span>;
+};
 
 export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) => {
     const { user } = useAuth();
     const isHost = activeGame?.host_id === user?.id;
-    const [localAnswers, setLocalAnswers] = useState({}); // Stores guesses during a round: { [playerId]: 'higher' | 'lower' }
+    const [localAnswers, setLocalAnswers] = useState({});
     const [myGuess, setMyGuess] = useState(null);
+    const [timeLeft, setTimeLeft] = useState(100);
 
     const tickerRef = useRef(null);
     const gameState = activeGame?.state || {};
 
-    // ----------------------------------------------------------------------------------
-    // HOST GAME LOOP 
-    // ----------------------------------------------------------------------------------
+    const myRecord = players.find(p => p.user_id === user?.id);
+
+    // Host loop
     useEffect(() => {
         if (!isHost || activeGame.status === 'completed') return;
 
-        // Assuming gameId is available in activeGame or context
-        const gameId = activeGame?.id;
-        if (!gameId || !user?.id) return; // Added check from instruction
-
-        async function broadcastState(newState) {
+        async function broadcastState(updates) {
+            const newState = { ...gameState, ...updates };
             // Broadcast for instant UI sync
             await gameChannel?.send({
                 type: 'broadcast',
                 event: 'phase_change',
                 payload: { state: newState }
             });
-            // Persist to DB
+            // Persist
             await supabase.from('higher_lower_games').update({ state: newState }).eq('id', activeGame?.id);
         }
 
-        async function evaluateBot(bot, guess, qData) {
-            if (!qData) return;
-            const isHigher = qData.second.value >= qData.first.value;
+        async function evaluatePlayer(player, guess, firstItem, secondItem) {
+            const isHigher = secondItem.value >= firstItem.value;
             const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
 
-            const newScore = isCorrect ? bot.score + 1 : bot.score;
-            const newLives = isCorrect ? bot.lives : bot.lives - 1;
-            const eliminated = newLives <= 0;
+            const newScore = isCorrect ? player.score + 1 : player.score;
+            const eliminated = player.eliminated ? true : !isCorrect;
 
             await supabase.from('higher_lower_players').update({
-                score: newScore, lives: newLives, eliminated
-            }).eq('id', bot.id);
+                score: newScore, eliminated
+            }).eq('id', player.id);
         }
 
         const loop = async () => {
@@ -53,92 +66,128 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
 
             if (phase === 'init') {
                 if (!gameState.phase_start_time) {
-                    await broadcastState({ phase: 'round_start', current_round: 1, phase_start_time: now });
-                }
-            }
-            else if (phase === 'round_start') {
-                // Wait 3 seconds, generate question, then transition to 'question'
-                if (now - gameState.phase_start_time > 3000) {
-                    const qData = getRandomRoundData();
+                    const seqData = getRandomGameSequence(50);
                     await broadcastState({
                         phase: 'question',
-                        current_round: gameState.current_round,
-                        question_data: qData,
+                        round_index: 0,
+                        sequence: seqData.sequence,
+                        topic: seqData.topic,
+                        metric: seqData.metric,
                         phase_start_time: now,
-                        answers: {} // clear answers
+                        answers: {}
                     });
                 }
             }
             else if (phase === 'question') {
-                // Wait 5 seconds for answers, then transition to 'reveal'
-                if (now - gameState.phase_start_time > 5000) {
+                const activePlayers = players.filter(p => !p.eliminated);
+                // 8 seconds question time
+                const elapsed = now - gameState.phase_start_time;
 
-                    // Host plays for bots
-                    const currentAnswers = gameState.answers || {};
-                    players.forEach(p => {
-                        if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
-                            // Bot guess logic (50/50 for now)
-                            currentAnswers[p.id] = Math.random() > 0.5 ? 'higher' : 'lower';
-                            // Update bot score/lives immediately since Host controls bots
-                            evaluateBot(p, currentAnswers[p.id], gameState.question_data);
+                // Bot logic
+                const currentAnswers = { ...(gameState.answers || {}) };
+                let answersChanged = false;
+
+                players.forEach(p => {
+                    if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
+                        // Delay 1-3 seconds
+                        if (elapsed > 1000 + Math.random() * 2000) {
+                            // Easy: 50%, Med: 65%, Hard: 80%
+                            const botD = activeGame.settings?.bot_difficulty || 2;
+                            const accuracy = botD === 1 ? 0.5 : botD === 2 ? 0.65 : 0.8;
+
+                            const firstItem = gameState.sequence[gameState.round_index];
+                            const secondItem = gameState.sequence[gameState.round_index + 1];
+                            const isHigher = secondItem.value >= firstItem.value;
+
+                            const isCorrectGuess = Math.random() < accuracy;
+                            const botGuess = isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher');
+
+                            currentAnswers[p.id] = botGuess;
+                            answersChanged = true;
                         }
-                    });
+                    }
+                });
 
-                    await broadcastState({
-                        phase: 'reveal',
-                        current_round: gameState.current_round,
-                        question_data: gameState.question_data,
-                        answers: currentAnswers,
-                        phase_start_time: now
-                    });
+                if (answersChanged) {
+                    await broadcastState({ answers: currentAnswers });
+                }
+
+                // Check if everyone answered or timeout
+                const allAnswered = activePlayers.every(p => currentAnswers[p.id]);
+                if (elapsed > 8000 || allAnswered) {
+                    // Evaluate
+                    const firstItem = gameState.sequence[gameState.round_index];
+                    const secondItem = gameState.sequence[gameState.round_index + 1];
+                    for (const p of activePlayers) {
+                        const guess = currentAnswers[p.id];
+                        if (!guess) {
+                            // Timeout = wrong
+                            await evaluatePlayer(p, 'timeout', firstItem, secondItem);
+                        } else {
+                            await evaluatePlayer(p, guess, firstItem, secondItem);
+                        }
+                    }
+                    await broadcastState({ phase: 'reveal', phase_start_time: now });
                 }
             }
             else if (phase === 'reveal') {
-                // Wait 5 seconds to show results, then go to next round or finish
-                if (now - gameState.phase_start_time > 5000) {
+                // Wait 4 seconds for reveal & animations
+                if (now - gameState.phase_start_time > 4000) {
                     const activePlayers = players.filter(p => !p.eliminated);
-                    if (gameState.current_round >= 10 || activePlayers.length <= 1) {
+                    if (activePlayers.length === 0 || gameState.round_index >= gameState.sequence.length - 2) {
                         await broadcastState({ phase: 'finished', phase_start_time: now });
                         await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', activeGame.id);
                     } else {
-                        await broadcastState({
-                            phase: 'round_start',
-                            current_round: gameState.current_round + 1,
-                            phase_start_time: now
-                        });
+                        await broadcastState({ phase: 'shifting', phase_start_time: now });
                     }
+                }
+            }
+            else if (phase === 'shifting') {
+                // Wait 1.5 seconds for card shift animation
+                if (now - gameState.phase_start_time > 1500) {
+                    await broadcastState({
+                        phase: 'question',
+                        round_index: gameState.round_index + 1,
+                        phase_start_time: now,
+                        answers: {}
+                    });
                 }
             }
         };
 
         if (tickerRef.current) clearInterval(tickerRef.current);
-        tickerRef.current = setInterval(loop, 1000);
+        tickerRef.current = setInterval(loop, 200);
 
         return () => {
             if (tickerRef.current) clearInterval(tickerRef.current);
         };
     }, [isHost, activeGame, gameState, players]);
 
-    // ----------------------------------------------------------------------------------
-    // PLAYER LOGIC (Real players sending guesses and evaluating themselves)
-    // ----------------------------------------------------------------------------------
-
-    // Clear local states on new question
+    // Timer logic and guess cleanup
     useEffect(() => {
         if (gameState.phase === 'question') {
             setMyGuess(null);
-        }
-    }, [gameState.phase, gameState.current_round]);
 
-    // Handle incoming guesses from broadcast
+            const start = gameState.phase_start_time;
+            const updateTimer = () => {
+                const elapsed = Date.now() - start;
+                const left = Math.max(0, 8000 - elapsed);
+                setTimeLeft((left / 8000) * 100);
+            };
+            const t = setInterval(updateTimer, 50);
+            return () => clearInterval(t);
+        } else {
+            setTimeLeft(0);
+        }
+    }, [gameState.phase, gameState.round_index, gameState.phase_start_time]);
+
+    // Receive guesses
     useEffect(() => {
         if (!gameChannel) return;
         const sub = gameChannel.on('broadcast', { event: 'player_guess' }, (msg) => {
             if (isHost) {
-                // Host aggregates answers into state
                 const { playerId, guess } = msg.payload;
                 const newAnswers = { ...(activeGame.state.answers || {}), [playerId]: guess };
-                // We update DB immediately so late joiners see answers
                 supabase.from('higher_lower_games').update({
                     state: { ...activeGame.state, answers: newAnswers }
                 }).eq('id', activeGame.id);
@@ -147,153 +196,188 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
         return () => { sub.unsubscribe(); };
     }, [gameChannel, isHost, activeGame]);
 
-    const handleGuess = async (guess) => {
+    const handleGuess = (guess) => {
         if (myGuess || gameState.phase !== 'question') return;
         setMyGuess(guess);
 
-        const myPlayerRecord = players.find(p => p.user_id === user.id);
-        if (myPlayerRecord?.eliminated) return;
+        if (myRecord?.eliminated) return;
 
         gameChannel?.send({
             type: 'broadcast',
             event: 'player_guess',
-            payload: { playerId: myPlayerRecord.id, guess }
+            payload: { playerId: myRecord.id, guess }
         });
     };
 
-    // Client-side auto evaluate when reveal hits
-    useEffect(() => {
-        if (gameState.phase === 'reveal' && myGuess && gameState.question_data) {
-            const myPlayerRecord = players.find(p => p.user_id === user.id);
-            if (!myPlayerRecord || myPlayerRecord.eliminated) return;
+    const firstItem = gameState.sequence?.[gameState.round_index];
+    const secondItem = gameState.sequence?.[gameState.round_index + 1];
 
-            const qData = gameState.question_data;
-            const isHigher = qData.second.value >= qData.first.value;
-            const isCorrect = (myGuess === 'higher' && isHigher) || (myGuess === 'lower' && !isHigher);
+    // Evaluate correctness for visuals
+    let isCorrect = null;
+    if (gameState.phase === 'reveal' && myGuess && firstItem && secondItem) {
+        const isHigher = secondItem.value >= firstItem.value;
+        isCorrect = (myGuess === 'higher' && isHigher) || (myGuess === 'lower' && !isHigher);
+    }
 
-            const updateMySelf = async () => {
-                const newScore = isCorrect ? myPlayerRecord.score + 1 : myPlayerRecord.score;
-                const newLives = isCorrect ? myPlayerRecord.lives : myPlayerRecord.lives - 1;
-                const eliminated = newLives <= 0;
-                await supabase.from('higher_lower_players').update({
-                    score: newScore, lives: newLives, eliminated
-                }).eq('id', myPlayerRecord.id);
-            };
-            updateMySelf();
-        }
-    }, [gameState.phase]); // Only run once when phase becomes reveal
-
-    // ----------------------------------------------------------------------------------
-    // RENDER HELPERS
-    // ----------------------------------------------------------------------------------
-
-    const myRecord = players.find(p => p.user_id === user?.id);
+    const cardVariants = {
+        hiddenLeft: { x: -300, opacity: 0 },
+        hiddenRight: { x: 300, opacity: 0 },
+        visible: { x: 0, opacity: 1 },
+        exitLeft: { x: -300, opacity: 0 }
+    };
 
     return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', color: 'white', padding: '1rem', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', color: 'white', overflow: 'hidden' }}>
 
-            {/* Header / Top Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Kolo {gameState.current_round || 1}/10</span>
-                <button className="danger" onClick={onLeave} style={{ padding: '0.5rem 1rem' }}>Opustiť</button>
+            {/* Top Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', background: 'rgba(0,0,0,0.3)' }}>
+                <div style={{ display: 'flex', gap: '2rem' }}>
+                    {players.map(p => (
+                        <div key={p.id} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            opacity: p.eliminated ? 0.4 : 1, filter: p.eliminated ? 'grayscale(100%)' : 'none',
+                        }}>
+                            <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                            <div>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{p.player_name}</div>
+                                <div style={{ color: '#facc15', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    Skóre: {p.score} {p.score >= 5 && <span style={{ animation: 'pulse 1s infinite' }}>🔥</span>}
+                                </div>
+                            </div>
+                            {p.eliminated && <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.2rem' }}>X</div>}
+                        </div>
+                    ))}
+                </div>
+                <button className="danger" onClick={onLeave} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px' }}>Opustiť</button>
             </div>
 
+            {/* Header Topic */}
+            {gameState.topic && (
+                <div style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', color: '#94a3b8', margin: 0 }}>Kategória</h2>
+                    <h1 style={{ fontSize: '2.5rem', color: '#facc15', margin: 0, textShadow: '0 0 10px rgba(250, 204, 21, 0.4)' }}>{gameState.topic}</h1>
+                </div>
+            )}
+
             {/* Main Stage */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
 
-                {gameState.phase === 'init' && <h2>Pripravujem hru...</h2>}
+                {gameState.phase === 'init' && <h2 style={{ fontSize: '2rem' }}>Generujem dáta...</h2>}
 
-                {gameState.phase === 'round_start' && (
-                    <div style={{ animation: 'popIn 0.5s ease-out' }}>
-                        <h2 style={{ fontSize: '3rem', color: '#10b981' }}>Kolo {gameState.current_round}</h2>
-                        <p style={{ fontSize: '1.2rem', color: '#94a3b8' }}>Pripravte sa...</p>
+                {(gameState.phase === 'question' || gameState.phase === 'reveal' || gameState.phase === 'shifting') && firstItem && secondItem && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '900px', flexWrap: 'wrap' }}>
+
+                        {/* FIRST ITEM */}
+                        <AnimatePresence mode="popLayout">
+                            <motion.div
+                                key={firstItem.name}
+                                variants={cardVariants}
+                                initial="hiddenLeft"
+                                animate="visible"
+                                exit="exitLeft"
+                                transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+                                style={{ flex: '1 1 300px', height: '400px', background: 'rgba(255,255,255,0.05)', borderRadius: '24px', border: '2px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}
+                            >
+                                <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>{firstItem.image}</div>
+                                <h3 style={{ fontSize: '2rem', marginBottom: '2rem' }}>"{firstItem.name}"</h3>
+                                <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
+                                    {firstItem.value.toLocaleString()}
+                                </div>
+                                <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
+                            </motion.div>
+                        </AnimatePresence>
+
+                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}>VS</div>
+
+                        {/* SECOND ITEM */}
+                        {gameState.phase !== 'shifting' && (
+                            <AnimatePresence mode="popLayout">
+                                <motion.div
+                                    key={secondItem.name}
+                                    variants={cardVariants}
+                                    initial="hiddenRight"
+                                    animate="visible"
+                                    exit="exitLeft"
+                                    transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+                                    style={{
+                                        flex: '1 1 300px', height: '400px', borderRadius: '24px',
+                                        border: gameState.phase === 'reveal' ? (isCorrect === true ? '4px solid #10b981' : isCorrect === false ? '4px solid #ef4444' : '2px solid rgba(255,255,255,0.1)') : '2px solid rgba(255,255,255,0.1)',
+                                        background: gameState.phase === 'reveal' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : isCorrect === false ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)') : 'rgba(255,255,255,0.05)',
+                                        boxShadow: gameState.phase === 'reveal' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal' && isCorrect === false ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center',
+                                        animation: gameState.phase === 'reveal' && isCorrect === false ? 'shake 0.5s' : 'none'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>{secondItem.image}</div>
+                                    <h3 style={{ fontSize: '2rem', marginBottom: '2rem' }}>"{secondItem.name}"</h3>
+
+                                    {gameState.phase === 'reveal' ? (
+                                        <>
+                                            <div style={{ fontSize: '3.5rem', fontWeight: '900', color: isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : 'white' }}>
+                                                <CountUp value={secondItem.value} isRevealing={true} />
+                                            </div>
+                                            <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
+                                        </>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '200px' }}>
+                                            <button
+                                                className="primary"
+                                                onClick={() => handleGuess('higher')}
+                                                disabled={!!myGuess || myRecord?.eliminated}
+                                                style={{ padding: '1.5rem', fontSize: '1.5rem', background: myGuess === 'higher' ? '#10b981' : '#3b82f6', border: myGuess === 'higher' ? '4px solid white' : 'none' }}>
+                                                Vyššie ⬆
+                                            </button>
+                                            <button
+                                                className="danger"
+                                                onClick={() => handleGuess('lower')}
+                                                disabled={!!myGuess || myRecord?.eliminated}
+                                                style={{ padding: '1.5rem', fontSize: '1.5rem', background: myGuess === 'lower' ? '#ef4444' : '#f97316', border: myGuess === 'lower' ? '4px solid white' : 'none' }}>
+                                                Nižšie ⬇
+                                            </button>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        )}
                     </div>
                 )}
 
-                {(gameState.phase === 'question' || gameState.phase === 'reveal') && gameState.question_data && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', width: '100%', maxWidth: '800px' }}>
-
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#facc15', textAlign: 'center', marginBottom: '1rem' }}>
-                            Kategória: {gameState.question_data.topic}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '2rem', width: '100%' }}>
-
-                            {/* FIRST ITEM */}
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', padding: '3rem 2rem', borderRadius: '24px', textAlign: 'center' }}>
-                                <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>{gameState.question_data.first.name}</h3>
-                                <div style={{ fontSize: '3rem', fontWeight: '900', color: '#38bdf8' }}>
-                                    {gameState.question_data.first.value.toLocaleString()}
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: 'black', color: '#cbd5e1' }}>VS</div>
-
-                            {/* SECOND ITEM */}
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', padding: '3rem 2rem', borderRadius: '24px', textAlign: 'center', position: 'relative' }}>
-                                <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>{gameState.question_data.second.name}</h3>
-
-                                {gameState.phase === 'reveal' ? (
-                                    <div style={{ fontSize: '3rem', fontWeight: '900', color: gameState.question_data.second.value >= gameState.question_data.first.value ? '#10b981' : '#ef4444', animation: 'popIn 0.5s' }}>
-                                        {gameState.question_data.second.value.toLocaleString()}
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem' }}>
-                                        <button
-                                            className="primary"
-                                            onClick={() => handleGuess('higher')}
-                                            disabled={!!myGuess || myRecord?.eliminated}
-                                            style={{ background: myGuess === 'higher' ? '#10b981' : '#3b82f6', border: myGuess === 'higher' ? '4px solid white' : 'none' }}>
-                                            Vyššie ⬆
-                                        </button>
-                                        <button
-                                            className="danger"
-                                            onClick={() => handleGuess('lower')}
-                                            disabled={!!myGuess || myRecord?.eliminated}
-                                            style={{ background: myGuess === 'lower' ? '#ef4444' : '#f97316', border: myGuess === 'lower' ? '4px solid white' : 'none' }}>
-                                            Nižšie ⬇
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                        </div>
+                {gameState.phase === 'question' && (
+                    <div style={{ marginTop: '3rem', width: '100%', maxWidth: '800px', height: '10px', background: 'rgba(255,255,255,0.1)', borderRadius: '5px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: timeLeft > 30 ? '#10b981' : '#ef4444', width: `${timeLeft}%`, transition: 'width 0.05s linear' }}></div>
                     </div>
                 )}
 
                 {gameState.phase === 'finished' && (
-                    <div style={{ animation: 'popIn 1s ease', textAlign: 'center' }}>
-                        <h1 style={{ fontSize: '4rem', color: '#facc15' }}>Hra Skončila!</h1>
-                        <p style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Víťazí hráč s najvyšším skóre a zachovanými životmi.</p>
-                        <button className="primary" onClick={onLeave} style={{ padding: '1rem 3rem', fontSize: '1.5rem' }}>Späť do Lobby</button>
-                    </div>
+                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+                        <h1 style={{ fontSize: '5rem', color: '#ef4444', fontWeight: '900', textShadow: '0 0 20px rgba(239, 68, 68, 0.5)', marginBottom: '1rem' }}>GAME OVER</h1>
+
+                        <div style={{ fontSize: '2rem', marginBottom: '3rem', background: 'rgba(255,255,255,0.05)', padding: '2rem 4rem', borderRadius: '24px', border: '2px solid rgba(250, 204, 21, 0.3)' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Tvoje konečné skóre</div>
+                            <div style={{ fontSize: '4rem', color: '#facc15', fontWeight: 'bold' }}>{myRecord?.score}</div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button className="primary" onClick={onLeave} style={{ padding: '1.5rem 3rem', fontSize: '1.5rem', borderRadius: '16px' }}>Späť do menu</button>
+                        </div>
+                    </motion.div>
                 )}
             </div>
 
-            {/* Bottom Panel: Players and Lives */}
-            <div style={{ marginTop: 'auto', background: 'rgba(0,0,0,0.5)', padding: '1rem', borderRadius: '16px', display: 'flex', gap: '1rem', overflowX: 'auto' }}>
-                {players.map(p => (
-                    <div key={p.id} style={{
-                        opacity: p.eliminated ? 0.3 : 1, filter: p.eliminated ? 'grayscale(100%)' : 'none',
-                        minWidth: '120px', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: `2px solid ${p.color}50`, textAlign: 'center'
-                    }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'black', margin: '0 auto 0.5rem', overflow: 'hidden' }}>
-                            <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: '100%', height: '100%' }} />
-                        </div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.player_name}</div>
-                        <div style={{ color: '#facc15', fontSize: '1.2rem', marginTop: '0.5rem' }}>{p.score} pt</div>
-                        <div style={{ marginTop: '0.2rem', display: 'flex', justifyContent: 'center', gap: '2px' }}>
-                            {[...Array(3)].map((_, i) => (
-                                <span key={i} style={{ color: i < p.lives ? '#ef4444' : '#475569', fontSize: '1.2rem' }}>❤</span>
-                            ))}
-                        </div>
-                        {gameState.phase === 'reveal' && gameState.answers && gameState.answers[p.id] && (
-                            <div style={{ marginTop: '0.5rem', fontSize: '1.5rem' }}>{gameState.answers[p.id] === 'higher' ? '⬆' : '⬇'}</div>
-                        )}
-                    </div>
-                ))}
-            </div>
-            <style>{`@keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+            <style>{`
+                @keyframes pulse {
+                    0% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.8; transform: scale(1.2); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes shake {
+                    0% { transform: translateX(0); }
+                    25% { transform: translateX(-10px); }
+                    50% { transform: translateX(10px); }
+                    75% { transform: translateX(-10px); }
+                    100% { transform: translateX(0); }
+                }
+            `}</style>
         </div>
     );
 };

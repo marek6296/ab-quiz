@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { HigherLowerGame } from './HigherLowerGame';
+import { HigherLowerLobby } from './HigherLowerLobby';
 
 export const HigherLowerApp = ({ onBackToPortal, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
@@ -82,6 +83,9 @@ export const HigherLowerApp = ({ onBackToPortal, pendingGameId, onClearPending }
                 }
                 if (payload.new) {
                     setActiveGame(payload.new);
+                    if (payload.new.status === 'playing' && viewRef.current === 'lobby') {
+                        setView('game');
+                    }
                 }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'higher_lower_players', filter: `game_id=eq.${activeGame.id}` }, () => {
@@ -105,9 +109,18 @@ export const HigherLowerApp = ({ onBackToPortal, pendingGameId, onClearPending }
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             {view === 'lobby' ? (
-                <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="loader"></div>
-                </div>
+                <HigherLowerLobby
+                    activeGame={activeGame}
+                    players={players}
+                    pendingGameId={pendingGameId}
+                    onClearPending={onClearPending}
+                    onSetGame={setActiveGame}
+                    onBackToPortal={onBackToPortal}
+                    onStartGame={(game) => {
+                        setActiveGame(game);
+                        setView('game');
+                    }}
+                />
             ) : (
                 <HigherLowerGame
                     activeGame={activeGame}
