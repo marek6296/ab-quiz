@@ -59,7 +59,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                     host_id: user.id,
                     join_code: code,
                     status: 'waiting',
-                    selected_game: 'bilionar_battle',
+                    selected_game: 'bilionar',
                     settings: {}
                 }]).select().single();
 
