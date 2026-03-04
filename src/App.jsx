@@ -137,6 +137,20 @@ const DisconnectedModal = ({ reason, onBackToLobby }) => {
   );
 };
 
+const TurnAnnouncement = ({ announcement }) => {
+  if (!announcement) return null;
+  const { text, color } = announcement;
+
+  return (
+    <div className="turn-announcement-overlay">
+      <div className="turn-announcement-content" style={{ '--turn-color': color }}>
+        <div className="turn-announcement-glow" style={{ background: color }} />
+        <h2 className="turn-announcement-text">{text}</h2>
+      </div>
+    </div>
+  );
+};
+
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal }) => {
   const { user } = useAuth();
@@ -187,6 +201,9 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const prevActiveModalRef = useRef(null);
   const usedQuestionIdsRef = useRef(new Set());
   const [turnNotice, setTurnNotice] = useState(false);
+  const [turnAnnouncement, setTurnAnnouncement] = useState(null);
+  const [isInteractionLocked, setIsInteractionLocked] = useState(false);
+  const lastAnnouncedTurnRef = useRef(0);
 
   const { playSound } = useAudio();
 
@@ -331,7 +348,26 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
     setAppState(APP_STATES.IN_GAME);
     setShowVersus(true); // Trigger animation
-    setTimeout(() => setShowVersus(false), 4800); // 4.8s to allow full epic fade out
+    setIsInteractionLocked(true); // Lock board during VS
+
+    setTimeout(() => {
+      setShowVersus(false);
+      // Wait another 0.5s for VS to fade completely, then show Start Announcement
+      setTimeout(() => {
+        const p1Name = profile?.username || 'Ja';
+        setTurnAnnouncement({
+          text: `Začína ${p1Name}`,
+          color: 'var(--player1-color)'
+        });
+
+        // Final release after 2 seconds
+        setTimeout(() => {
+          setTurnAnnouncement(null);
+          setIsInteractionLocked(false);
+          lastAnnouncedTurnRef.current = 1; // Mark first turn as announced
+        }, 2200);
+      }, 500);
+    }, 4800);
 
     addDebugLog(`Hra začala (${mode} - ${rules})`);
 
@@ -364,6 +400,33 @@ const ABQuizApp = ({ onBackToPortal }) => {
       }
     }
   }, [appState, gameMode, activeGameId, presenceCount, activeModal, gameData?.status, reconnectCheckEnabled]);
+
+  // Turn Transition Tracking (Selecting...)
+  useEffect(() => {
+    if (appState !== APP_STATES.IN_GAME || winner || activeModal) return;
+    if (currentPlayer === lastAnnouncedTurnRef.current) return;
+
+    // Skip if game just started (handled by handleStartGame sequence)
+    if (lastAnnouncedTurnRef.current === 0) {
+      lastAnnouncedTurnRef.current = currentPlayer;
+      return;
+    }
+
+    const pName = currentPlayer === 1 ? (profile?.username || 'Ja') : (gameMode === '1vbot' ? 'BOT' : (opponentName || 'Súper'));
+    const pColor = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
+
+    setTurnAnnouncement({ text: `Vyberá ${pName}`, color: pColor });
+    setIsInteractionLocked(true);
+
+    lastAnnouncedTurnRef.current = currentPlayer;
+
+    const timeout = setTimeout(() => {
+      setTurnAnnouncement(null);
+      setIsInteractionLocked(false);
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [currentPlayer, appState, profile, opponentName, winner, gameMode, activeModal]);
 
   // Resume active game if we have one
   useEffect(() => {
@@ -426,6 +489,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
       mobileInput.focus();
     }
 
+    if (isInteractionLocked) return;
     if (gameMode === '1vbot' && currentPlayer === 2) return;
     if (gameMode === '1v1_online' && gameData?.paused_by) return;
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
@@ -437,16 +501,23 @@ const ABQuizApp = ({ onBackToPortal }) => {
     const hex = board.find(h => h.id === hexId);
     if (hex.owner === 'player1' || hex.owner === 'player2') return;
 
-    const q = await getRandomQuestionForConfig();
-    const newModal = { hexId, question: q, phase: 'reveal' };
-    setActiveModal(newModal);
+    // Turn Announcement: Answering...
+    const pName = currentPlayer === 1 ? (profile?.username || 'Ja') : (gameMode === '1vbot' ? 'BOT' : (opponentName || 'Súper'));
+    const pColor = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
 
-    if (gameMode === '1v1_online' && activeGameId) {
-      addDebugLog(`Hexagon ${hexId} otvorený, beží online synchronizácia...`);
-      await supabase.from('games').update({ active_modal: newModal }).eq('id', activeGameId);
-    } else {
-      addDebugLog(`Hexagon ${hexId} otvorený.`);
-    }
+    setTurnAnnouncement({ text: `Odpovedá ${pName}`, color: pColor });
+    setIsInteractionLocked(true);
+
+    // Fetch question in background while animation plays
+    const qPromise = getRandomQuestionForConfig();
+
+    setTimeout(async () => {
+      const q = await qPromise;
+      setActiveModal({ type: 'question', question: q, hexId });
+      setTurnAnnouncement(null);
+      setIsInteractionLocked(false);
+    }, 1500);
+    return;
   };
 
   const handleResolveQuestion = (targetOwner, pointsEarned = 0, breakCombo = false) => {
@@ -646,9 +717,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
           <GameBoard board={board} onHexClick={handleHexClick} />
 
-          {/* 
+          <TurnAnnouncement announcement={turnAnnouncement} />
+
+          {/*
             Globálny neviditeľný input, ktorý musí byť už vyrenderovaný v DOM strome.
-            Tým pádom naň vieme zavolať .focus() počas "onClick" v hexagóne 
+            Tým pádom naň vieme zavolať .focus() počas "onClick" v hexagóne
             a klávesnica nám stabilne ostane vysunutá, kým QuestionModal nevyčíta jeho hodnoty.
           */}
           <input
