@@ -41,31 +41,33 @@ export const BilionarApp = ({ onBackToPortal }) => {
         }
     }, [user]);
 
-    if (showAdmin) {
-        return <BilionarAdmin onBack={() => setShowAdmin(false)} />;
-    }
-
-    if (view === 'game') {
-        return (
-            <BilionarGame
-                activeGame={activeGame}
-                onLeave={() => {
-                    setActiveGame(null);
-                    setView('lobby');
-                }}
-            />
-        );
-    }
-
     return (
-        <BilionarLobby
-            onStartGame={(startedGame) => {
-                setActiveGame(startedGame);
-                setView('game');
-            }}
-            onBackToPortal={onBackToPortal}
-            onShowAdmin={() => setShowAdmin(true)}
-            onlineUserIds={onlineUserIds}
-        />
+        <div className="bilionar-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {showAdmin && (
+                <BilionarAdmin onBack={() => setShowAdmin(false)} />
+            )}
+
+            {!showAdmin && view === 'game' && (
+                <BilionarGame
+                    activeGame={activeGame}
+                    onLeave={() => {
+                        setActiveGame(null);
+                        setView('lobby');
+                    }}
+                />
+            )}
+
+            {!showAdmin && view === 'lobby' && (
+                <BilionarLobby
+                    onStartGame={(startedGame) => {
+                        setActiveGame(startedGame);
+                        setView('game');
+                    }}
+                    onBackToPortal={onBackToPortal}
+                    onShowAdmin={() => setShowAdmin(true)}
+                    onlineUserIds={onlineUserIds}
+                />
+            )}
+        </div>
     );
 };

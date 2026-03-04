@@ -2115,6 +2115,17 @@ button.small {
   background: rgba(250, 204, 21, 0.05);
 }
 
+.bilionar-theme {
+  background-color: #050505 !important;
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(250, 204, 21, 0.1), transparent 35%),
+    radial-gradient(circle at 85% 30%, rgba(250, 204, 21, 0.06), transparent 30%),
+    linear-gradient(180deg, #0a0a0a 0%, #000000 100%) !important;
+  background-attachment: fixed !important;
+  min-height: 100vh;
+  width: 100%;
+}
+
 .mode-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
