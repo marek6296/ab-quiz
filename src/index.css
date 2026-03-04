@@ -3093,36 +3093,67 @@ button.small {
 }
 
 .bilionar-question-box {
-  background: linear-gradient(90deg, #020617 0%, #1e3a8a 50%, #020617 100%);
-  border: 4px solid #3b82f6;
-  border-radius: 30px;
-  padding: clamp(2.5rem, 6vh, 4rem) 2rem;
+  position: relative;
+  background: #ffffff;
+  /* Outer white border */
+  border: none;
+  border-radius: 0;
+  clip-path: polygon(35px 0%, calc(100% - 35px) 0%, 100% 50%, calc(100% - 35px) 100%, 35px 100%, 0% 50%);
+  padding: clamp(2.5rem, 6vh, 4rem) 4rem;
   /* Dynamic vertical padding */
   text-align: center;
   width: 100%;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.8);
-  position: relative;
+  z-index: 1;
+}
+
+.bilionar-question-box::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  /* Border thickness */
+  background: linear-gradient(180deg, #1e3a8a 0%, #020617 100%);
+  clip-path: polygon(33px 0%, calc(100% - 33px) 0%, 100% 50%, calc(100% - 33px) 100%, 33px 100%, 0% 50%);
+  z-index: -1;
+}
+
+@media (max-width: 600px) {
+  .bilionar-question-box {
+    clip-path: polygon(20px 0%, calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0% 50%);
+    padding: clamp(1.5rem, 4vh, 2.5rem) 2rem;
+  }
+
+  .bilionar-question-box::before {
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    clip-path: polygon(18px 0%, calc(100% - 18px) 0%, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0% 50%);
+  }
 }
 
 .bilionar-question-box .question-number {
   position: absolute;
-  top: -12px;
+  top: 15px;
+  /* Moved inside since it can't overflow top due to clip-path */
   left: 50%;
   transform: translateX(-50%);
-  background: #facc15;
-  color: #0f172a;
+  background: transparent;
+  color: #facc15;
   font-size: 0.9rem;
   font-weight: 900;
-  padding: 0.3rem 1.5rem;
-  border-radius: 20px;
+  padding: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .bilionar-question-box h2 {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
   /* Responsive font size */
   margin: 0;
+  margin-top: 1rem;
   line-height: 1.4;
   font-weight: 700;
   color: #ffffff;
@@ -3146,27 +3177,37 @@ button.small {
 }
 
 .bilionar-option-btn {
-  background: linear-gradient(90deg, #020617 0%, #1e3a8a 50%, #020617 100%);
-  border: 4px solid #3b82f6;
-  /* Thicker Blue border */
-  border-radius: 50px;
-  /* Pill shape */
-  padding: 1.5rem 2rem;
+  position: relative;
+  background: #ffffff;
+  /* Outer white border */
+  clip-path: polygon(25px 0%, calc(100% - 25px) 0%, 100% 50%, calc(100% - 25px) 100%, 25px 100%, 0% 50%);
+  border: none;
+  border-radius: 0;
+  padding: 1.5rem 2rem 1.5rem 3rem;
+  /* Extra padding on ends */
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
+  z-index: 1;
   text-align: left;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
-.bilionar-option-btn:hover:not(:disabled) {
-  background: linear-gradient(90deg, #020617 0%, #2563eb 50%, #020617 100%);
-  border-color: #60a5fa;
-  transform: scale(1.02);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+.bilionar-option-btn::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  /* Border thickness */
+  background: linear-gradient(180deg, #1e3a8a 0%, #020617 100%);
+  clip-path: polygon(23px 0%, calc(100% - 23px) 0%, 100% 50%, calc(100% - 23px) 100%, 23px 100%, 0% 50%);
+  z-index: -1;
+  transition: background 0.2s ease;
+}
+
+.bilionar-option-btn:hover:not(:disabled)::before {
+  background: linear-gradient(180deg, #3b82f6 0%, #020617 100%);
 }
 
 .bilionar-option-btn:active:not(:disabled) {
@@ -3176,78 +3217,78 @@ button.small {
 .bilionar-option-btn .option-letter {
   color: #facc15;
   font-weight: 900;
-  font-size: 1.8rem;
-  margin-right: 1.5rem;
+  font-size: 1.5rem;
+  margin-right: 1.2rem;
   width: auto;
-  min-width: 40px;
+  min-width: 30px;
   text-shadow: 1px 1px 2px black;
 }
 
 .bilionar-option-btn .option-text {
   color: white;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   flex: 1;
   text-shadow: 1px 1px 2px black;
 }
 
 @media (max-width: 768px) {
   .bilionar-option-btn {
-    padding: 1.2rem 1.5rem;
+    padding: 1rem 1.5rem 1rem 2.5rem;
+    clip-path: polygon(18px 0%, calc(100% - 18px) 0%, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0% 50%);
+  }
+
+  .bilionar-option-btn::before {
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    clip-path: polygon(17px 0%, calc(100% - 17px) 0%, 100% 50%, calc(100% - 17px) 100%, 17px 100%, 0% 50%);
   }
 
   .bilionar-option-btn .option-letter {
-    font-size: 1.4rem;
-    min-width: 30px;
+    font-size: 1.2rem;
+    min-width: 20px;
   }
 
   .bilionar-option-btn .option-text {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 }
 
 /* OPTION STATES */
-.bilionar-option-btn.selected {
-  background: linear-gradient(90deg, #ca8a04 0%, #eab308 100%);
-  border-color: #fef08a;
+.bilionar-option-btn.locked {
+  background: #facc15;
+  /* Yellow border */
   transform: scale(1.02);
-  box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
 }
 
-.bilionar-option-btn.selected .option-letter,
-.bilionar-option-btn.selected .option-text {
+.bilionar-option-btn.locked::before {
+  background: linear-gradient(180deg, #ca8a04 0%, #eab308 100%);
+}
+
+.bilionar-option-btn.locked .option-letter,
+.bilionar-option-btn.locked .option-text {
   color: #020617;
   /* Dark text on yellow background */
+  text-shadow: none;
 }
 
 .bilionar-option-btn.correct {
-  background: linear-gradient(90deg, #166534 0%, #22c55e 100%);
-  border-color: #4ade80;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-  animation: pulse-correct 1s infinite alternate;
+  background: #ffffff;
+  /* White border */
+}
+
+.bilionar-option-btn.correct::before {
+  background: linear-gradient(180deg, #166534 0%, #22c55e 100%);
 }
 
 .bilionar-option-btn.wrong {
-  background: linear-gradient(90deg, #7f1d1d 0%, #ef4444 100%);
-  border-color: #f87171;
-  opacity: 0.8;
+  background: #ffffff;
 }
 
-.bilionar-option-btn.correct .option-letter,
-.bilionar-option-btn.correct .option-text,
-.bilionar-option-btn.wrong .option-letter,
-.bilionar-option-btn.wrong .option-text {
-  color: white;
-}
-
-@keyframes pulse-correct {
-  0% {
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
-  }
-
-  100% {
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.8);
-  }
+.bilionar-option-btn.wrong::before {
+  background: linear-gradient(180deg, #7f1d1d 0%, #ef4444 100%);
 }
 
 
@@ -3554,23 +3595,26 @@ button.small {
 }
 
 .blink-green {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  border-color: #34d399 !important;
+  background: #ffffff !important;
   color: white !important;
-  animation: intenseBlink 1s infinite alternate;
   z-index: 10;
   transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.8) !important;
+  animation: none;
 }
 
-@keyframes intenseBlink {
+@keyframes flashCorrectBackground {
   0% {
-    filter: brightness(1);
+    filter: brightness(1) drop-shadow(0 0 10px #10b981);
   }
 
   100% {
-    filter: brightness(1.5) drop-shadow(0 0 10px #10b981);
+    filter: brightness(1.7) drop-shadow(0 0 30px #10b981);
   }
+}
+
+.blink-green::before {
+  background: linear-gradient(135deg, #10b981 0%, #064e3b 100%) !important;
+  animation: flashCorrectBackground 0.8s infinite alternate !important;
 }
 
 .player-choice-indicators {
