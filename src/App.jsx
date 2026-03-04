@@ -354,7 +354,9 @@ const ABQuizApp = ({ onBackToPortal }) => {
       setShowVersus(false);
       // Wait another 0.5s for VS to fade completely, then show Start Announcement
       setTimeout(() => {
-        const p1Name = profile?.username || 'Ja';
+        const p1Name = gameMode === '1v1_online'
+          ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper'))
+          : (profile?.username || 'Hráč 1');
         setTurnAnnouncement({
           text: `Začína ${p1Name}`,
           color: 'var(--player1-color)'
@@ -412,7 +414,10 @@ const ABQuizApp = ({ onBackToPortal }) => {
       return;
     }
 
-    const pName = currentPlayer === 1 ? (profile?.username || 'Ja') : (gameMode === '1vbot' ? 'BOT' : (opponentName || 'Súper'));
+    const pName = currentPlayer === 1
+      ? (gameMode === '1v1_online' ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper')) : (profile?.username || 'Hráč 1'))
+      : (gameMode === '1vbot' ? 'BOT' : (gameMode === '1v1_online' ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper')) : 'Hráč 2'));
+
     const pColor = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
 
     setTurnAnnouncement({ text: `Vyberá ${pName}`, color: pColor });
@@ -502,7 +507,10 @@ const ABQuizApp = ({ onBackToPortal }) => {
     if (hex.owner === 'player1' || hex.owner === 'player2') return;
 
     // Turn Announcement: Answering...
-    const pName = currentPlayer === 1 ? (profile?.username || 'Ja') : (gameMode === '1vbot' ? 'BOT' : (opponentName || 'Súper'));
+    const pName = currentPlayer === 1
+      ? (gameMode === '1v1_online' ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper')) : (profile?.username || 'Hráč 1'))
+      : (gameMode === '1vbot' ? 'BOT' : (gameMode === '1v1_online' ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper')) : 'Hráč 2'));
+
     const pColor = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
 
     setTurnAnnouncement({ text: `Odpovedá ${pName}`, color: pColor });
@@ -663,9 +671,9 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
           {winner && (
             <div className="winner-banner">
-              {winner === localPlayerNum
-                ? `${profile?.username || 'Ja'} Vyhráva!`
-                : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
+              {winner === 1
+                ? `${(localPlayerNum === 1 ? profile?.username : opponentName) || 'Hráč 1'} Vyhráva!`
+                : `${(localPlayerNum === 2 ? profile?.username : (gameMode === '1vbot' ? 'BOT' : opponentName)) || 'Hráč 2'} Vyhráva!`
               }
             </div>
           )}
@@ -676,8 +684,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
                 <span className="player1-text" style={{ lineHeight: '1.2' }}>
                   {gameMode === '1v1_online'
-                    ? (localPlayerNum === 1 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
-                    : (profile?.username || 'Ja')
+                    ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper'))
+                    : (profile?.username || 'Hráč 1')
                   }
                 </span>
                 {gameRules === 'points' && (
@@ -701,7 +709,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
                   {gameMode === '1vbot'
                     ? 'BOT'
                     : (gameMode === '1v1_online'
-                      ? (localPlayerNum === 2 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
+                      ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper'))
                       : 'Hráč 2')
                   }
                 </span>
@@ -777,12 +785,12 @@ const ABQuizApp = ({ onBackToPortal }) => {
               markQuestionAsSeen={markQuestionAsSeen}
               playerNames={{
                 player1: gameMode === '1v1_online'
-                  ? (localPlayerNum === 1 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
-                  : (profile?.username || 'Ja'),
+                  ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper'))
+                  : (profile?.username || 'Hráč 1'),
                 player2: gameMode === '1vbot'
                   ? 'BOT'
                   : (gameMode === '1v1_online'
-                    ? (localPlayerNum === 2 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
+                    ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper'))
                     : 'Hráč 2')
               }}
             />
