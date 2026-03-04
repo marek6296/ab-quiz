@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { FriendsList } from '../components/auth/FriendsList';
 
 const GAMES = [
     { id: 'quiz', name: 'Kvíz Duel (AZ Kvíz)', max: 2, icon: '🧠', color: '#3b82f6' },
@@ -10,13 +11,49 @@ const GAMES = [
 
 const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
-export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
+export const PlatformLobby = ({ initialLobbyId, onLeaveLobby, onStartGameFlow }) => {
     const { user } = useAuth();
+    const [lobbyId, setLobbyId] = useState(initialLobbyId);
     const [lobby, setLobby] = useState(null);
     const [players, setPlayers] = useState([]);
     const playersRef = React.useRef([]);
     const [loading, setLoading] = useState(true);
     const [countdown, setCountdown] = useState(null);
+
+    // Initializácia domovskej permanentnej Lobby
+    useEffect(() => {
+        if (initialLobbyId || !user?.id) return;
+
+        const initHomeLobby = async () => {
+            const { data } = await supabase.from('platform_lobbies').select('id').eq('host_id', user.id).single();
+            if (data) {
+                setLobbyId(data.id);
+            } else {
+                const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const { data: newLobby } = await supabase.from('platform_lobbies').insert([{
+                    host_id: user.id,
+                    join_code: code,
+                    status: 'waiting',
+                    selected_game: 'bilionar_battle',
+                    settings: {}
+                }]).select().single();
+
+                if (newLobby) {
+                    const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single();
+                    await supabase.from('platform_players').insert([{
+                        lobby_id: newLobby.id,
+                        user_id: user.id,
+                        player_name: profile?.username || 'Host',
+                        avatar_url: profile?.avatar_url || '',
+                        is_bot: false,
+                        color: '#eab308'
+                    }]);
+                    setLobbyId(newLobby.id);
+                }
+            }
+        };
+        initHomeLobby();
+    }, [initialLobbyId, user]);
 
     // Keep ref updated for the postgres_changes closure
     useEffect(() => {
@@ -31,6 +68,8 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
         const fetchLobby = async () => {
             const { data, error } = await supabase.from('platform_lobbies').select('*').eq('id', lobbyId).single();
             if (error || !data) {
+                // Ak sa načítanie nepodarí, a ide o našu vlastnú home lobby, mali by sme ju recreatenúť?
+                // Nateraz len opustíme
                 onLeaveLobby();
                 return;
             }
@@ -117,10 +156,7 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
     };
 
     const handleLeave = async () => {
-        if (isHost) {
-            await supabase.from('platform_players').delete().eq('lobby_id', lobbyId);
-            await supabase.from('platform_lobbies').delete().eq('id', lobbyId);
-        } else {
+        if (!isHost) {
             await supabase.from('platform_players').delete().eq('lobby_id', lobbyId).eq('user_id', user.id);
         }
         onLeaveLobby();
@@ -251,13 +287,15 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
     }
 
     return (
-        <div style={{ padding: '2rem', width: '100%', minHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto', background: 'rgba(15, 23, 42, 0.9)', padding: '2.5rem', borderRadius: '24px', border: `2px solid ${gameInfo.color}50` }}>
+        <div style={{ padding: '2rem', width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '2rem', justifyContent: 'center', alignItems: 'flex-start' }}>
+
+            {/* LOBBY COLUMN */}
+            <div style={{ flex: '1 1 500px', maxWidth: '800px', background: 'rgba(15, 23, 42, 0.9)', padding: '2.5rem', borderRadius: '24px', border: `2px solid ${gameInfo.color}50` }}>
 
                 {/* Header Lobby */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <h2 style={{ fontSize: '2.5rem', margin: 0, color: 'white' }}>Lobby</h2>
+                        <h2 style={{ fontSize: '2.5rem', margin: 0, color: 'white' }}>{isHost ? 'Tvoja Lobby' : 'Lobby'}</h2>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                             <span style={{ color: '#94a3b8' }}>Pozývací kód: </span>
                             <strong style={{ fontSize: '1.8rem', letterSpacing: '4px', background: 'rgba(255,255,255,0.1)', padding: '0.2rem 1rem', borderRadius: '8px', border: '1px dashed #cbd5e1', color: 'white' }}>
@@ -268,7 +306,7 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
                     </div>
 
                     <button className="neutral" onClick={handleLeave} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
-                        Opustiť Lobby
+                        {isHost ? 'Zavrieť Lobby' : 'Opustiť Lobby'}
                     </button>
                 </div>
 
@@ -357,6 +395,14 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
                     </div>
                 )}
             </div>
+            {/* LOBBY COLUMN END */}
+
+            {/* FRIENDS COLUMN */}
+            <div style={{ flex: '1 1 300px', maxWidth: '450px', background: 'rgba(15, 23, 42, 0.9)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <h3 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '1.5rem' }}>Priatelia</h3>
+                <FriendsList />
+            </div>
+
         </div>
     );
 };

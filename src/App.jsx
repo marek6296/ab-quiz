@@ -13,7 +13,6 @@ import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 import { useGameStore, APP_STATES } from './game-engine/store';
 import { GamePortal } from './components/GamePortal';
-import { PlatformMenu } from './platform/PlatformMenu';
 import { PlatformLobby } from './platform/PlatformLobby';
 import { BilionarApp } from './bilionar/BilionarApp';
 import { HigherLowerApp } from './higher-lower/HigherLowerApp';
@@ -1022,36 +1021,28 @@ const MainRouter = () => {
                 Zavrieť Lobby ✖
               </button>
 
-              {!activeLobbyId ? (
-                <PlatformMenu
-                  onLobbyJoined={(lobbyId) => {
-                    setActiveLobbyId(lobbyId);
-                  }}
-                  onSignOut={signOut}
-                />
-              ) : (
-                <PlatformLobby
-                  lobbyId={activeLobbyId}
-                  onLeaveLobby={() => {
-                    setActiveLobbyId(null);
-                  }}
-                  onStartGameFlow={(gameType, gameId, subMode) => {
-                    setShowLobbyModal(false); // Hide the lobby modal
-                    if (gameType === 'quiz') {
-                      setPendingGame({ mode: subMode || '1v1_online', rules: 'hex', gameId: gameId });
-                      handleSetApp('ab_quiz');
-                    }
-                    else if (gameType === 'bilionar') {
-                      setPendingGame({ mode: 'bilionar', gameId: gameId });
-                      handleSetApp('bilionar_battle');
-                    }
-                    else if (gameType === 'higher_lower') {
-                      setPendingGame({ mode: 'higher_lower', gameId: gameId });
-                      handleSetApp('higher_lower');
-                    }
-                  }}
-                />
-              )}
+              <PlatformLobby
+                initialLobbyId={activeLobbyId}
+                onLeaveLobby={() => {
+                  setActiveLobbyId(null);
+                  setShowLobbyModal(false);
+                }}
+                onStartGameFlow={(gameType, gameId, subMode) => {
+                  setShowLobbyModal(false); // Hide the lobby modal
+                  if (gameType === 'quiz') {
+                    setPendingGame({ mode: subMode || '1v1_online', rules: 'hex', gameId: gameId });
+                    handleSetApp('ab_quiz');
+                  }
+                  else if (gameType === 'bilionar') {
+                    setPendingGame({ mode: 'bilionar', gameId: gameId });
+                    handleSetApp('bilionar_battle');
+                  }
+                  else if (gameType === 'higher_lower') {
+                    setPendingGame({ mode: 'higher_lower', gameId: gameId });
+                    handleSetApp('higher_lower');
+                  }
+                }}
+              />
             </div>
           </div>
         )
