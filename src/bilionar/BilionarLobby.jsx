@@ -14,7 +14,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
 
     // UI State for modes
-    const [view, setView] = useState('menu'); // 'menu', 'join', 'room'
+    const [view, setView] = useState('menu'); // 'menu', 'join', 'room', 'matchmaking'
     const [joinCodeInput, setJoinCodeInput] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
@@ -64,11 +64,12 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
 
         const joinCode = generateJoinCode();
 
-        // Create Game
+        // Create Game (Private by default)
         const { data: game, error: gameError } = await supabase.from('bilionar_games').insert([{
             host_id: user.id,
             join_code: joinCode,
             status: 'waiting',
+            is_public: false,
             settings: { questions_count: 10, difficulty: 2 },
             state: { phase: 'init' }
         }]).select().single();
@@ -99,6 +100,73 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         setView('room');
         setActiveTab('play');
         setLoading(false);
+    };
+
+    const handleQuickGame = async () => {
+        if (!profile) return;
+        setLoading(true);
+        setErrorMsg('');
+        setView('matchmaking');
+
+        // Search for public lobbies that are waiting and not full
+        // First, let's look for any public waiting room
+        const { data: lobbies } = await supabase.from('bilionar_games')
+            .select('*, bilionar_players(count)')
+            .eq('status', 'waiting')
+            .eq('is_public', true)
+            .neq('host_id', user.id)
+            .order('created_at', { ascending: false });
+
+        // Filter out full rooms (if any, although unlikely to have 100% full waiting rooms)
+        const availableLobby = lobbies?.find(l => (l.bilionar_players?.[0]?.count || 0) < 8);
+
+        if (availableLobby) {
+            const { error: joinError } = await supabase.from('bilionar_players').upsert([{
+                game_id: availableLobby.id,
+                user_id: user.id,
+                player_name: profile.username,
+                avatar_url: profile.avatar_url,
+                is_bot: false
+            }], { onConflict: 'game_id,user_id' });
+
+            if (!joinError) {
+                setActiveGame(availableLobby);
+                await fetchPlayers(availableLobby.id);
+                setView('room');
+                setLoading(false);
+                return;
+            }
+        }
+
+        // No suitable lobby found after a short wait (simulated)
+        setTimeout(async () => {
+            const joinCode = generateJoinCode();
+            const { data: newGame, error: createError } = await supabase.from('bilionar_games').insert([{
+                host_id: user.id,
+                join_code: joinCode,
+                status: 'waiting',
+                is_public: true,
+                settings: { questions_count: 10, difficulty: 2 },
+                state: { phase: 'init' }
+            }]).select().single();
+
+            if (!createError) {
+                await supabase.from('bilionar_players').insert([{
+                    game_id: newGame.id,
+                    user_id: user.id,
+                    player_name: profile.username,
+                    avatar_url: profile.avatar_url,
+                    is_bot: false
+                }]);
+                setActiveGame(newGame);
+                await fetchPlayers(newGame.id);
+                setView('room');
+            } else {
+                setErrorMsg('Chyba pri vytváraní: ' + createError.message);
+                setView('menu');
+            }
+            setLoading(false);
+        }, 1500);
     };
 
     const handleJoinGame = async (e) => {
@@ -288,7 +356,14 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                 <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
                                 <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a s kým chcete hrať o milióny.</p>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                                    <div className="mode-card primary" onClick={handleQuickGame} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(56, 189, 248, 0.4)' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
+                                        <h3 style={{ color: '#38bdf8' }}>Rýchla Hra</h3>
+                                        <p>Najrýchlejšia cesta k miliónu. Pripojíme ťa k náhodným hráčom v otvorenej miestnosti.</p>
+                                        <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
+                                    </div>
+
                                     <div className="mode-card primary" onClick={handleHostGame} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👑</div>
                                         <h3>Založiť Miestnosť</h3>
@@ -344,6 +419,18 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                         {loading ? 'Pripájam sa...' : 'Pripojiť sa do miestnosti'}
                                     </button>
                                 </form>
+                            </div>
+                        )}
+
+                        {view === 'matchmaking' && (
+                            <div className="setup-panel" style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center', padding: '3rem' }}>
+                                <div className="loader" style={{ margin: '0 auto 2rem', width: '60px', height: '60px', border: '5px solid rgba(250, 204, 21, 0.1)', borderTop: '5px solid #facc15', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                                <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: 'white' }}>Hľadám súperov...</h2>
+                                <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Pripravujeme tvoj vstup do sveta veľkých peňazí.</p>
+                                <button className="neutral" onClick={() => setView('menu')} style={{ padding: '1rem 2rem' }}>Zrušiť</button>
+                                <style>{`
+                                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                                `}</style>
                             </div>
                         )}
 
