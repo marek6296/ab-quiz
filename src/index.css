@@ -427,28 +427,25 @@ h2 {
 }
 
 /* Modals */
+/* Base Modal Overlay */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(2, 6, 23, 0.8);
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease-out;
-  /* Dôležité pre iOS - zabezpečí korektné prekrytie pri vytiahnutí klávesnice */
-  padding-top: max(env(safe-area-inset-top), 20px);
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn 0.3s ease-out;
+  padding: 1rem;
 }
 
 @media (max-width: 768px) {
   .modal-overlay {
     align-items: flex-start;
-    /* Modal sa prichytí automaticky k hore a neschová sa pod klávesnicu */
+    padding-top: max(env(safe-area-inset-top), 10px);
   }
 }
 
@@ -482,18 +479,6 @@ h2 {
   color: #f8fafc;
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.7), 0 0 20px var(--player1-color);
   transform: scale(1.1) translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .placeholder-char {
-    font-size: 1.5rem;
-    min-width: 0.8rem;
-  }
-
-  .placeholder-container {
-    gap: 0.8rem;
-    margin: 1rem 0;
-  }
 }
 
 .modal-content {
@@ -604,6 +589,174 @@ h2 {
   box-shadow: 0 0 10px currentColor;
 }
 
+/* Question Modal UI Components */
+.category-badge {
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  padding: 0.4rem 1.2rem;
+  border-radius: 100px;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+}
+
+.turn-info {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.turn-label {
+  margin: 0 0 0.5rem 0;
+  color: #94a3b8 !important;
+  font-size: 1rem;
+}
+
+.turn-player-name {
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.modal-primary-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.submit-btn {
+  flex: 1;
+  padding: 1.2rem !important;
+  font-size: 1.1rem !important;
+}
+
+.wait-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #94a3b8;
+  margin-top: 1rem;
+}
+
+/* Reporting UI */
+.report-container {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+}
+
+.report-trigger {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.report-trigger:hover {
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+}
+
+.report-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 0.75rem;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: modalPop 0.2s ease-out;
+}
+
+.report-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.report-btn.warning {
+  background: #fbbf24;
+  color: #000;
+}
+
+.report-btn.danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.report-btn.cancel {
+  background: transparent;
+  color: #94a3b8;
+}
+
+/* Opponent Choice UI */
+.choice-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+}
+
+.choice-title {
+  font-size: 2rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+}
+
+.choice-description {
+  font-size: 1.2rem;
+  color: #cbd5e1;
+  margin-bottom: 2rem;
+  max-width: 80%;
+  text-align: center;
+}
+
+.compact-timer {
+  max-width: 300px;
+}
+
+.opponent-badge {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+@media (max-width: 768px) {
+  .choice-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .choice-title {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .choice-description {
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    max-width: 95%;
+  }
+}
+
 .feedback-overlay {
   display: flex !important;
   flex-direction: column;
@@ -705,62 +858,108 @@ h2 {
 
 @media (max-width: 768px) {
   .modal-content {
-    padding: 2rem 1.25rem;
-    border-radius: 25px;
-    max-height: 90vh;
-    overflow-y: auto;
+    padding: 1.25rem 0.75rem;
+    border-radius: 20px;
+    max-height: 85vh;
+    /* Stay slightly higher to avoid keyboard overlap */
+    width: 98%;
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  }
+
+  .question-modal-fixed {
+    min-height: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .modal-content .question-text {
+    font-size: 1.15rem;
+    margin: 0.25rem 0 0.75rem;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  .placeholder-container {
+    gap: 0.25rem;
+    margin: 0.5rem 0;
+  }
+
+  .placeholder-char {
+    width: 1.6rem;
+    height: 2.2rem;
+    font-size: 1.2rem;
+    border-radius: 6px;
+    margin: 0 1px;
   }
 
   .feedback-title {
-    font-size: 2.2rem !important;
+    font-size: 2rem !important;
   }
 
   .feedback-message {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    line-height: 1.3;
   }
 
   .feedback-correct-answer {
-    font-size: 1.4rem !important;
+    font-size: 1.3rem !important;
   }
 
   .modal-content h3 {
     font-size: 0.85rem;
-    margin-bottom: 0.25rem !important;
-  }
-
-  .modal-content p {
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem !important;
-  }
-
-  .modal-content h2 {
-    font-size: 0.95rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.1rem;
   }
 
   .modal-actions button {
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
   }
 
-  .modal-actions>div {
-    gap: 0.5rem !important;
-    margin-top: 0.25rem !important;
+  .timer-bar-container {
+    margin: 0.75rem 0;
+    height: 4px;
   }
-}
 
-.timer-bar-container {
-  height: 6px;
-  margin: 0.25rem 0;
-}
+  .category-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.7rem;
+    margin-bottom: 0.5rem;
+  }
 
-.placeholder-char {
-  font-size: 1.25rem;
-  min-width: 0.6rem;
-}
+  .turn-info {
+    margin: 0.5rem 0;
+  }
 
-.placeholder-container {
-  gap: 0.3rem;
-  margin: 0.25rem 0;
+  .turn-label {
+    font-size: 0.75rem;
+    margin-bottom: 0px;
+  }
+
+  .turn-player-name {
+    font-size: 1.15rem;
+  }
+
+  .report-container {
+    top: 5px;
+    right: 5px;
+  }
+
+  .report-trigger {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+    border-radius: 8px;
+  }
+
+  .modal-primary-actions {
+    margin-top: 0.75rem;
+  }
+
+  .submit-btn {
+    padding: 0.8rem !important;
+    font-size: 1rem !important;
+  }
 }
 
 .loading-dots span {
@@ -793,24 +992,62 @@ h2 {
 }
 
 /* Extreme compact mode specifically for when keyboard is filling half the screen vertically */
-@media (max-width: 768px) and (max-height: 550px) {
+@media (max-width: 768px) and (max-height: 620px) {
   .modal-overlay {
     padding-top: 5px;
   }
 
   .modal-content {
-    padding: 0.5rem;
-    max-height: 90vh;
-    /* Allow taking more of the available tiny height */
+    padding: 0.4rem 0.5rem 0.6rem;
+    border-radius: 12px;
+    max-height: 94vh;
   }
 
   .modal-content .question-text {
     font-size: 0.95rem;
+    margin: 0.1rem 0 0.25rem;
+    line-height: 1.25;
+  }
+
+  .placeholder-container {
     margin: 0.2rem 0;
+    gap: 0.15rem;
   }
 
   .placeholder-char {
-    font-size: 1.15rem;
+    width: 1.3rem;
+    height: 1.6rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+  }
+
+  .timer-bar-container {
+    margin: 0.25rem 0;
+    height: 3px;
+  }
+
+  .modal-content h3 {
+    font-size: 0.75rem;
+    margin-top: 0.1rem;
+  }
+
+  .turn-info {
+    margin: 0.25rem 0;
+  }
+
+  .turn-player-name {
+    font-size: 1rem;
+  }
+
+  .category-badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .submit-btn {
+    padding: 0.6rem !important;
+    font-size: 0.9rem !important;
   }
 }
 

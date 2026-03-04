@@ -639,16 +639,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     {/* Primary Guess Phase */}
                     {phase === 'currentPlayer' && (
                         <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '0.4rem 1rem', borderRadius: '100px', marginBottom: '1.5rem' }}>
+                            <div className="category-badge">
                                 {question.category || 'Všeobecné'}
                             </div>
                             <div className="question-text">{question.question_text || question.text}</div>
                             {renderPlaceholder(question.answer)}
                             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
-                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                                <h3 style={{ margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '1rem' }}>Na ťahu je</h3>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: currentPlayer === 1 ? '#3b82f6' : '#f97316' }}>
+                            <div className="turn-info">
+                                <h3 className="turn-label">Na ťahu je</h3>
+                                <div className="turn-player-name" style={{ color: currentPlayer === 1 ? '#3b82f6' : '#f97316' }}>
                                     {currentPlayerName}
                                 </div>
                             </div>
@@ -659,18 +659,18 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             </div>
 
                             {isBotPrimaryTurn ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
                                     <span>Súper premýšľa</span>
                                 </div>
                             ) : isLocalPrimary ? (
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', width: '100%' }}>
-                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={handleSubmitPrimary}>
+                                <div className="modal-primary-actions">
+                                    <button className="primary submit-btn" onClick={handleSubmitPrimary}>
                                         Odoslať odpoveď
                                     </button>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
                                     <span>Čaká sa na odpoveď</span>
                                 </div>
@@ -686,19 +686,19 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     {/* Secondary Guess Choice Phase */}
                     {phase === 'opponentChoice' && (
                         <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⚔️</div>
-                            <h2 style={{ fontSize: '2rem', color: '#fbbf24', marginBottom: '1rem' }}>Súper zaváhal!</h2>
-                            <p style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '2rem', maxWidth: '80%' }}>
+                            <div className="choice-icon">⚔️</div>
+                            <h2 className="choice-title">Súper zaváhal!</h2>
+                            <p className="choice-description">
                                 {opponentName}, máš jedinečnú šancu ukradnúť toto pole pre seba. Riskneš to?
                             </p>
 
-                            <div className="timer-bar-container" style={{ maxWidth: '300px' }}>
+                            <div className="timer-bar-container compact-timer">
                                 <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
                             </div>
 
                             {isLocalSecondary ? (
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', width: '100%' }}>
-                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={() => {
+                                <div className="modal-primary-actions">
+                                    <button className="primary submit-btn" onClick={() => {
                                         setPhase('opponent');
                                         setTimeLeft(15);
                                         setTimeout(() => {
@@ -709,12 +709,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                     }}>
                                         Áno, chcem odpovedať
                                     </button>
-                                    <button className="neutral" style={{ flex: 0.8, padding: '1.2rem' }} onClick={handleDeclineSecondary}>
+                                    <button className="neutral submit-btn" onClick={handleDeclineSecondary}>
                                         Zahodiť
                                     </button>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
                                     <span>Čaká sa kým sa {opponentName} rozhodne</span>
                                 </div>
@@ -725,16 +725,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     {/* Secondary Guess Phase (Opponent Chance) */}
                     {phase === 'opponent' && (
                         <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '0.4rem 1rem', borderRadius: '100px', marginBottom: '1.5rem' }}>
+                            <div className="category-badge opponent-badge">
                                 SÚBOJ O POLE
                             </div>
                             <div className="question-text">{question.question_text || question.text}</div>
                             {renderPlaceholder(question.answer)}
                             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
-                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                                <h3 style={{ margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '1rem' }}>Šancu dostáva</h3>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: opponent === 1 ? '#3b82f6' : '#f97316' }}>
+                            <div className="turn-info">
+                                <h3 className="turn-label">Šancu dostáva</h3>
+                                <div className="turn-player-name" style={{ color: opponent === 1 ? '#3b82f6' : '#f97316' }}>
                                     {opponentName}
                                 </div>
                             </div>
@@ -744,21 +744,21 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             </div>
 
                             {isBotSecondaryTurn ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
                                     <span>Súper premýšľa</span>
                                 </div>
                             ) : isLocalSecondary ? (
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', width: '100%' }}>
-                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={handleSubmitSecondary}>
+                                <div className="modal-primary-actions">
+                                    <button className="primary submit-btn" onClick={handleSubmitSecondary}>
                                         Odpovedať
                                     </button>
-                                    <button className="neutral" style={{ flex: 1, padding: '1.2rem' }} onClick={handleDeclineSecondary}>
+                                    <button className="neutral submit-btn" onClick={handleDeclineSecondary}>
                                         Neviem (Pustiť)
                                     </button>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
                                     <span>Čaká sa na odpoveď</span>
                                 </div>
@@ -775,32 +775,18 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
                 {/* REPORT FLAG - Moved to bottom for Z-index overlay safety */}
                 {!hasReported && (
-                    <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 999 }}>
+                    <div className="report-container">
                         <button
+                            className="report-trigger"
                             onClick={() => setShowReportMenu(!showReportMenu)}
-                            style={{
-                                background: 'rgba(15, 23, 42, 0.8)',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                color: '#e2e8f0',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem',
-                                padding: '0.4rem 0.8rem',
-                                borderRadius: '12px',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontWeight: 'bold',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                            }}
                         >
-                            <span style={{ fontSize: '0.9rem' }}>🚩</span> Nahlásiť
+                            <span className="report-icon">🚩</span> Nahlásiť
                         </button>
                         {showReportMenu && (
-                            <div style={{ position: 'absolute', top: '110%', right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '0.6rem', width: '160px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 15px 35px rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease-out' }}>
-                                <button onClick={() => handleReport('ťažká otázka')} style={{ background: '#fbbf24', color: '#000', border: 'none', borderRadius: '8px', padding: '0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>⚠️ Príliš ťažká</button>
-                                <button onClick={() => handleReport('nezmysel')} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>❌ Zlá / Nezmyselná</button>
-                                <button onClick={() => setShowReportMenu(false)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontSize: '0.7rem', cursor: 'pointer', marginTop: '0.2rem' }}>Zrušiť</button>
+                            <div className="report-menu">
+                                <button className="report-btn warning" onClick={() => handleReport('ťažká otázka')}>Príliš ťažká</button>
+                                <button className="report-btn danger" onClick={() => handleReport('nezmysel')}>Zlá / Nezmyselná</button>
+                                <button className="report-btn cancel" onClick={() => setShowReportMenu(false)}>Zrušiť</button>
                             </div>
                         )}
                     </div>
