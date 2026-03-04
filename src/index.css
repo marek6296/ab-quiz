@@ -960,6 +960,24 @@ h2 {
     padding: 0.8rem !important;
     font-size: 1rem !important;
   }
+
+  .game-container.game-entrance {
+    min-height: 100dvh;
+    justify-content: center;
+    padding-bottom: 5vh;
+    /* Push slightly up from the very bottom for better visual balance */
+    padding-top: 2vh;
+  }
+
+  .game-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Make sure the board doesn't feel squashed against the status bar */
+  .status-board {
+    margin-bottom: 1rem;
+  }
 }
 
 .loading-dots span {
