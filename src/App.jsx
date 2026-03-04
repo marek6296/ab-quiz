@@ -705,7 +705,7 @@ const MainRouter = () => {
   if (!user) {
     return (
       <div className="game-container start-screen">
-        <h1 className="logo-brutal" style={{ fontSize: '3.5rem', marginBottom: '2rem' }}>Quizovník</h1>
+        <h1 className="logo-brutal" style={{ marginBottom: '2rem' }}>Quizovník</h1>
         <AuthTabs />
       </div>
     );

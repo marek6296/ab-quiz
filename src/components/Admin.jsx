@@ -12,6 +12,7 @@ export const Admin = ({ onBack }) => {
     const [activeTab, setActiveTab] = useState('list');
     const [reportedList, setReportedList] = useState([]);
     const [allCats, setAllCats] = useState([]);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -100,7 +101,7 @@ export const Admin = ({ onBack }) => {
     const fetchQuestions = async () => {
         setLoading(true);
         setQuestions([]); // Clear current list to show user something is happening
-
+        setSelectedIds([]); // Reset selection when fetching new data
         let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).range(0, 100);
 
         if (searchTerm) {
@@ -172,6 +173,34 @@ export const Admin = ({ onBack }) => {
         await supabase.from('question_reports').delete().eq('question_id', qId);
         await fetchReports();
         setLoading(false);
+    };
+
+    const handleSelectToggle = (id) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAllToggle = () => {
+        if (selectedIds.length === questions.length && questions.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(questions.map(q => q.id));
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Naozaj chcete vymazať ${selectedIds.length} vybraných otázok?`)) return;
+
+        const { error } = await supabase.from('questions').delete().in('id', selectedIds);
+        if (!error) {
+            setSelectedIds([]);
+            fetchQuestions();
+            fetchStats();
+        } else {
+            alert('Chyba pri mazaní vybraných: ' + error.message);
+        }
     };
 
     const handleAddQuestion = async (e) => {
@@ -277,7 +306,8 @@ AKCIA:
 1. Over faktickú správnosť odpovede na otázku.
 2. Odpoveď MAXIMÁLNE stručná (ideálne 1-2 slová, nezmyselne dlhé vety skráť).
 3. Oprav štylistiku otázky, aby nebola robotická, ale znela pre diváka jasne a JEDNOZNAČNE (len jedna možná správna odpoveď).
-4. Priraď/Oprav náročnosť (difficulty): 1=ľahké(odpoveď pre masy, 95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké(veľké detaily). OPRAV aj "category" (kategóriu), ak je otázka zjavne odveci zaradená v zlej kategórii.
+4. Priraď/Oprav náročnosť (difficulty): 1=ľahké(odpoveď pre masy, 95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké(veľké detaily). 
+   STRIKTNÉ KATEGÓRIE: Kategória MUSÍ byť jedna z týchto: ${PREDEFINED_CAT.join(', ')}. Nikdy nevytváraj vlastné kategórie (napr. namiesto 'Biológia' použi 'Príroda', namiesto 'Film' použi 'Filmy a Seriály').
 5. ČÍSLA: Ak je logickou odpoveďou akékoľvek číslo (napríklad "osem", "tri", "1994", "tisíc"), VŽDY MUSÍŠ odpoveď prepísať na matematickú arabskú číslicu ("8", "3", "1994", "1000")! NESMIEŠ nechať odpoveď slovom! Zároveň na koniec TEXTU otázky povinne dopíš inštrukciu: "(Napíšte číslom)".
 6. STRIKTNÝ ZÁKAZ ODPOVEDE V OTÁZKE: Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej koreň slova, preklad ani synonymum! (Zle: "Ako sa volá inštalatér Mário?"). Ak zbadáš takúto otázku, OKAMŽITE ju preformuluj s použitím iného, tajnejšieho faktu!
 7. DELETOVANIE A DUPLIKÁTY: Ak v tejto várke nájdeš 2 obsahovo veľmi podobné/totožné otázky, JEDNU Z NICH ÚPLNE VYMAŽ (nevracaj ju späť v JSONe). Takisto ak je otázka nezmyselná, nedá sa opraviť, alebo je to plný nezmysel, normálne ju VYNECHAJ zo zoznamu. Každá otázka, ktorú nevrátiš, bude u nás navždy ZMAZANÁ.
@@ -420,6 +450,15 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                         <option value="3">3 - Ťažká</option>
                                     </select>
                                 </div>
+                                {selectedIds.length > 0 && (
+                                    <button
+                                        className="danger"
+                                        onClick={handleDeleteSelected}
+                                        style={{ padding: '0.8rem', whiteSpace: 'nowrap' }}
+                                    >
+                                        🗑️ Zmazať vybrané ({selectedIds.length})
+                                    </button>
+                                )}
                                 {(filterCategory || filterDifficulty || searchTerm) && (
                                     <button
                                         className="neutral"
@@ -466,6 +505,14 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                 <table className="admin-table">
                                     <thead>
                                         <tr>
+                                            <th style={{ width: '40px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.length === questions.length && questions.length > 0}
+                                                    onChange={handleSelectAllToggle}
+                                                    style={{ width: '20px', height: '20px' }}
+                                                />
+                                            </th>
                                             <th>Otázka</th>
                                             <th>Odpoveď</th>
                                             <th className="hide-mobile">Kat.</th>
@@ -475,7 +522,15 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                     </thead>
                                     <tbody>
                                         {questions.map(q => (
-                                            <tr key={q.id}>
+                                            <tr key={q.id} style={{ background: selectedIds.includes(q.id) ? 'rgba(56, 189, 248, 0.1)' : 'transparent' }}>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.includes(q.id)}
+                                                        onChange={() => handleSelectToggle(q.id)}
+                                                        style={{ width: '18px', height: '18px' }}
+                                                    />
+                                                </td>
                                                 {editingId === q.id ? (
                                                     <>
                                                         <td>

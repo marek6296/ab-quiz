@@ -1536,6 +1536,7 @@ button.small {
 }
 
 .logo-brutal {
+  font-size: 3.5rem;
   font-family: 'Outfit', sans-serif;
   font-weight: 950;
   text-transform: uppercase;
@@ -1894,7 +1895,39 @@ button.small {
   }
 
   .mobile-only-logo h1 {
-    font-size: 3.2rem;
+    font-size: 2.5rem;
+  }
+
+  .hero-logo {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+  }
+
+  .logo-brutal {
+    font-size: 2.2rem !important;
+  }
+
+  /* Game Portal Mobile Fixes */
+  .game-portal {
+    padding: 1rem !important;
+  }
+
+  .game-portal h2 {
+    font-size: 1.8rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .game-portal p {
+    font-size: 1rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .game-portal>div:first-child {
+    margin-bottom: 2rem !important;
+  }
+
+  .portal-grid {
+    gap: 1rem !important;
   }
 
   .nav-item {
