@@ -31,7 +31,7 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
 
     const syncGame = async (gameId) => {
         if (!gameId) return;
-        const { data } = await supabase.from('bilionar_games')
+        const { data, error } = await supabase.from('bilionar_games')
             .select('*')
             .eq('id', gameId)
             .single();
@@ -43,6 +43,12 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
                 console.log("Fallback sync triggered view transition to game");
                 setView('game');
             }
+        } else if (error && error.code === 'PGRST116') {
+            // PGRST116 means zero rows returned (Game was deleted)
+            console.log("Game deleted by host, leaving lobby.");
+            setActiveGame(null);
+            setView('lobby'); // The lobby component itself will revert to 'menu'
+            return;
         }
         fetchPlayers(gameId);
     };
@@ -64,16 +70,24 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
         const channelId = `bilionar_game_state_${activeGame.id}`;
         const channel = supabase.channel(channelId)
             .on('postgres_changes', {
-                event: 'UPDATE',
+                event: '*',
                 schema: 'public',
                 table: 'bilionar_games',
                 filter: `id=eq.${activeGame.id}`
             }, (payload) => {
-                setActiveGame(payload.new);
-                // Auto-transition to game view if status changes to playing
-                if (payload.new.status === 'playing' && viewRef.current === 'lobby') {
-                    console.log("Realtime: Auto-transition to game view");
-                    setView('game');
+                if (payload.eventType === 'DELETE') {
+                    console.log("Realtime: Game deleted by host");
+                    setActiveGame(null);
+                    setView('lobby');
+                    return;
+                }
+                if (payload.new) {
+                    setActiveGame(payload.new);
+                    // Auto-transition to game view if status changes to playing
+                    if (payload.new.status === 'playing' && viewRef.current === 'lobby') {
+                        console.log("Realtime: Auto-transition to game view");
+                        setView('game');
+                    }
                 }
             })
             .on('postgres_changes', {

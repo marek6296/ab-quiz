@@ -422,6 +422,8 @@ export const BilionarLobby = ({
     const handleLeaveRoom = async () => {
         if (activeGame) {
             if (activeGame.host_id === user.id) {
+                // Delete all players first to prevent foreign key constraint issues if no CASCADE is setup
+                await supabase.from('bilionar_players').delete().eq('game_id', activeGame.id);
                 await supabase.from('bilionar_games').delete().eq('id', activeGame.id);
             } else {
                 await supabase.from('bilionar_players').delete().eq('game_id', activeGame.id).eq('user_id', user.id);
