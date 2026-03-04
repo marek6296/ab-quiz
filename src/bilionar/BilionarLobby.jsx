@@ -469,28 +469,28 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
                                     </div>
 
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('host'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('host'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
                                         <h3 style={{ color: '#facc15' }}>Založiť Miestnosť</h3>
                                         <p>Vytvor privátnu hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
                                     </div>
 
-                                    <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(250, 204, 21, 0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                                    <div className="mode-card primary" onClick={() => setView('join')} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
                                         <h3 style={{ color: '#facc15' }}>Pripojiť sa</h3>
                                         <p>Máš kód od kamaráta? Zadaj ho a prepoj sa priamo do jeho hry.</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
                                     </div>
 
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
                                         <h3 style={{ color: '#facc15' }}>Hrať s priateľmi</h3>
                                         <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
                                     </div>
 
-                                    <div className="mode-card" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ border: '1px solid rgba(250, 204, 21, 0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                                         <h3 style={{ color: '#facc15' }}>Tréning s BOTom</h3>
                                         <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>

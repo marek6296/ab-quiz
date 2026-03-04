@@ -123,32 +123,32 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                 <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
                             </div>
 
-                            <div className="mode-card" onClick={() => setSetupMode('1v1_private_create')}>
+                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_private_create')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
                                 <h3>Založiť Miestnosť</h3>
                                 <p>Vytvor privátnu hru s vlastnými pravidlami a pošli kód kamošovi.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
                             </div>
 
-                            <div className="mode-card" onClick={() => setSetupMode('1v1_private_join')}>
+                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_private_join')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
                                 <h3>Pripojiť sa</h3>
                                 <p>Máš kód od kamaráta? Zadaj ho do vyhľadávača a prepoj sa na neho.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
                             </div>
 
-                            <div className="mode-card" onClick={() => setSetupMode('1v1_invite')}>
+                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_invite')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
                                 <h3>Hrať s priateľom</h3>
                                 <p>Vyber si kategórie, náročnosť a priamo vyzvi kamoša zo zoznamu.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Vyzvať priateľa →</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Vyzvať priateľa →</span>
                             </div>
 
-                            <div className="mode-card" onClick={() => setSetupMode('1vbot')}>
+                            <div className="mode-card primary" onClick={() => setSetupMode('1vbot')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                                 <h3>Tréning s BOTom</h3>
                                 <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
                             </div>
                         </div>
                     </div>
