@@ -152,6 +152,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   // States pre lokálne spustenie
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState(1);
+  const [localBotDifficulty, setLocalBotDifficulty] = useState(2);
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [showVersus, setShowVersus] = useState(false);
   const manualExitRef = useRef(false);
@@ -242,13 +243,14 @@ const ABQuizApp = ({ onBackToPortal }) => {
     return pool[Math.floor(Math.random() * pool.length)];
   }, [localCategory, localDifficulty, gameMode, gameData]);
 
-  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1) => {
+  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1, botDiff = 2) => {
     usedQuestionIdsRef.current.clear(); // Reset used questions each new game
     setGameMode(mode);
     setGameRules(rules);
     setActiveGameId(gameId);
     setLocalCategory(cat);
     setLocalDifficulty(diff);
+    setLocalBotDifficulty(botDiff);
 
     if (['1v1_quick', '1v1_private_create', '1v1_private_join'].includes(mode)) {
       setAppState(APP_STATES.MATCHMAKING);
@@ -429,7 +431,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
     return (
       <>
         <Lobby
-          onStart1vBot={(rules, cat, diff) => handleStartGame('1vbot', rules, null, cat, diff)}
+          onStart1vBot={(rules, cat, diff, botDiff) => handleStartGame('1vbot', rules, null, cat, diff, botDiff)}
           onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
           onShowAdmin={() => setShowAdmin(true)}
           onBackToPortal={onBackToPortal}
@@ -618,7 +620,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
               currentPlayer={currentPlayer}
               gameMode={gameMode}
               gameRules={gameRules}
-              botDifficulty={localDifficulty}
+              botDifficulty={localBotDifficulty}
               p1Combo={p1Combo}
               p2Combo={p2Combo}
               onResolve={handleResolveQuestion}

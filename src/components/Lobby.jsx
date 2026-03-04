@@ -14,6 +14,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
     const [availableCategories, setAvailableCategories] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [difficulty, setDifficulty] = useState(1);
+    const [botDifficulty, setBotDifficulty] = useState(2); // Default to Stredný
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -35,7 +36,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
 
     const handleStartFromSetup = () => {
         if (setupMode === '1vbot') {
-            onStart1vBot(gameRules, selectedCategories, difficulty);
+            onStart1vBot(gameRules, selectedCategories, difficulty, botDifficulty);
         } else {
             onStartMatchmaking(setupMode, gameRules, selectedCategories, difficulty);
         }
@@ -169,6 +170,24 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Bot Difficulty Selection */}
+                                {setupMode === '1vbot' && (
+                                    <div>
+                                        <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Sila BOTa (Nervozita, IQ a postreh)</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
+                                            {[
+                                                { level: 1, label: 'Ľahký', color: '#4ade80' },
+                                                { level: 2, label: 'Stredný', color: '#fbbf24' },
+                                                { level: 3, label: 'Ťažký', color: '#ef4444' }
+                                            ].map(diff => (
+                                                <button key={diff.level} onClick={() => setBotDifficulty(diff.level)} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: botDifficulty === diff.level ? diff.color : 'transparent', color: botDifficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                    {diff.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Category Selection */}
                                 <div>
