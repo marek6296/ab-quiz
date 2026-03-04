@@ -446,7 +446,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
     const currentQ = gameState.questions?.[gameState.current_index];
 
     if (gameState.phase === 'recap_answers') {
-        const answeredPlayers = [...players].filter(p => p.has_answered && p.last_answer_time !== null).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99));
+        const answeredPlayers = [...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99));
         return (
             <div key="phase_recap_answers" className="bilionar-board fullscreen-flex">
                 <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
@@ -460,7 +460,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                                     <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{p.selected_answer || '-'}</span>
-                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#fff' }}>{p.last_answer_time?.toFixed(2)}s</span>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#fff' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
                                     {(p.last_score_gained !== null && p.last_score_gained !== undefined) && (
                                         <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: p.last_score_gained > 0 ? '#4ade80' : '#ef4444', marginLeft: '1rem' }}>
                                             {p.last_score_gained > 0 ? '+' : ''}{p.last_score_gained}
