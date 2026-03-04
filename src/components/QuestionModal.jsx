@@ -332,9 +332,26 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         const isSelfTurn = (phase === 'currentPlayer' && isLocalPrimary) ||
             (phase === 'opponent' && isLocalSecondary);
 
-        // Remove spaces to match the typed characters index against the actual letter positions
         const cleanTyped = inputValue.replace(/\s+/g, '');
         let typedIndex = 0;
+
+        // Dynamic Sizing Logic for Placeholders
+        const isMobile = window.innerWidth <= 768;
+        const totalChars = answer.replace(/\s/g, '').length;
+        const maxLettersInWord = Math.max(...answer.split(' ').map(w => w.length));
+
+        let boxWidth = isMobile ? 1.6 : 3.2;
+        let boxHeight = isMobile ? 2.2 : 4.0;
+        let fontSize = isMobile ? 1.2 : 2.5;
+
+        // Shrink if too many characters
+        const effectiveLength = Math.max(maxLettersInWord, totalChars / 1.5);
+        if (effectiveLength > 12) {
+            const scale = 12 / effectiveLength;
+            boxWidth *= scale;
+            boxHeight *= scale;
+            fontSize *= scale;
+        }
 
         return (
             <div
@@ -347,7 +364,6 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 }}
                 style={{ cursor: isSelfTurn ? 'text' : 'default', position: 'relative' }}
             >
-
                 {answer.split(' ').map((word, wIdx) => (
                     <span key={wIdx} className="placeholder-word">
                         {word.split('').map((char, cIdx) => {
@@ -364,7 +380,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             }
 
                             return (
-                                <span key={cIdx} className={`placeholder-char ${isFilled ? 'filled' : ''}`}>
+                                <span
+                                    key={cIdx}
+                                    className={`placeholder-char ${isFilled ? 'filled' : ''}`}
+                                    style={{
+                                        width: `${boxWidth}rem`,
+                                        height: `${boxHeight}rem`,
+                                        fontSize: `${fontSize}rem`,
+                                        minWidth: isSpecial ? 'auto' : `${boxWidth}rem`
+                                    }}
+                                >
                                     {displayChar}
                                 </span>
                             );
@@ -642,7 +667,15 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             <div className="category-badge">
                                 {question.category || 'Všeobecné'}
                             </div>
-                            <div className="question-text">{question.question_text || question.text}</div>
+                            <div className="question-text" style={(() => {
+                                const text = question.question_text || question.text || '';
+                                const len = text.length;
+                                const isMobile = window.innerWidth <= 768;
+                                let fontSize = isMobile ? '1.15rem' : '2rem';
+                                if (len > 120) fontSize = isMobile ? '0.85rem' : '1.4rem';
+                                else if (len > 80) fontSize = isMobile ? '0.95rem' : '1.7rem';
+                                return { fontSize };
+                            })()}>{question.question_text || question.text}</div>
                             {renderPlaceholder(question.answer)}
                             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
@@ -728,7 +761,15 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             <div className="category-badge opponent-badge">
                                 SÚBOJ O POLE
                             </div>
-                            <div className="question-text">{question.question_text || question.text}</div>
+                            <div className="question-text" style={(() => {
+                                const text = question.question_text || question.text || '';
+                                const len = text.length;
+                                const isMobile = window.innerWidth <= 768;
+                                let fontSize = isMobile ? '1.15rem' : '2rem';
+                                if (len > 120) fontSize = isMobile ? '0.85rem' : '1.4rem';
+                                else if (len > 80) fontSize = isMobile ? '0.95rem' : '1.7rem';
+                                return { fontSize };
+                            })()}>{question.question_text || question.text}</div>
                             {renderPlaceholder(question.answer)}
                             {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
