@@ -247,6 +247,8 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         }
         if (!isHost) return;
 
+        const unansweredBots = players.filter(p => p.is_bot && !p.has_answered && !botTimersRef.current.has(p.id));
+
         unansweredBots.forEach(bot => {
             botTimersRef.current.add(bot.id);
             const botLvl = activeGame.settings?.bot_difficulty || 2;
