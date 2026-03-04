@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { FriendsList } from '../components/auth/FriendsList';
+import { generateInitialBoard } from '../game-engine/board';
 
 const GAMES = [
     { id: 'quiz', name: 'Kvíz Duel (AZ Kvíz)', max: 2, icon: '🧠', color: '#3b82f6' },
@@ -284,6 +285,8 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                     player2_id: players[1]?.user_id || null,
                     game_type: gameRules,
                     status: 'active',
+                    board_state: generateInitialBoard(gameRules),
+                    current_turn: players[0]?.user_id || user.id,
                     category: JSON.stringify({ cats: selectedCategories, diffs: difficulty && difficulty.length > 0 ? difficulty : [1] }),
                     difficulty: difficulty[0] || 1
                 }]).select().single();
