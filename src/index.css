@@ -268,16 +268,26 @@ h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  max-width: clamp(80px, 15vw, 150px);
+  /* Responsive name truncation */
 }
 
-.status-board .neutral {
+.status-board-actions {
   flex: 0 0 auto;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.85rem;
-  height: 40px;
-  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0 0.5rem;
+}
+
+.status-board .neutral,
+.status-board .secondary {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  height: 38px;
+  z-index: 10;
+  min-width: fit-content;
 }
 
 .player-status.active {
@@ -979,20 +989,38 @@ input:focus {
   }
 
   .status-board {
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem;
     gap: 0.5rem;
-    border-radius: 60px;
+    border-radius: 24px;
+    flex-wrap: wrap;
+    /* Allow wrapping on small screens */
+    max-width: 95%;
   }
 
   .player-status {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
+    flex: 1 1 40%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    gap: 0.6rem;
   }
 
-  .status-board .neutral {
-    min-width: 100px;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+  .status-board-actions {
+    flex: 1 1 100%;
+    /* Take full width below names if needed */
+    order: 2;
+    justify-content: center;
+    margin: 0.25rem 0 0 0;
+    gap: 0.75rem;
+  }
+
+  .status-board .neutral,
+  .status-board .secondary {
+    flex: 1;
+    /* Equal width buttons on mobile */
+    min-width: 0;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    height: 36px;
   }
 
   .user-info {

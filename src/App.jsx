@@ -593,7 +593,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="status-board-actions">
               {gameMode === '1v1_online' && !activeModal && !winner && (
                 <button className="secondary" onClick={handleTogglePause}>Pauza</button>
               )}
