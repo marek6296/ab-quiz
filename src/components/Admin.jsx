@@ -611,7 +611,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                                     },
                                                     body: JSON.stringify({
                                                         model: "gpt-4o",
-                                                        temperature: 0.4, // Lower temperature for more factual and less random content
+                                                        temperature: 0.7, // Zvýšená z 0.4 na 0.7, aby GPT malo voľnejšie ruky pri ťažkých a špecifických otázkach a nezaseklo sa.
                                                         messages: [
                                                             {
                                                                 role: "system",
@@ -630,7 +630,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                                             },
                                                             {
                                                                 role: "user",
-                                                                content: `Vygeneruj PRESNE ${count} unikátnych otázok výhradne pre tému: ${cat}. Požadovaná náročnosť: ${diffDesc}. ${avoidList}`
+                                                                content: `Záväzná úloha: Vygeneruj PRESNE ${count} unikátnych otázok výhradne pre tému: "${cat}". Požadovaná náročnosť: ${diffDesc}. Je ABSOLÚTNE NEVYHNUTNÉ, aby výsledný JSON obsahoval presne ${count} položiek. Nesmieš to odfláknuť ani vrátiť prázdny zoznam, vygeneruj ich za každú cenu a presne na mieru! ${avoidList}`
                                                             }
                                                         ],
                                                         response_format: { type: "json_object" }
