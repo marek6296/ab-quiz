@@ -118,8 +118,8 @@ h1 {
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 30px rgba(250, 204, 21, 0.4));
   margin: 0;
-  padding: 1rem 0;
-  line-height: 1;
+  padding: 1.5rem 0;
+  line-height: 1.2;
   animation: heroPulse 3s ease-in-out infinite;
 }
 
@@ -2538,8 +2538,8 @@ button.small {
   .game-portal .hero-logo {
     margin-top: 0 !important;
     font-size: 3.5rem !important;
-    padding: 0 !important;
-    line-height: 1.1 !important;
+    padding: 0.5rem 0 !important;
+    line-height: 1.3 !important;
   }
 
   .game-portal h2 {
