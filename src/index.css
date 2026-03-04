@@ -2511,8 +2511,7 @@ button.small {
   /* Game Portal Mobile Fixes */
   .game-portal {
     padding: 0.5rem !important;
-    padding-top: 2rem !important;
-    /* Space for the logout button */
+    padding-top: 4.5rem !important;
     justify-content: flex-start !important;
     height: 100dvh !important;
   }
@@ -2546,7 +2545,7 @@ button.small {
   .game-portal h2 {
     font-size: 1.4rem !important;
     margin-bottom: 0 !important;
-    margin-top: 0.5rem !important;
+    margin-top: 1.5rem !important;
   }
 
   .game-portal p {
