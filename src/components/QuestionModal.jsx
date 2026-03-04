@@ -337,20 +337,26 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
         // Dynamic Sizing Logic for Placeholders
         const isMobile = window.innerWidth <= 768;
-        const totalChars = answer.replace(/\s/g, '').length;
-        const maxLettersInWord = Math.max(...answer.split(' ').map(w => w.length));
+        const words = (answer || '').split(' ');
+        const totalChars = (answer || '').replace(/\s/g, '').length;
+        const maxLettersInWord = words.length > 0 ? Math.max(...words.map(w => w.length)) : 0;
 
         let boxWidth = isMobile ? 1.6 : 3.2;
         let boxHeight = isMobile ? 2.2 : 4.0;
         let fontSize = isMobile ? 1.2 : 2.5;
 
         // Shrink if too many characters
-        const effectiveLength = Math.max(maxLettersInWord, totalChars / 1.5);
-        if (effectiveLength > 12) {
-            const scale = 12 / effectiveLength;
-            boxWidth *= scale;
-            boxHeight *= scale;
-            fontSize *= scale;
+        // Mobile screen is usually ~20-22rem wide. 
+        // We want the longest word to always fit on one line.
+        const threshold = isMobile ? 9 : 12;
+        const effectiveLength = Math.max(maxLettersInWord, totalChars / 1.7);
+
+        if (effectiveLength > threshold) {
+            const scale = threshold / effectiveLength;
+            const finalScale = isMobile ? Math.max(scale, 0.6) : Math.max(scale, 0.5);
+            boxWidth *= finalScale;
+            boxHeight *= finalScale;
+            fontSize *= finalScale;
         }
 
         return (
