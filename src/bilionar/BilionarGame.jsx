@@ -460,7 +460,12 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                                     <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{p.selected_answer || '-'}</span>
-                                    <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff', marginLeft: '1rem' }}>{p.last_answer_time?.toFixed(2)}s</span>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#fff' }}>{p.last_answer_time?.toFixed(2)}s</span>
+                                    {(p.last_score_gained !== null && p.last_score_gained !== undefined) && (
+                                        <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: p.last_score_gained > 0 ? '#4ade80' : '#ef4444', marginLeft: '1rem' }}>
+                                            {p.last_score_gained > 0 ? '+' : ''}{p.last_score_gained}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}
