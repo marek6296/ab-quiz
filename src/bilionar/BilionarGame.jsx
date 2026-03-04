@@ -83,14 +83,6 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     return;
                 }
 
-                // ASSIGN COLORS TO PLAYERS
-                const colorPalette = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
-                // Only host assigns colors. We'll update the bilionar_players table
-                for (let i = 0; i < players.length; i++) {
-                    const assignedColor = colorPalette[i % colorPalette.length];
-                    await supabase.from('bilionar_players').update({ color: assignedColor }).eq('id', players[i].id);
-                }
-
                 const newState = {
                     questions,
                     current_index: 0,

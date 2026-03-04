@@ -76,6 +76,8 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         if (data) setPlayers(data);
     };
 
+    const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
+
     const handleHostGame = async (config = {}) => {
         if (!profile) return;
         setLoading(true);
@@ -111,7 +113,8 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             user_id: user.id,
             player_name: profile.username,
             avatar_url: profile.avatar_url,
-            is_bot: false
+            is_bot: false,
+            color: COLOR_PALETTE[0]
         }]);
 
         if (playerError) {
@@ -164,12 +167,17 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         });
 
         if (availableLobby) {
+            // Get current count for color assignment
+            const { count } = await supabase.from('bilionar_players').select('*', { count: 'exact', head: true }).eq('game_id', availableLobby.id);
+            const assignedColor = COLOR_PALETTE[count % COLOR_PALETTE.length];
+
             const { error: joinError } = await supabase.from('bilionar_players').upsert([{
                 game_id: availableLobby.id,
                 user_id: user.id,
                 player_name: profile.username,
                 avatar_url: profile.avatar_url,
-                is_bot: false
+                is_bot: false,
+                color: assignedColor
             }], { onConflict: 'game_id,user_id' });
 
             if (!joinError) {
@@ -205,7 +213,8 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                     user_id: user.id,
                     player_name: profile.username,
                     avatar_url: profile.avatar_url,
-                    is_bot: false
+                    is_bot: false,
+                    color: COLOR_PALETTE[0]
                 }]);
                 setActiveGame(newGame);
                 await fetchPlayers(newGame.id);
@@ -252,12 +261,12 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             if (game) {
                 // Add Host
                 await supabase.from('bilionar_players').insert([{
-                    game_id: game.id, user_id: user.id, player_name: profile.username, avatar_url: profile.avatar_url, is_bot: false
+                    game_id: game.id, user_id: user.id, player_name: profile.username, avatar_url: profile.avatar_url, is_bot: false, color: COLOR_PALETTE[0]
                 }]);
                 // Add Bot
                 const botAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random()}`;
                 await supabase.from('bilionar_players').insert([{
-                    game_id: game.id, is_bot: true, player_name: 'Bot Inteligent', avatar_url: botAvatar, score: 0
+                    game_id: game.id, is_bot: true, player_name: 'Bot Inteligent', avatar_url: botAvatar, score: 0, color: COLOR_PALETTE[1]
                 }]);
 
                 onStartGame(game);
@@ -306,13 +315,16 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             return;
         }
 
+        const assignedColor = COLOR_PALETTE[count % COLOR_PALETTE.length];
+
         // Add User as Player
         const { error: playerError } = await supabase.from('bilionar_players').upsert([{
             game_id: game.id,
             user_id: user.id,
             player_name: profile.username,
             avatar_url: profile.avatar_url,
-            is_bot: false
+            is_bot: false,
+            color: assignedColor
         }], { onConflict: 'game_id,user_id' });
 
         if (playerError) {
@@ -336,11 +348,16 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         const botName = `Bot ${botNum}`;
         const botAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random()}`; // Random robot avatar
 
+        // Find first unused color
+        const usedColors = new Set(players.map(p => p.color));
+        let assignedColor = COLOR_PALETTE.find(c => !usedColors.has(c)) || COLOR_PALETTE[players.length % COLOR_PALETTE.length];
+
         const { error } = await supabase.from('bilionar_players').insert([{
             game_id: activeGame.id,
             is_bot: true,
             player_name: botName,
-            avatar_url: botAvatar
+            avatar_url: botAvatar,
+            color: assignedColor
         }]);
 
         if (error) {
