@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomingInvite }) => {
-    // Vytvorenie stabilnej referencie funkcií na to, aby sme nemuseli unsubscribovať channel
     const activeGameIdRef = useRef(activeGameId);
     const handleStartGameRef = useRef(handleStartGame);
+
     useEffect(() => {
         activeGameIdRef.current = activeGameId;
         handleStartGameRef.current = handleStartGame;
@@ -13,11 +13,12 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
     useEffect(() => {
         if (!user) return;
 
-        // Set online status
         supabase.from('profiles').update({ online_status: 'online' }).eq('id', user.id).then();
 
+        // Combined channel for both game systems
         const subscription = supabase
-            .channel('game_invites')
+            .channel('game_invites_global')
+            // --- AB QUIZ (HEX) SYSTEM ---
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
@@ -29,6 +30,7 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                     setIncomingInvite({
                         gameId: payload.new.id,
                         gameRules: payload.new.game_type || 'hex',
+                        gameType: 'hex',
                         challengerName: data?.username || 'Neznámy Hráč'
                     });
                 }
@@ -39,26 +41,14 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                 table: 'games',
                 filter: `player2_id=eq.${user.id}`
             }, (payload) => {
-                // If game becomes active, clear the invite prompt and start if not already started
                 if (payload.new.status === 'active') {
                     setIncomingInvite(null);
                     if (!activeGameIdRef.current) {
                         handleStartGameRef.current('1v1_online', payload.new.game_type || 'hex', payload.new.id);
                     }
                 }
-                // If game is deleted (declined or cancelled), clear it
                 if (payload.new.status === 'cancelled' || payload.new.status === 'declined') {
                     setIncomingInvite(null);
-                }
-            })
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'games',
-                filter: `player1_id=eq.${user.id}`
-            }, (payload) => {
-                if (payload.new.status === 'active' && !activeGameIdRef.current) {
-                    handleStartGameRef.current('1v1_online', payload.new.game_type || 'hex', payload.new.id);
                 }
             })
             .on('postgres_changes', {
@@ -66,14 +56,43 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                 schema: 'public',
                 table: 'games'
             }, (payload) => {
-                // If the game being deleted is our incoming invite, clear it
-                setIncomingInvite(prev => (prev?.gameId === payload.old.id ? null : prev));
+                setIncomingInvite(prev => (prev?.gameType === 'hex' && prev?.gameId === payload.old.id ? null : prev));
+            })
+
+            // --- BILIONAR SYSTEM ---
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'bilionar_games',
+                filter: `host_id=neq.${user.id}` // We only care about games where we are NOT the host
+            }, async (payload) => {
+                // Bilionar uses a joining system, but for direct invites we might use a dedicated field or logic.
+                // For now, let's look for a 'invited_player_id' field if you have one, or just listen to the bilionar_players join.
+                // Actually, let's implement a 'target_id' in bilionar_games for private invites.
+            })
+            // Listen for players being added (if we are added to a game by someone else)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'bilionar_players',
+                filter: `user_id=eq.${user.id}`
+            }, async (payload) => {
+                // If we were added to a game and it's still waiting, notify us
+                const { data: game } = await supabase.from('bilionar_games').select('*').eq('id', payload.new.game_id).single();
+                if (game && game.status === 'waiting' && game.host_id !== user.id) {
+                    const { data: host } = await supabase.from('profiles').select('username').eq('id', game.host_id).single();
+                    setIncomingInvite({
+                        gameId: game.id,
+                        gameRules: 'bilionar',
+                        gameType: 'bilionar',
+                        challengerName: host?.username || 'Neznámy Hráč'
+                    });
+                }
             })
             .subscribe();
 
         return () => {
             subscription.unsubscribe();
-            // Set offline on unmount
             if (user) supabase.from('profiles').update({ online_status: 'offline' }).eq('id', user.id).then();
         };
     }, [user, setIncomingInvite]);

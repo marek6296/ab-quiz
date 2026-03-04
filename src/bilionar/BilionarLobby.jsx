@@ -293,6 +293,17 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                 <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
                             </div>
 
+                            <div className="mode-card" onClick={() => {
+                                handleHostGame().then(() => {
+                                    // Logic to add bots automatically could be added here if needed
+                                });
+                            }} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
+                                <h3>Tréning s BOTom</h3>
+                                <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
+                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                            </div>
+
                             <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
                                 <h3>Pripojiť sa</h3>
@@ -390,10 +401,11 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
                             <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov a pridávať si ich do priateľov.</p>
                             <FriendsList
-                                selectedGameRules="hex"
+                                selectedGameRules="bilionar"
                                 selectedCategory={[]}
                                 selectedDifficulty={1}
                                 onlineUserIds={onlineUserIds}
+                                isBilionar={true}
                             />
                         </div>
                     </div>

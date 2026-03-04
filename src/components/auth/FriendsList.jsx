@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), hideChallenges = false }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), isBilionar = false }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -137,33 +137,64 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
     };
 
     const handleChallenge = async (partner) => {
-        if (outgoingInvite) return; // Zabránenie viacnásobnému výzvaniu
+        if (outgoingInvite) return;
 
-        // Fix difficulty if it's passed as an array
-        const diff = Array.isArray(selectedDifficulty) ? selectedDifficulty[0] : selectedDifficulty;
+        if (isBilionar) {
+            // BILIONAR CHALLENGE LOGIC
+            const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const { data: game, error: gameError } = await supabase.from('bilionar_games').insert([{
+                host_id: user.id,
+                join_code: joinCode,
+                status: 'waiting',
+                settings: { questions_count: 10, difficulty: 2 },
+                state: { phase: 'init' }
+            }]).select().single();
 
-        const { data, error } = await supabase.from('games').insert({
-            player1_id: user.id,
-            player2_id: partner.id,
-            current_turn: user.id, // Challenger starts first
-            game_type: selectedGameRules,
-            category: JSON.stringify(selectedCategory),
-            difficulty: parseInt(diff) || 1,
-            is_public: false, // Private invite 
-            board_state: generateInitialBoard(selectedGameRules)
-        }).select().single();
+            if (gameError) {
+                alert(`Chyba pri vytváraní hry: ${gameError.message}`);
+                return;
+            }
 
-        if (error) {
-            console.error('Error creating game invite:', error);
-            alert(`Nepodarilo sa vytvoriť hru: ${error.message}`);
+            // Add Host
+            await supabase.from('bilionar_players').insert([{
+                game_id: game.id, user_id: user.id, player_name: user?.user_metadata?.username || 'Host', is_bot: false
+            }]);
+
+            // Add Partner (This triggers their invite UI via useGameInvites)
+            await supabase.from('bilionar_players').insert([{
+                game_id: game.id, user_id: partner.id, player_name: partner.username, is_bot: false
+            }]);
+
+            setOutgoingInvite({ gameId: game.id, partnerName: partner.username, gameType: 'bilionar' });
         } else {
-            setOutgoingInvite({ gameId: data.id, partnerName: partner.username });
+            // HEX CHALLENGE LOGIC
+            const diff = Array.isArray(selectedDifficulty) ? selectedDifficulty[0] : selectedDifficulty;
+            const { data, error } = await supabase.from('games').insert({
+                player1_id: user.id,
+                player2_id: partner.id,
+                current_turn: user.id,
+                game_type: selectedGameRules,
+                category: JSON.stringify(selectedCategory),
+                difficulty: parseInt(diff) || 1,
+                is_public: false,
+                board_state: generateInitialBoard(selectedGameRules)
+            }).select().single();
+
+            if (error) {
+                alert(`Nepodarilo sa vytvoriť hru: ${error.message}`);
+            } else {
+                setOutgoingInvite({ gameId: data.id, partnerName: partner.username, gameType: 'hex' });
+            }
         }
     };
 
     const handleCancelGameInvite = async () => {
         if (outgoingInvite) {
-            await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
+            if (outgoingInvite.gameType === 'bilionar') {
+                await supabase.from('bilionar_games').delete().eq('id', outgoingInvite.gameId);
+            } else {
+                await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
+            }
             setOutgoingInvite(null);
         }
     };
@@ -272,15 +303,13 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                                         </div>
                                     </div>
                                     <div className="actions">
-                                        {!hideChallenges && (
-                                            <button
-                                                className="primary small"
-                                                disabled={!isOnline || partner.online_status === 'playing'}
-                                                onClick={() => handleChallenge(partner)}
-                                            >
-                                                Vyzvať
-                                            </button>
-                                        )}
+                                        <button
+                                            className="primary small"
+                                            disabled={!isOnline || partner.online_status === 'playing'}
+                                            onClick={() => handleChallenge(partner)}
+                                        >
+                                            Vyzvať
+                                        </button>
                                         <button className="danger small" onClick={() => removeFriend(friend.id)}>X</button>
                                     </div>
                                 </li>
