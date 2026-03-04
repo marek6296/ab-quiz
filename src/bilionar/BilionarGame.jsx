@@ -361,7 +361,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'big_intro') {
         return (
-            <div className="bilionar-board fullscreen-flex">
+            <div key="phase_big_intro" className="bilionar-board fullscreen-flex">
                 <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
             </div>
         );
@@ -369,7 +369,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'welcome') {
         return (
-            <div className="bilionar-board fullscreen-flex">
+            <div key="phase_welcome" className="bilionar-board fullscreen-flex">
                 <div className="message-modal slide-in-scale">
                     <h2>Vitajte v Bilionár Battle</h2>
                 </div>
@@ -379,7 +379,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'prepare_first') {
         return (
-            <div className="bilionar-board fullscreen-flex">
+            <div key="phase_prepare_first" className="bilionar-board fullscreen-flex">
                 <div className="message-modal slide-in-scale">
                     <h2>Pripravte sa na prvú otázku</h2>
                 </div>
@@ -389,7 +389,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'prepare_next') {
         return (
-            <div className="bilionar-board fullscreen-flex">
+            <div key="phase_prepare_next" className="bilionar-board fullscreen-flex">
                 <div className="message-modal slide-in-scale">
                     <h2>Ideme na ďalšiu otázku</h2>
                 </div>
@@ -399,7 +399,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'post_question_pause' || gameState.phase === 'reveal_pause') {
         return (
-            <div className="bilionar-board">
+            <div key={`pause_${gameState.phase}`} className="bilionar-board">
                 {/* Empty board for dramatic effect, keeping top bar */}
                 <div className="bilionar-top-bar">
                     {players.map(renderPlayerAvatar)}
@@ -410,7 +410,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     if (gameState.phase === 'time_up') {
         return (
-            <div className="bilionar-board fullscreen-flex relative-board">
+            <div key="phase_time_up" className="bilionar-board fullscreen-flex relative-board">
                 <div className="bilionar-top-bar absolute-top">
                     {players.map(renderPlayerAvatar)}
                 </div>
