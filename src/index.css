@@ -3184,6 +3184,7 @@ button.small {
   cursor: pointer;
   z-index: 1;
   text-align: left;
+  width: 100%;
 }
 
 .bilionar-option-btn::before {
