@@ -2,14 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
-export const BilionarGame = ({ activeGame, onLeave }) => {
+export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetGame }) => {
     const { user } = useAuth();
-    const [players, setPlayers] = useState([]);
 
-    // Distributed Game State
-    // phases: init, intermission, question, reveal, finished
-    const [gameState, setGameState] = useState(activeGame.state || { phase: 'init' });
-    const isHost = activeGame.host_id === user.id;
+    // Directly use props as the SINGLE Source of Truth. No local shadow states!
+    const gameState = activeGame?.state || { phase: 'init' };
+    const isHost = activeGame?.host_id === user?.id;
 
     // Local UI State
     const [visualTime, setVisualTime] = useState(15);
@@ -17,27 +15,8 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
     const [scoreGained, setScoreGained] = useState(null);
     const awardedIndex = useRef(-1);
 
-    // 1. Initial Data Fetch & Subscriptions
-    useEffect(() => {
-        const fetchPlayers = async () => {
-            const { data } = await supabase.from('bilionar_players').select('*').eq('game_id', activeGame.id).order('score', { ascending: false });
-            if (data) setPlayers(data);
-        };
-        fetchPlayers();
-
-        const channel = supabase.channel(`bilionar_game_board_${activeGame.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bilionar_games', filter: `id=eq.${activeGame.id}` }, (payload) => {
-                setGameState(payload.new.state);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bilionar_players', filter: `game_id=eq.${activeGame.id}` }, () => {
-                fetchPlayers();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [activeGame.id]);
+    const gameStateRef = useRef(gameState);
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
     // 2. HOST Server Loop - Drives the Game State across all clients
     useEffect(() => {
@@ -52,7 +31,6 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                 const cats = sett.categories && sett.categories.length > 0 ? sett.categories : null;
                 const diffs = sett.difficulty_levels && sett.difficulty_levels.length > 0 ? sett.difficulty_levels : null;
 
-                // Fetch random questions with filters
                 const { data: questions, error } = await supabase.rpc('get_random_bilionar_questions', {
                     limit_num: limitCount,
                     categories_filter: cats,
@@ -61,64 +39,62 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
                 if (!active) return;
 
+                let finalQuestions = questions;
                 if (error || !questions || questions.length === 0) {
-                    console.log("No questions found with filters, falling back to all:", error);
                     const { data: fallbackQ } = await supabase.from('bilionar_questions').select('*').limit(limitCount);
+                    finalQuestions = fallbackQ;
+                }
 
-                    if (!fallbackQ || fallbackQ.length === 0) {
-                        const newState = { phase: 'no_questions' };
-                        setGameState(newState);
-                        await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
-                        return;
-                    }
-
-                    const newState = {
-                        questions: fallbackQ,
-                        current_index: 0,
-                        phase: 'big_intro', // Changed from intermission
-                        phase_end: Date.now() + 3000 // 3s for big logo
-                    };
-                    setGameState(newState);
-                    await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
+                if (!finalQuestions || finalQuestions.length === 0) {
+                    const errorState = { phase: 'no_questions' };
+                    onSetGame(prev => ({ ...prev, state: errorState }));
+                    supabase.from('bilionar_games').update({ state: errorState }).eq('id', activeGame.id).then();
                     return;
                 }
 
-                const newState = {
-                    questions,
+                const startState = {
+                    questions: finalQuestions,
                     current_index: 0,
-                    phase: 'big_intro', // 1. Giant Logo
+                    phase: 'big_intro',
                     phase_end: Date.now() + 3000
                 };
 
-                // Optimistic local update
-                setGameState(newState);
-                await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
+                onSetGame(prev => ({ ...prev, state: startState }));
+                await supabase.from('bilionar_games').update({ state: startState }).eq('id', activeGame.id);
+
+                if (gameChannel) {
+                    gameChannel.send({
+                        type: 'broadcast',
+                        event: 'phase_change',
+                        payload: { state: startState }
+                    });
+                }
             };
             initGame();
             return;
         }
 
         const ticker = setInterval(() => {
+            const current = gameStateRef.current;
             const now = Date.now();
-            if (gameState.phase_end && now >= gameState.phase_end) {
-                let newState = { ...gameState };
 
-                switch (gameState.phase) {
+            if (current.phase_end && now >= current.phase_end) {
+                let newState = { ...current };
+
+                switch (current.phase) {
                     case 'big_intro':
                         newState.phase = 'welcome';
-                        newState.phase_end = now + 6000; // 4s visible + 2s pause
+                        newState.phase_end = now + 6000;
                         break;
                     case 'welcome':
                         newState.phase = 'prepare_first';
-                        newState.phase_end = now + 6000; // 4s visible + 2s pause
+                        newState.phase_end = now + 6000;
                         break;
                     case 'prepare_first':
                     case 'prepare_next':
                     case 'post_question_pause':
-                        // Go to question reading
                         newState.phase = 'showing_question_only';
-                        newState.phase_end = now + 4000; // 4s to read question
-                        // Host resets answers
+                        newState.phase_end = now + 4000;
                         supabase.from('bilionar_players').update({
                             has_answered: false,
                             selected_answer: null,
@@ -128,61 +104,65 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         break;
                     case 'showing_question_only':
                         newState.phase = 'answering';
-                        newState.phase_end = now + 10000; // 10s to answer
+                        newState.phase_end = now + 10000;
                         break;
                     case 'answering':
                         newState.phase = 'time_up';
-                        newState.phase_end = now + 2000; // 2s "Time's Up" message
+                        newState.phase_end = now + 2000;
                         break;
                     case 'time_up':
                         newState.phase = 'reveal_pause';
-                        newState.phase_end = now + 1000; // 1s dramatic pause (keep it short)
+                        newState.phase_end = now + 1000;
                         break;
                     case 'reveal_pause':
                         newState.phase = 'reveal_results';
-                        newState.phase_end = now + 5000; // 5s showing correct answer & colors
+                        newState.phase_end = now + 5000;
                         break;
                     case 'reveal_results':
                         newState.phase = 'recap_answers';
-                        newState.phase_end = now + 3000; // 3s showing who answered what and how fast
+                        newState.phase_end = now + 3000;
                         break;
                     case 'recap_answers':
                         newState.phase = 'recap_scores';
-                        newState.phase_end = now + 4000; // 4s animating points and leaderboard
+                        newState.phase_end = now + 4000;
                         break;
                     case 'recap_scores':
-                        if (gameState.current_index < (gameState.questions?.length - 1)) {
-                            // Clear screen pause before next message
+                        if (current.current_index < (current.questions?.length - 1)) {
                             newState.phase = 'post_question_pause';
-                            newState.phase_end = now + 2000; // 2s empty screen
+                            newState.phase_end = now + 2000;
                             newState.current_index += 1;
                         } else {
                             newState.phase = 'finished';
                             newState.phase_end = now + 9999999;
                         }
                         break;
-                    default:
-                        break;
                 }
 
-                // If jumping from post_question_pause to prepare_next setup (handled above)
-                if (gameState.phase === 'post_question_pause' && gameState.current_index > 0) {
+                if (current.phase === 'post_question_pause' && current.current_index > 0) {
                     newState.phase = 'prepare_next';
                     newState.phase_end = now + 6000;
                 }
 
-                if (newState.phase !== gameState.phase) {
-                    setGameState(newState);
-                    supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
+                if (newState.phase !== current.phase) {
+                    console.log("Host advancing phase to:", newState.phase);
+                    onSetGame(prev => ({ ...prev, state: newState }));
+                    supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id).then();
+                    if (gameChannel) {
+                        gameChannel.send({
+                            type: 'broadcast',
+                            event: 'phase_change',
+                            payload: { state: newState }
+                        });
+                    }
                 }
             }
-        }, 200); // Check faster for tighter animation sync
+        }, 1000);
 
         return () => {
             active = false;
             clearInterval(ticker);
         };
-    }, [gameState, isHost, activeGame.id, players]);
+    }, [isHost, activeGame.id, gameChannel]); // Stable dependencies for the ticker
 
     // 3. Client Local State Handlers (Timer and Score)
     useEffect(() => {
@@ -349,172 +329,128 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     };
 
-    // Render helpers for specific phases
-    if (gameState.phase === 'init') {
-        return <div className="game-container"><h2 style={{ color: '#facc15' }}>Pripravujem otázky...</h2></div>;
-    }
+    // --- RENDER LOGIC ---
 
+    // 1. Critical Error/Status States (Full Screen)
+    if (gameState.phase === 'init') {
+        return <div className="bilionar-board fullscreen-flex"><div className="message-modal"><h2>Pripravujem otázky...</h2></div></div>;
+    }
     if (gameState.phase === 'no_questions') {
         return (
-            <div className="game-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Žiadne otázky v databáze!</h2>
-                <p style={{ color: 'white', marginBottom: '2rem' }}>Prosím prejdite do Administrácie a vygenerujte AI otázky, aby ste mohli hrať.</p>
-                <button className="neutral" onClick={onLeave} style={{ padding: '1rem 3rem' }}>Späť do Lobby</button>
+            <div className="bilionar-board fullscreen-flex">
+                <div className="message-modal dramatic-pop">
+                    <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Žiadne otázky v databáze!</h2>
+                    <p style={{ color: 'white', marginBottom: '2rem' }}>Prosím prejdite do Administrácie a vygenerujte AI otázky.</p>
+                    <button className="neutral" onClick={onLeave} style={{ padding: '1rem 3rem' }}>Späť do Lobby</button>
+                </div>
             </div>
         );
     }
-
     if (gameState.phase === 'finished') {
         return (
-            <div className="game-container start-screen" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white', padding: '1rem' }}>
-                <h1 style={{ color: '#facc15', fontSize: '3rem', marginBottom: '2rem', textShadow: '0 0 20px #facc15' }}>KONIEC HRY</h1>
+            <div className="bilionar-board fullscreen-flex" style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #020617 100%)' }}>
+                <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
                     {players.map((p, i) => (
-                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', alignItems: 'center' }}>
+                        <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: i === 0 ? '#facc15' : '#94a3b8' }}>#{i + 1}</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '900', color: i === 0 ? '#facc15' : '#94a3b8' }}>#{i + 1}</span>
                                 <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
                             </div>
-                            <span style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.2rem' }}>{p.score} b</span>
+                            <span style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.4rem' }}>{p.score} b</span>
                         </div>
                     ))}
                 </div>
-                <button className="primary" onClick={onLeave} style={{ marginTop: '3rem', padding: '1rem 3rem' }}>Späť do Lobby</button>
+                <button className="primary" onClick={onLeave} style={{ marginTop: '3rem', padding: '1.2rem 4rem', fontSize: '1.2rem' }}>Späť do Lobby</button>
             </div>
         );
     }
 
-    // --- PRESENTATION PHASES ---
-
-    if (gameState.phase === 'big_intro') {
-        return (
-            <div key="phase_big_intro" className="bilionar-board fullscreen-flex">
-                <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
-            </div>
-        );
-    }
-
-    if (gameState.phase === 'welcome') {
-        return (
-            <div key="phase_welcome" className="bilionar-board fullscreen-flex">
-                <div className="message-modal slide-in-scale">
-                    <h2>Vitajte</h2>
-                </div>
-            </div>
-        );
-    }
-
-    if (gameState.phase === 'prepare_first') {
-        return (
-            <div key="phase_prepare_first" className="bilionar-board fullscreen-flex">
-                <div className="message-modal slide-in-scale">
-                    <h2>Pripravte sa na prvú otázku</h2>
-                </div>
-            </div>
-        );
-    }
-
-    if (gameState.phase === 'prepare_next') {
-        return (
-            <div key="phase_prepare_next" className="bilionar-board fullscreen-flex">
-                <div className="message-modal slide-in-scale">
-                    <h2>Ideme na ďalšiu otázku</h2>
-                </div>
-            </div>
-        );
-    }
-
-    if (gameState.phase === 'post_question_pause') {
-        return (
-            <div key="phase_post_question_pause" className="bilionar-board relative-board">
-                <div className="bilionar-top-bar absolute-top">
-                    {players.map(renderPlayerAvatar)}
-                </div>
-                {/* Screen is empty, previous question hides before the "Next question" modal */}
-            </div>
-        );
-    }
-
-    const currentQ = gameState.questions?.[gameState.current_index];
-
-    if (gameState.phase === 'recap_answers') {
-        const answeredPlayers = [...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99));
-        return (
-            <div key="phase_recap_answers" className="bilionar-board fullscreen-flex">
-                <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
-                    <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {answeredPlayers.map((p, i) => (
-                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1.5rem 2rem', borderRadius: '8px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                    <span style={{ fontWeight: '900', fontSize: '2rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#fff' }}>{p.player_name}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                    <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{p.selected_answer || '-'}</span>
-                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#fff' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
-                                    {(p.last_score_gained !== null && p.last_score_gained !== undefined) && (
-                                        <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: p.last_score_gained > 0 ? '#4ade80' : '#ef4444', marginLeft: '1rem' }}>
-                                            {p.last_score_gained > 0 ? '+' : ''}{p.last_score_gained}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    if (gameState.phase === 'recap_scores') {
-        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-        return (
-            <div key="phase_recap_scores" className="bilionar-board fullscreen-flex">
-                <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
-                    <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {sortedPlayers.map((p, i) => (
-                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1.5rem 2rem', borderRadius: '8px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                    <span style={{ fontWeight: '900', fontSize: '2rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#fff' }}>{p.player_name}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                    {(p.last_score_gained > 0) && (
-                                        <span className="animate-fade-up" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.5rem', textShadow: '0 0 10px #4ade80' }}>+{p.last_score_gained}</span>
-                                    )}
-                                    <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff' }}>{p.score}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    // --- QUESTION PHASES (showing_question_only, answering, time_up, reveal_pause, reveal_results) ---
-
-    // Don't render full screen replaces for these phases anymore
-    // (reveal_pause, time_up) fall through so the question stays on screen
-
+    // 2. Main Game Body
     const totalQ = gameState.questions?.length;
+    const currentQ = gameState.questions?.[gameState.current_index];
     const isQuestionOnly = gameState.phase === 'showing_question_only';
     const isReveal = gameState.phase === 'reveal_results';
 
     return (
         <div className="bilionar-board relative-board">
-
-            {/* TOP BAR: Players and Scores */}
+            {/* Persistant Top Bar */}
             <div className="bilionar-top-bar absolute-top">
                 {players.map(renderPlayerAvatar)}
             </div>
 
-            {/* MAIN CONTENT AREA */}
             <div className="bilionar-main-content">
 
-                {/* Timer Area - Always render to keep size, hide visually if question only */}
+                {/* PHASE: Big Intro, Welcome, Preparations (Full Overlays over game board) */}
+                {gameState.phase === 'big_intro' && (
+                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
+                        <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
+                    </div>
+                )}
+
+                {gameState.phase === 'welcome' && (
+                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
+                        <div className="message-modal slide-in-scale">
+                            <h2>Vitajte</h2>
+                        </div>
+                    </div>
+                )}
+
+                {(gameState.phase === 'prepare_first' || gameState.phase === 'prepare_next') && (
+                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
+                        <div className="message-modal slide-in-scale">
+                            <h2>{gameState.phase === 'prepare_first' ? 'Pripravte sa na prvú otázku' : 'Ideme na ďalšiu otázku'}</h2>
+                        </div>
+                    </div>
+                )}
+
+                {/* PHASE: Recap Answers */}
+                {gameState.phase === 'recap_answers' && (
+                    <div className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
+                        <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
+                            <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+                                {[...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99)).map((p, i) => (
+                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                            <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                            <span style={{ fontWeight: 'bold', color: '#facc15' }}>{p.selected_answer}</span>
+                                            <span style={{ fontWeight: '900' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* PHASE: Recap Scores */}
+                {gameState.phase === 'recap_scores' && (
+                    <div className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
+                        <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
+                            <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {[...players].sort((a, b) => b.score - a.score).map((p, i) => (
+                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                            <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                            {p.last_score_gained > 0 && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>+{p.last_score_gained}</span>}
+                                            <span style={{ fontSize: '2rem', fontWeight: '900' }}>{p.score}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ACTIVE GAME BOARD (Always present in background or foreground) */}
                 <div
                     className={`bilionar-timer-wrapper ${isQuestionOnly ? 'opacity-0' : 'animate-fade-in'}`}
                     style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
@@ -528,15 +464,13 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     </div>
                 </div>
 
-                {/* Question Area */}
                 <div className="bilionar-question-container">
                     <div className="bilionar-question-box animate-slide-down">
                         <span className="question-number">Otázka {gameState.current_index + 1}/{totalQ}</span>
-                        <h2>{currentQ?.question_text}</h2>
+                        <h2>{currentQ?.question_text || 'Načítavam otázku...'}</h2>
                     </div>
                 </div>
 
-                {/* Options Area - Always render to keep size bounds */}
                 <div
                     className={`bilionar-options-grid ${isQuestionOnly ? 'opacity-0' : 'animate-fade-up'}`}
                     style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
@@ -545,19 +479,12 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         const optionText = currentQ?.[`option_${key.toLowerCase()}`];
                         let statusClass = '';
 
-                        // Determine class based on state
-                        if (gameState.phase === 'answering' && selectedAnswer === key) {
-                            statusClass = 'locked'; // Waiting for reveal
-                        }
+                        if (gameState.phase === 'answering' && selectedAnswer === key) statusClass = 'locked';
                         else if (isReveal) {
-                            if (key === currentQ?.correct_answer) {
-                                statusClass = 'correct blink-green'; // Reveal correct
-                            } else if (selectedAnswer === key) {
-                                statusClass = 'wrong'; // Reveal wrong for me
-                            }
+                            if (key === currentQ?.correct_answer) statusClass = 'correct blink-green';
+                            else if (selectedAnswer === key) statusClass = 'wrong';
                         }
 
-                        // Find players who picked this answer (only show on reveal) excluding myself
                         const pickedBy = isReveal ? players.filter(p => p.selected_answer === key && p.user_id !== user.id) : [];
 
                         return (
@@ -571,14 +498,9 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                     <div className="option-text" style={{ textAlign: 'left' }}>{optionText}</div>
 
                                     {isReveal && pickedBy.length > 0 && (
-                                        <div style={{ display: 'flex', gap: '4px', marginLeft: '10px', marginRight: '20px', flexWrap: 'wrap', maxWidth: '120px', justifyContent: 'flex-end' }}>
+                                        <div style={{ display: 'flex', gap: '4px', marginLeft: '10px', flexWrap: 'wrap', maxWidth: '120px', justifyContent: 'flex-end' }}>
                                             {pickedBy.map(p => (
-                                                <div
-                                                    key={p.id}
-                                                    className="choice-dot shadow-pop"
-                                                    style={{ backgroundColor: p.color || '#ffffff', flexShrink: 0 }}
-                                                    title={p.player_name}
-                                                />
+                                                <div key={p.id} className="choice-dot shadow-pop" style={{ backgroundColor: p.color || '#ffffff' }} title={p.player_name} />
                                             ))}
                                         </div>
                                     )}
@@ -587,21 +509,22 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         );
                     })}
                 </div>
-
             </div>
 
-            <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
-                <button className="danger" onClick={onLeave} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Opustiť (Dev)</button>
-            </div>
-
-            {/* OVERLAYS FOR QUESTION PHASES */}
-            {gameState.phase === 'time_up' && (
-                <div className="fullscreen-flex" style={{ background: 'transparent', pointerEvents: 'none' }}>
-                    <div className="message-modal dramatic-pop">
-                        <h2>Koniec časového limitu</h2>
-                    </div>
+            {/* Debug & Sync Info */}
+            <div style={{ position: 'fixed', bottom: '10px', left: '10px', display: 'flex', gap: '10px', zIndex: 9999 }}>
+                <div style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #3b82f6', fontSize: '10px', color: '#fff' }}>
+                    📡 ID: {activeGame.id.substring(0, 5)} | Host: {isHost ? 'YES' : 'NO'} | Phase: {gameState.phase}
                 </div>
-            )}
+                {!isHost && (
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{ padding: '5px 10px', background: '#3b82f6', borderRadius: '4px', fontSize: '10px', color: '#fff', border: 'none', cursor: 'pointer' }}
+                    >
+                        🔄 Refresh & Resync
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

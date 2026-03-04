@@ -8,7 +8,17 @@ const generateJoinCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
-export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, onlineUserIds = new Set(), pendingGameId = null, onClearPending = () => { } }) => {
+export const BilionarLobby = ({
+    onStartGame,
+    onBackToPortal,
+    onShowAdmin,
+    onlineUserIds = new Set(),
+    pendingGameId = null,
+    onClearPending = () => { },
+    activeGame,
+    players = [],
+    onSetGame
+}) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = useState(null);
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
@@ -28,13 +38,10 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const [difficulty, setDifficulty] = useState([2]); // Default to Stredné
     const [botDifficulty, setBotDifficulty] = useState(2);
 
-    // Room State
-    const [activeGame, setActiveGame] = useState(null);
-    const [players, setPlayers] = useState([]);
-
+    // Initial load
     useEffect(() => {
         if (user) {
-            supabase.from('profiles').select('username, avatar_url, is_admin').eq('id', user.id).single()
+            supabase.from('profiles').select('*').eq('id', user.id).single()
                 .then(({ data }) => setProfile(data));
         }
     }, [user]);
@@ -53,7 +60,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     // Check if user is already in a waiting lobby (e.g. accepted an invite)
     useEffect(() => {
         const checkExistingLobby = async () => {
-            if (!user) return;
+            if (!user || activeGame) return; // Only check if no active game is already set
             setLoading(true);
             const { data } = await supabase
                 .from('bilionar_players')
@@ -62,64 +69,49 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                 .order('joined_at', { ascending: false })
                 .limit(1);
 
-            if (data && data.length > 0 && data[0].bilionar_games && data[0].bilionar_games.status === 'waiting') {
+            if (data && data.length > 0 && data[0].bilionar_games && ['waiting', 'playing'].includes(data[0].bilionar_games.status)) {
                 const game = data[0].bilionar_games;
-                setActiveGame(game);
-                await fetchPlayers(game.id);
-                setView('room');
+                onSetGame(game);
+
+                // If it's still waiting, go to room. If playing, setting activeGame will let BilionarApp handle transition
+                if (game.status === 'waiting') {
+                    setView('room');
+                }
                 setActiveTab('play');
             }
             setLoading(false);
         };
         checkExistingLobby();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    }, [user, activeGame, onSetGame]);
 
     // Handle incoming pending game (invited directly while active)
     useEffect(() => {
-        if (pendingGameId) {
-            const joinPending = async () => {
+        const handlePending = async () => {
+            if (pendingGameId && !activeGame) {
                 setLoading(true);
-                const { data } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
-                if (data) {
-                    setActiveGame(data);
-                    await fetchPlayers(data.id);
+                const { data: game, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+                if (game) {
+                    onSetGame(game);
                     setView('room');
                     setActiveTab('play');
+                    if (onClearPending) onClearPending();
+                } else if (error) {
+                    console.error("Error loading pending game:", error);
                 }
                 setLoading(false);
-                if (onClearPending) onClearPending();
-            };
-            joinPending();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pendingGameId]);
-
-    // Supabase Realtime Subscription for the active game
-    useEffect(() => {
-        if (!activeGame) return;
-
-        const channel = supabase.channel(`bilionar_room_${activeGame.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bilionar_players', filter: `game_id=eq.${activeGame.id}` }, (payload) => {
-                fetchPlayers(activeGame.id);
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bilionar_games', filter: `id=eq.${activeGame.id}` }, (payload) => {
-                setActiveGame(payload.new);
-                if (payload.new.status === 'playing') {
-                    onStartGame(payload.new);
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
+            }
         };
-    }, [activeGame, onStartGame]);
+        handlePending();
+    }, [pendingGameId, activeGame, onSetGame, onClearPending]);
 
-    const fetchPlayers = async (gameId) => {
-        const { data } = await supabase.from('bilionar_players').select('*').eq('game_id', gameId).order('joined_at', { ascending: true });
-        if (data) setPlayers(data);
-    };
+    // Update local view state based on activeGame existence
+    useEffect(() => {
+        if (activeGame && view !== 'room') {
+            setView('room');
+        } else if (!activeGame && view === 'room') {
+            setView('menu');
+        }
+    }, [activeGame, view]);
 
     const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
@@ -378,8 +370,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             return;
         }
 
-        setActiveGame(game);
-        await fetchPlayers(game.id);
+        onSetGame(game);
         setView('room');
         setActiveTab('play');
         setLoading(false);
@@ -407,8 +398,6 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
 
         if (error) {
             console.error("Error adding bot:", error);
-        } else {
-            fetchPlayers(activeGame.id);
         }
         setLoading(false);
     };
@@ -416,7 +405,6 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const handleRemovePlayer = async (playerId) => {
         if (!activeGame) return;
         await supabase.from('bilionar_players').delete().eq('id', playerId);
-        fetchPlayers(activeGame.id);
     };
 
     const handleLeaveRoom = async () => {
@@ -427,8 +415,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                 await supabase.from('bilionar_players').delete().eq('game_id', activeGame.id).eq('user_id', user.id);
             }
         }
-        setActiveGame(null);
-        setPlayers([]);
+        onSetGame(null);
         setView('menu');
         setJoinCodeInput('');
     };
