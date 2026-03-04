@@ -40,6 +40,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
 
     // Seen Questions Tracking
     const [seenIds, setSeenIds] = useState([]);
+    const [disconnectReason, setDisconnectReason] = useState(null);
 
     // For local games vs BOT, just fetch current user's seen questions once
     useEffect(() => {
@@ -118,8 +119,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 if (payload.eventType === 'DELETE') {
                     if (manualExitRef?.current) return; // Silent for the leaver
                     // Game was abandoned by the other player or deleted
-                    alert("Hra bola ukončená druhým hráčom.");
-                    useGameStore.getState().resetToLobby();
+                    setDisconnectReason("Hra bola ukončená druhým hráčom.");
                     return;
                 }
                 if (payload.eventType === 'UPDATE') {
@@ -133,8 +133,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
                     if (newData.status === 'finished' && !newData.winner_id) {
                         if (manualExitRef?.current) return; // Silent for the leaver
-                        alert("Súper opustil hru.");
-                        useGameStore.getState().resetToLobby();
+                        setDisconnectReason("Súper opustil hru.");
                         return;
                     }
                     if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
@@ -302,11 +301,8 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         localPlayerNum,
         p1Score,
         p2Score,
-        p1Combo,
-        p2Combo,
-        gameData,
-        presenceCount,
-        seenIds,
-        markQuestionAsSeen
+        p1Combo, p2Combo,
+        gameData, presenceCount, seenIds, markQuestionAsSeen,
+        disconnectReason, setDisconnectReason
     };
 };

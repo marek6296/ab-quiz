@@ -114,6 +114,29 @@ const ReconnectModal = ({ activeModal, activeGameId, presenceCount, user, onCanc
   );
 };
 
+const DisconnectedModal = ({ reason, onBackToLobby }) => {
+  if (!reason) return null;
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 10003 }}>
+      <div className="modal-content glass-panel" style={{ textAlign: 'center', padding: '3rem', maxWidth: '450px' }}>
+        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔌</div>
+        <h2 style={{ color: '#facc15', marginBottom: '1rem', fontSize: '2rem' }}>Spojenie stratené</h2>
+        <p style={{ fontSize: '1.2rem', margin: '0 0 2.5rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+          {reason === "Súper opustil hru."
+            ? "Váš súper sa rozhodol hru predčasne ukončiť a opustiť zápas."
+            : "Hra bola ukončená druhým hráčom. Možno stratil spojenie alebo zavrel okno."}
+        </p>
+        <div className="modal-actions">
+          <button className="primary" onClick={onBackToLobby} style={{ width: '100%', padding: '1.2rem' }}>
+            Späť do Lobby
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal }) => {
   const { user } = useAuth();
@@ -203,7 +226,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const {
     board, currentPlayer, winner, claimHexagon, resetGame,
     localPlayerNum, p1Score, p2Score, p1Combo, p2Combo,
-    gameData, presenceCount, seenIds, markQuestionAsSeen
+    gameData, presenceCount, seenIds, markQuestionAsSeen,
+    disconnectReason, setDisconnectReason
   } = useGameState({
     userId: user?.id,
     gameMode,
@@ -697,6 +721,16 @@ const ABQuizApp = ({ onBackToPortal }) => {
               <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#fff' }}>Teraz je na ťahu súper!</h2>
               <p style={{ margin: '0.5rem 0 0', opacity: 0.7 }}>Počkajte, kým dokončí svoj ťah.</p>
             </div>
+          )}
+
+          {disconnectReason && (
+            <DisconnectedModal
+              reason={disconnectReason}
+              onBackToLobby={() => {
+                setDisconnectReason(null);
+                handleRestart();
+              }}
+            />
           )}
 
           <ConfirmExitModal isOpen={showExitConfirm} onConfirm={handleRestart} onCancel={() => setShowExitConfirm(false)} />
