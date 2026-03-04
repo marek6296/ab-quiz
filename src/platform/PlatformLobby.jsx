@@ -371,12 +371,55 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
 
     if (countdown !== null) {
         return (
-            <div className="game-container game-portal" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: '10vw', fontWeight: '900', color: '#facc15', textShadow: '0 0 40px rgba(250, 204, 21, 0.6)', animation: 'popIn 0.5s ease-out forwards' }}>
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                zIndex: 20000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(5, 10, 20, 0.4)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                color: 'white',
+                fontFamily: '"Outfit", sans-serif'
+            }}>
+                <div style={{
+                    fontSize: 'clamp(5rem, 15vw, 15rem)',
+                    fontWeight: '900',
+                    color: '#facc15',
+                    textShadow: '0 0 60px rgba(250, 204, 21, 0.8), 0 0 20px rgba(255, 255, 255, 0.4)',
+                    animation: 'countdownPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
                     {countdown}
                 </div>
+                <div style={{
+                    marginTop: '2rem',
+                    fontSize: '1.5rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '4px',
+                    textTransform: 'uppercase',
+                    animation: 'fadeIn 1s ease-out'
+                }}>
+                    Priprav sa na hru
+                </div>
                 <style>{`
-                    @keyframes popIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
+                    @keyframes countdownPop {
+                        0% { opacity: 0; transform: scale(0.3) rotate(-10deg); filter: blur(10px); }
+                        20% { opacity: 1; transform: scale(1.1) rotate(0deg); filter: blur(0px); }
+                        100% { opacity: 1; transform: scale(1) rotate(0deg); }
+                    }
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
                 `}</style>
             </div>
         );
