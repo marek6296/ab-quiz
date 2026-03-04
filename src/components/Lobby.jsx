@@ -242,7 +242,12 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                         </div>
                         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov, pridávať si ich a rovno ich vyzývať do napínavých duelov.</p>
-                            <FriendsList selectedGameRules={gameRules} selectedCategory={selectedCategories} selectedDifficulty={difficulty} />
+                            <FriendsList
+                                selectedGameRules={gameRules}
+                                selectedCategory={selectedCategories}
+                                selectedDifficulty={difficulty}
+                                onlineUserIds={onlineUserIds}
+                            />
                         </div>
                     </div>
                 )}
