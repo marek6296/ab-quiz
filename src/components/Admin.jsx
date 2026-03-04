@@ -79,13 +79,16 @@ export const Admin = ({ onBack }) => {
 
         if (allData.length > 0) {
             const statsObj = allData.reduce((acc, q) => {
+                const cat = (q.category || '').trim();
+                if (!cat || cat.toLowerCase() === 'undefined' || cat.toLowerCase() === 'null') return acc;
+
                 const diff = q.difficulty || 1;
-                if (!acc[q.category]) {
-                    acc[q.category] = { total: 0, 1: 0, 2: 0, 3: 0 };
+                if (!acc[cat]) {
+                    acc[cat] = { total: 0, 1: 0, 2: 0, 3: 0 };
                 }
-                acc[q.category].total += 1;
-                if (acc[q.category][diff] !== undefined) {
-                    acc[q.category][diff] += 1;
+                acc[cat].total += 1;
+                if (acc[cat][diff] !== undefined) {
+                    acc[cat][diff] += 1;
                 }
                 return acc;
             }, {});
@@ -96,44 +99,26 @@ export const Admin = ({ onBack }) => {
 
     const fetchQuestions = async () => {
         setLoading(true);
-        let allQuestions = [];
-        let r_from = 0;
-        let r_to = 999;
-        let fetchMore = true;
+        setQuestions([]); // Clear current list to show user something is happening
 
-        while (fetchMore) {
-            let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).range(r_from, r_to);
+        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).range(0, 100);
 
-            if (searchTerm) {
-                query = query.ilike('question_text', `%${searchTerm}%`);
-            }
-            if (filterCategory) {
-                query = query.eq('category', filterCategory);
-            }
-            if (filterDifficulty) {
-                query = query.eq('difficulty', parseInt(filterDifficulty));
-            }
-
-            const { data, error } = await query;
-            if (error) {
-                console.error("Questions fetch error:", error);
-                break;
-            }
-
-            if (data && data.length > 0) {
-                allQuestions = [...allQuestions, ...data];
-                if (data.length < 1000) {
-                    fetchMore = false;
-                } else {
-                    r_from += 1000;
-                    r_to += 1000;
-                }
-            } else {
-                fetchMore = false;
-            }
+        if (searchTerm) {
+            query = query.ilike('question_text', `%${searchTerm}%`);
+        }
+        if (filterCategory) {
+            query = query.eq('category', filterCategory);
+        }
+        if (filterDifficulty) {
+            query = query.eq('difficulty', parseInt(filterDifficulty));
         }
 
-        setQuestions(allQuestions);
+        const { data, error } = await query;
+        if (error) {
+            console.error("Questions fetch error:", error);
+        } else {
+            setQuestions(data || []);
+        }
         setLoading(false);
     };
 
@@ -435,6 +420,22 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                         <option value="3">3 - Ťažká</option>
                                     </select>
                                 </div>
+                                {(filterCategory || filterDifficulty || searchTerm) && (
+                                    <button
+                                        className="neutral"
+                                        onClick={() => {
+                                            setFilterCategory('');
+                                            setFilterDifficulty('');
+                                            setSearchTerm('');
+                                            // fetchQuestions will be triggered by effect for filters, 
+                                            // but we might need manual call if only searchTerm was set
+                                            setTimeout(fetchQuestions, 50);
+                                        }}
+                                        style={{ padding: '0.8rem' }}
+                                    >
+                                        ✖ Zrušiť filtre
+                                    </button>
+                                )}
                                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                                     <button
                                         className="primary"
