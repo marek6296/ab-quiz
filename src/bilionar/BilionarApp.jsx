@@ -9,13 +9,35 @@ export const BilionarApp = ({ onBackToPortal }) => {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [showAdmin, setShowAdmin] = useState(false);
-    const [view, setView] = useState('splash'); // 'splash', 'lobby', 'game'
+    const [view, setView] = useState('lobby'); // 'lobby', 'game'
     const [activeGame, setActiveGame] = useState(null);
+    const [onlineUserIds, setOnlineUserIds] = useState(new Set());
 
     useEffect(() => {
         if (user?.id) {
             supabase.from('profiles').select('username, is_admin').eq('id', user.id).single()
                 .then(({ data }) => setProfile(data));
+
+            // Global Presence Tracking
+            const channel = supabase.channel('global-presence-bilionar', {
+                config: { presence: { key: user.id } }
+            });
+
+            channel
+                .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const onlineIds = new Set(Object.keys(state));
+                setOnlineUserIds(onlineIds);
+                })
+                .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({ online_at: new Date().toISOString() });
+                }
+                });
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user]);
 
@@ -23,52 +45,27 @@ export const BilionarApp = ({ onBackToPortal }) => {
         return <BilionarAdmin onBack={() => setShowAdmin(false)} />;
     }
 
-    if (view === 'lobby') {
-        return (
-            <div className="game-container start-screen" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white', padding: '1rem' }}>
-                <BilionarLobby
-                    onStartGame={(startedGame) => {
-                        setActiveGame(startedGame);
-                        setView('game');
-                    }}
-                    onBack={() => setView('splash')}
-                />
-            </div>
-        );
-    }
-
     if (view === 'game') {
         return (
             <BilionarGame
                 activeGame={activeGame}
-                onLeave={() => setView('lobby')}
+                onLeave={() => {
+                    setActiveGame(null);
+                    setView('lobby');
+                }}
             />
         );
     }
 
     return (
-        <div className="game-container start-screen" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white', padding: '1rem' }}>
-            <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem', color: '#facc15', textShadow: '0 0 20px rgba(250, 204, 21, 0.4)' }}>
-                💰 Bilionár Battle
-            </h1>
-            <p style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '3rem', textAlign: 'center', maxWidth: '600px' }}>
-                Základná konštrukcia pripravená. Hra bude pre maximálne 8 hráčov na čas.
-                Kto odpovie prvý, získa najviac bodov!
-            </p>
-
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button className="primary" onClick={() => setView('lobby')} style={{ padding: '1rem 3rem', fontSize: '1.2rem' }}>
-                    Nová hra / Pripojiť
-                </button>
-                {profile?.is_admin && (
-                    <button className="secondary" onClick={() => setShowAdmin(true)} style={{ padding: '1rem 3rem', fontSize: '1.2rem', border: '1px solid #facc15', color: '#facc15', background: 'rgba(250, 204, 21, 0.1)' }}>
-                        Administrácia
-                    </button>
-                )}
-                <button className="neutral" onClick={onBackToPortal} style={{ padding: '1rem 3rem', fontSize: '1.2rem' }}>
-                    Späť do menu
-                </button>
-            </div>
-        </div>
+        <BilionarLobby
+            onStartGame={(startedGame) => {
+                setActiveGame(startedGame);
+                setView('game');
+            }}
+            onBackToPortal={onBackToPortal}
+            onShowAdmin={() => setShowAdmin(true)}
+            onlineUserIds={onlineUserIds}
+        />
     );
 };

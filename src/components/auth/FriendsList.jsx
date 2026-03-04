@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set() }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), hideChallenges = false }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -272,13 +272,15 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                                         </div>
                                     </div>
                                     <div className="actions">
-                                        <button
-                                            className="primary small"
-                                            disabled={!isOnline || partner.online_status === 'playing'}
-                                            onClick={() => handleChallenge(partner)}
-                                        >
-                                            Vyzvať
-                                        </button>
+                                        {!hideChallenges && (
+                                            <button
+                                                className="primary small"
+                                                disabled={!isOnline || partner.online_status === 'playing'}
+                                                onClick={() => handleChallenge(partner)}
+                                            >
+                                                Vyzvať
+                                            </button>
+                                        )}
                                         <button className="danger small" onClick={() => removeFriend(friend.id)}>X</button>
                                     </div>
                                 </li>
