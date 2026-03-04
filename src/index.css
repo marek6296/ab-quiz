@@ -1990,11 +1990,9 @@ button.small {
   line-height: 1.2;
   padding: 0.5rem 0;
   background: linear-gradient(to right,
-      #3b82f6 10%,
-      #fff 30%,
+      #3b82f6 0%,
       #f97316 50%,
-      #fff 70%,
-      #3b82f6 90%);
+      #3b82f6 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
