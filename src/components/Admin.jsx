@@ -6,10 +6,10 @@ export const Admin = ({ onBack }) => {
     const [loading, setLoading] = useState(false);
     const [loadingStatus, setLoadingStatus] = useState('');
     const [stats, setStats] = useState({ total: 0, byCategory: {} });
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategory, setFilterCategory] = useState('');
-    const [filterDifficulty, setFilterDifficulty] = useState('');
-    const [activeTab, setActiveTab] = useState('list');
+    const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('admin_search') || '');
+    const [filterCategory, setFilterCategory] = useState(() => localStorage.getItem('admin_cat') || '');
+    const [filterDifficulty, setFilterDifficulty] = useState(() => localStorage.getItem('admin_diff') || '');
+    const [activeTab, setActiveTab] = useState(() => localStorage.getItem('admin_tab') || 'list');
     const [reportedList, setReportedList] = useState([]);
     const [allCats, setAllCats] = useState([]);
     const [selectedIds, setSelectedIds] = useState([]);
@@ -150,12 +150,20 @@ export const Admin = ({ onBack }) => {
     };
 
     useEffect(() => {
+        localStorage.setItem('admin_tab', activeTab);
+        if (activeTab === 'reports') fetchReports();
+    }, [activeTab]);
+
+    useEffect(() => {
+        localStorage.setItem('admin_cat', filterCategory);
+        localStorage.setItem('admin_diff', filterDifficulty);
+        localStorage.setItem('admin_search', searchTerm);
+    }, [filterCategory, filterDifficulty, searchTerm]);
+
+    useEffect(() => {
         fetchQuestions();
     }, [filterCategory, filterDifficulty]); // Removed searchTerm from deps to avoid spam while typing, user must press Enter or pick a filter
 
-    useEffect(() => {
-        if (activeTab === 'reports') fetchReports();
-    }, [activeTab]);
 
     const handleDeleteReportedQuestion = async (qId) => {
         if (!window.confirm('Naozaj VYMAZAŤ túto otázku úplne zo servera?')) return;

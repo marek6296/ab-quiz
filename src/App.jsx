@@ -148,7 +148,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const [opponentName, setOpponentName] = useState(null);
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(() => localStorage.getItem('ab_quiz_show_admin') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('ab_quiz_show_admin', showAdmin);
+  }, [showAdmin]);
 
   // States pre lokálne spustenie
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
