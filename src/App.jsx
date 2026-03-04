@@ -1058,7 +1058,7 @@ const MainRouter = () => {
       {
         currentApp === 'ab_quiz' && (
           <ABQuizApp
-            onBackToPortal={() => handleSetApp('portal_lobby')} // Go back to lobby!
+            onBackToPortal={() => { handleSetApp('portal'); setShowLobbyModal(true); }} // Go back to lobby!
             initialPendingGame={pendingGame?.mode !== 'bilionar' ? pendingGame : null}
             onClearPending={() => setPendingGame(null)}
             onlineUserIds={onlineUserIds}
@@ -1070,7 +1070,7 @@ const MainRouter = () => {
         currentApp === 'bilionar_battle' && (
           <BilionarApp
             activePlatformLobbyId={activeLobbyId}
-            onBackToPortal={() => handleSetApp('portal_lobby')} // Go back to lobby!
+            onBackToPortal={() => { handleSetApp('portal'); setShowLobbyModal(true); }} // Go back to lobby!
             onlineUserIds={onlineUserIds}
             pendingGameId={pendingGame?.mode === 'bilionar' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
@@ -1081,7 +1081,7 @@ const MainRouter = () => {
       {
         currentApp === 'higher_lower' && (
           <HigherLowerApp
-            onBackToPortal={() => handleSetApp('portal_lobby')}
+            onBackToPortal={() => { handleSetApp('portal'); setShowLobbyModal(true); }}
             pendingGameId={pendingGame?.mode === 'higher_lower' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
           />

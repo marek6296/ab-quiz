@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
     const { user, signOut } = useAuth();
 
+    if (!user) return null;
+
     return (
         <div className="game-container game-portal" style={{
             height: '100vh',
