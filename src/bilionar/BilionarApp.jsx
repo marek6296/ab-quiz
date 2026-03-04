@@ -124,9 +124,6 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
 
     return (
         <div className="bilionar-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ position: 'fixed', bottom: 10, right: 10, fontSize: '10px', color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', zIndex: 9999, border: '1px solid rgba(255,255,255,0.2)' }}>
-                📡 Game: {activeGame?.status || 'none'} | Phase: {activeGame?.state?.phase || 'none'} | View: {view}
-            </div>
             {showAdmin && (
                 <BilionarAdmin onBack={() => setShowAdmin(false)} />
             )}

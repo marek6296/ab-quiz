@@ -541,20 +541,6 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 </div>
             </div>
 
-            {/* Debug & Sync Info */}
-            <div style={{ position: 'fixed', bottom: '10px', left: '10px', display: 'flex', gap: '10px', zIndex: 9999 }}>
-                <div style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.7)', borderRadius: '4px', border: '1px solid #3b82f6', fontSize: '10px', color: '#fff' }}>
-                    📡 ID: {activeGame.id.substring(0, 5)} | Host: {isHost ? 'YES' : 'NO'} | Phase: {gameState.phase}
-                </div>
-                {!isHost && (
-                    <button
-                        onClick={() => window.location.reload()}
-                        style={{ padding: '5px 10px', background: '#3b82f6', borderRadius: '4px', fontSize: '10px', color: '#fff', border: 'none', cursor: 'pointer' }}
-                    >
-                        🔄 Refresh & Resync
-                    </button>
-                )}
-            </div>
         </div>
     );
 };
