@@ -214,16 +214,16 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
 
                 const rawData = await response.json();
                 const result = JSON.parse(rawData.choices[0].message.content);
-                const updatedList = result.questions || (Array.isArray(result) ? result : []);
+                const updatedList = result.questions || result.otazky || result.items || (Array.isArray(result) ? result : Object.values(result).find(val => Array.isArray(val)) || []);
 
                 if (updatedList.length > 0) {
                     const toUpsert = updatedList.map(q => ({
                         id: q.id,
-                        question_text: q.question_text || q.text,
-                        answer: String(q.answer).trim(),
-                        difficulty: q.difficulty,
-                        category: q.category
-                    })).filter(q => q.id && q.question_text && q.answer);
+                        question_text: q.question_text || q.otazka || q.text || q.question,
+                        answer: String(q.answer || q.odpoved || q.odpověď || "").trim(),
+                        difficulty: parseInt(q.difficulty || q.level || q.narocnost || 1),
+                        category: q.category || q.kategoria
+                    })).filter(q => q.id && q.question_text && q.answer && q.question_text !== "undefined" && q.answer !== "undefined");
 
                     if (toUpsert.length > 0) {
                         const { error } = await supabase.from('questions').upsert(toUpsert);
@@ -648,24 +648,26 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                                 }
 
                                                 const result = JSON.parse(rawData.choices[0].message.content);
-                                                let questionsList = result.questions || (Array.isArray(result) ? result : []);
+                                                let questionsList = result.questions || result.otazky || result.items || (Array.isArray(result) ? result : Object.values(result).find(val => Array.isArray(val)) || []);
 
                                                 if (questionsList.length > 0) {
                                                     // Validate and normalize
                                                     const toInsert = questionsList.map(q => ({
-                                                        question_text: q.question_text || q.text,
-                                                        answer: String(q.answer).trim(),
+                                                        question_text: String(q.question_text || q.otazka || q.text || q.question || ""),
+                                                        answer: String(q.answer || q.odpoved || q.odpověď || "").trim(),
                                                         category: cat, // Force correct category
                                                         difficulty: diff
-                                                    })).filter(q => q.question_text && q.answer); // Basic sanitization
+                                                    })).filter(q => q.question_text && q.answer && q.question_text !== "undefined" && q.answer !== "undefined");
 
                                                     if (toInsert.length > 0) {
                                                         const { error } = await supabase.from('questions').insert(toInsert);
                                                         if (error) throw error;
                                                         totalInserted += toInsert.length;
+                                                    } else {
+                                                        alert(`Kategória ${cat}: AI formát nesedel (našla síce list, ale nepodarilo sa vybrať otázku a odpoveď). RAW:\n` + JSON.stringify(questionsList).substring(0, 150));
                                                     }
                                                 } else {
-                                                    console.warn(`Skrze logiku AI bol vrátený prázdny JSON pre tému ${cat}. Preskakujem.`);
+                                                    alert(`Skrze logiku AI bol vrátený prázdny alebo neplatný zoznam pre tému ${cat}. Namiesto zoznamu AI vrátila:\n` + JSON.stringify(result).substring(0, 150));
                                                 }
                                             }
 
