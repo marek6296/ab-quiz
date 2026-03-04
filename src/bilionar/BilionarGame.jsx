@@ -261,7 +261,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
     // Input handlers
     const handleSelectOption = (key) => {
-        if (gameState.phase !== 'question') return;
+        if (gameState.phase !== 'answering') return;
         if (selectedAnswer !== null) return;
         setSelectedAnswer(key);
 
@@ -275,7 +275,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
     // UI Renders
     const renderPlayerAvatar = (p) => {
         const isMe = p.user_id === user.id;
-        const showAnswered = p.has_answered && gameState.phase === 'question';
+        const showAnswered = p.has_answered && gameState.phase === 'answering';
 
         return (
             <div key={p.id} className={`bilionar-player-avatar ${isMe ? 'is-me' : ''}`} style={{
