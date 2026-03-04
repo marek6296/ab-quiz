@@ -90,7 +90,12 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                         overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)'
                     }}>
                         {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img
+                                src={`${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
+                                alt=""
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = '👤'; }}
+                            />
                         ) : '👤'}
                     </div>
                     <div style={{ overflow: 'hidden' }}>
@@ -305,7 +310,12 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                     overflow: 'hidden'
                                 }}>
                                     {profile?.avatar_url ? (
-                                        <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img
+                                            src={`${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = '👤'; }}
+                                        />
                                     ) : '👤'}
                                 </div>
                                 <label
@@ -336,7 +346,10 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                         // 1. Upload to Supabase Storage
                                         const { error: uploadError } = await supabase.storage
                                             .from('profile-pictures')
-                                            .upload(filePath, file);
+                                            .upload(filePath, file, {
+                                                upsert: true,
+                                                contentType: file.type
+                                            });
 
                                         if (uploadError) {
                                             alert("Chyba pri nahrávaní: " + uploadError.message);

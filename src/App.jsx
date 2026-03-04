@@ -459,7 +459,15 @@ const ABQuizApp = ({ onBackToPortal }) => {
         overflow: 'hidden'
       }}>
         {url ? (
-          <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.innerText = playerNum === 2 && gameMode === '1vbot' ? '🤖' : '👤';
+            }}
+          />
         ) : (
           playerNum === 2 && gameMode === '1vbot' ? '🤖' : '👤'
         )}
