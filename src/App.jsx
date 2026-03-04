@@ -924,10 +924,11 @@ const MainRouter = () => {
         } catch (e) { }
       }
 
-      // If we are returning to portal_menu or portal_lobby, actually map it to portal + open modal
+      // Prechod zo stareho routovania na portal (vycisti bug zaseknuteho UI)
       if (savedApp === 'portal_menu' || savedApp === 'portal_lobby') {
         setCurrentApp('portal');
-        setShowLobbyModal(true);
+        sessionStorage.setItem('ab_quiz_current_app', 'portal'); // premaz stare state
+        if (savedLobby) setShowLobbyModal(true); // Zapni modal, len ak naozaj bol v lobby
       } else {
         setCurrentApp(savedApp);
       }
@@ -1011,7 +1012,7 @@ const MainRouter = () => {
 
       {
         showLobbyModal && (
-          <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
+          <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)' }}>
             <div style={{ position: 'relative', width: '100%', height: '100%', overflowY: 'auto' }}>
 
               {/* Zavieracie tlacidlo pre overlay */}

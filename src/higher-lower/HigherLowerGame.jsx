@@ -16,7 +16,36 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
     // HOST GAME LOOP 
     // ----------------------------------------------------------------------------------
     useEffect(() => {
-        if (!isHost || !activeGame || activeGame.status === 'completed') return;
+        if (!isHost || activeGame.status === 'completed') return;
+
+        // Assuming gameId is available in activeGame or context
+        const gameId = activeGame?.id;
+        if (!gameId || !user?.id) return; // Added check from instruction
+
+        async function broadcastState(newState) {
+            // Broadcast for instant UI sync
+            await gameChannel?.send({
+                type: 'broadcast',
+                event: 'phase_change',
+                payload: { state: newState }
+            });
+            // Persist to DB
+            await supabase.from('higher_lower_games').update({ state: newState }).eq('id', activeGame?.id);
+        }
+
+        async function evaluateBot(bot, guess, qData) {
+            if (!qData) return;
+            const isHigher = qData.second.value >= qData.first.value;
+            const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
+
+            const newScore = isCorrect ? bot.score + 1 : bot.score;
+            const newLives = isCorrect ? bot.lives : bot.lives - 1;
+            const eliminated = newLives <= 0;
+
+            await supabase.from('higher_lower_players').update({
+                score: newScore, lives: newLives, eliminated
+            }).eq('id', bot.id);
+        }
 
         const loop = async () => {
             const now = Date.now();
@@ -89,31 +118,6 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
             if (tickerRef.current) clearInterval(tickerRef.current);
         };
     }, [isHost, activeGame, gameState, players]);
-
-    async function broadcastState(newState) {
-        // Broadcast for instant UI sync
-        await gameChannel?.send({
-            type: 'broadcast',
-            event: 'phase_change',
-            payload: { state: newState }
-        });
-        // Persist to DB
-        await supabase.from('higher_lower_games').update({ state: newState }).eq('id', activeGame?.id);
-    }
-
-    async function evaluateBot(bot, guess, qData) {
-        if (!qData) return;
-        const isHigher = qData.second.value >= qData.first.value;
-        const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
-
-        const newScore = isCorrect ? bot.score + 1 : bot.score;
-        const newLives = isCorrect ? bot.lives : bot.lives - 1;
-        const eliminated = newLives <= 0;
-
-        await supabase.from('higher_lower_players').update({
-            score: newScore, lives: newLives, eliminated
-        }).eq('id', bot.id);
-    }
 
     // ----------------------------------------------------------------------------------
     // PLAYER LOGIC (Real players sending guesses and evaluating themselves)
