@@ -558,7 +558,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
           {winner && (
             <div className="winner-banner">
               {winner === localPlayerNum
-                ? `(Vy) ${profile?.username || 'Ja'} Vyhráva!`
+                ? `${profile?.username || 'Ja'} Vyhráva!`
                 : `${opponentName || (gameMode === '1vbot' ? 'BOT' : 'Súper')} Vyhráva!`
               }
             </div>
@@ -570,8 +570,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
                 <span className="player1-text" style={{ lineHeight: '1.2' }}>
                   {gameMode === '1v1_online'
-                    ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                    : `(Vy) ${profile?.username || 'Ja'}`
+                    ? (localPlayerNum === 1 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
+                    : (profile?.username || 'Ja')
                   }
                 </span>
                 {gameRules === 'points' && (
@@ -595,7 +595,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
                   {gameMode === '1vbot'
                     ? 'BOT'
                     : (gameMode === '1v1_online'
-                      ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                      ? (localPlayerNum === 2 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
                       : 'Hráč 2')
                   }
                 </span>
