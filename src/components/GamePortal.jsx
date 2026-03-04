@@ -19,10 +19,11 @@ export const GamePortal = ({ onSelectGame }) => {
             <div className="portal-bg-glow" style={{ background: '#3b82f6', top: '-10%', left: '-10%' }}></div>
             <div className="portal-bg-glow" style={{ background: '#facc15', bottom: '-10%', right: '-10%', animationDelay: '-5s' }}></div>
 
+            <button className="neutral logout-btn" onClick={signOut}>
+                Odhlásiť sa
+            </button>
+
             <div className="portal-header entrance-fade" style={{ animationDelay: '0.1s' }}>
-                <button className="neutral logout-btn" onClick={signOut}>
-                    Odhlásiť sa
-                </button>
                 <h1 className="hero-logo">Quizovník</h1>
             </div>
 

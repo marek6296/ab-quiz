@@ -2511,36 +2511,42 @@ button.small {
   /* Game Portal Mobile Fixes */
   .game-portal {
     padding: 0.5rem !important;
-    padding-top: 1rem !important;
+    padding-top: 2rem !important;
+    /* Space for the logout button */
+    justify-content: flex-start !important;
+    height: 100dvh !important;
   }
 
   .portal-header {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.5rem !important;
     width: 100% !important;
   }
 
   .logout-btn {
     position: fixed !important;
-    top: 0.5rem !important;
+    top: env(safe-area-inset-top, 0.5rem) !important;
     right: 0.5rem !important;
     transform: none !important;
     padding: 0.4rem 0.8rem !important;
     font-size: 0.7rem !important;
-    z-index: 20;
+    z-index: 100;
     margin: 0 !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 
   .game-portal .hero-logo {
-    margin-top: 0.25rem !important;
-    font-size: 2.8rem !important;
-    padding: 0.25rem 0 !important;
+    margin-top: 0 !important;
+    font-size: 3.5rem !important;
+    padding: 0 !important;
+    line-height: 1.1 !important;
   }
 
   .game-portal h2 {
-    font-size: 1.5rem !important;
-    margin-bottom: 0.25rem !important;
+    font-size: 1.4rem !important;
+    margin-bottom: 0 !important;
+    margin-top: 0.5rem !important;
   }
 
   .game-portal p {
