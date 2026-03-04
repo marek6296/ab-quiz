@@ -50,6 +50,31 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         fetchCategories();
     }, []);
 
+    // Check if user is already in a waiting lobby (e.g. accepted an invite)
+    useEffect(() => {
+        const checkExistingLobby = async () => {
+            if (!user) return;
+            setLoading(true);
+            const { data } = await supabase
+                .from('bilionar_players')
+                .select('game_id, bilionar_games(*)')
+                .eq('user_id', user.id)
+                .order('joined_at', { ascending: false })
+                .limit(1);
+
+            if (data && data.length > 0 && data[0].bilionar_games && data[0].bilionar_games.status === 'waiting') {
+                const game = data[0].bilionar_games;
+                setActiveGame(game);
+                await fetchPlayers(game.id);
+                setView('room');
+                setActiveTab('play');
+            }
+            setLoading(false);
+        };
+        checkExistingLobby();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
     // Supabase Realtime Subscription for the active game
     useEffect(() => {
         if (!activeGame) return;

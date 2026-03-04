@@ -165,9 +165,19 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                 }]);
             }
 
+            // Get current count for color assignment
+            const { count: currentCount } = await supabase.from('bilionar_players').select('*', { count: 'exact', head: true }).eq('game_id', gameId);
+            const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
+            const assignedColor = COLOR_PALETTE[currentCount % COLOR_PALETTE.length];
+
             // Add Partner (This triggers their invite UI via useGameInvites)
             const { error: inviteError } = await supabase.from('bilionar_players').insert([{
-                game_id: gameId, user_id: partner.id, player_name: partner.username, is_bot: false
+                game_id: gameId,
+                user_id: partner.id,
+                player_name: partner.username,
+                avatar_url: partner.avatar_url,
+                is_bot: false,
+                color: assignedColor
             }]);
 
             if (inviteError) {
