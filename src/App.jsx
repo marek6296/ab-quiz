@@ -210,6 +210,17 @@ const ABQuizApp = ({ onBackToPortal }) => {
   // Blokovanie navigácie späť počas aktívnej hry
   useBlockNavigation(appState === APP_STATES.IN_GAME, () => setShowExitConfirm(true));
 
+  // Zakázanie scrollovania na celom body počas hry (najmä pre mobile)
+  useEffect(() => {
+    if (appState === APP_STATES.IN_GAME) {
+      document.body.classList.add('game-active');
+    } else {
+      document.body.classList.remove('game-active');
+    }
+    // Cleanup pri unmount
+    return () => document.body.classList.remove('game-active');
+  }, [appState]);
+
   // Fetch current user profile
   useEffect(() => {
     if (user?.id) {
