@@ -46,9 +46,37 @@ export const Admin = ({ onBack }) => {
     }, []);
 
     const fetchStats = async () => {
-        const { data, error } = await supabase.from('questions').select('category, difficulty');
-        if (data) {
-            const statsObj = data.reduce((acc, q) => {
+        let allData = [];
+        let r_from = 0;
+        let r_to = 999;
+        let fetchMore = true;
+
+        while (fetchMore) {
+            const { data, error } = await supabase
+                .from('questions')
+                .select('category, difficulty')
+                .range(r_from, r_to);
+
+            if (error) {
+                console.error("Stats fetch error:", error);
+                break;
+            }
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                if (data.length < 1000) {
+                    fetchMore = false;
+                } else {
+                    r_from += 1000;
+                    r_to += 1000;
+                }
+            } else {
+                fetchMore = false;
+            }
+        }
+
+        if (allData.length > 0) {
+            const statsObj = allData.reduce((acc, q) => {
                 const diff = q.difficulty || 1;
                 if (!acc[q.category]) {
                     acc[q.category] = { total: 0, 1: 0, 2: 0, 3: 0 };
@@ -59,7 +87,7 @@ export const Admin = ({ onBack }) => {
                 }
                 return acc;
             }, {});
-            setStats({ total: data.length, byCategory: statsObj });
+            setStats({ total: allData.length, byCategory: statsObj });
         }
     };
 
