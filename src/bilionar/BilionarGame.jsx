@@ -371,7 +371,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         return (
             <div key="phase_welcome" className="bilionar-board fullscreen-flex">
                 <div className="message-modal slide-in-scale">
-                    <h2>Vitajte v Bilionár Battle</h2>
+                    <h2>Vitajte</h2>
                 </div>
             </div>
         );
