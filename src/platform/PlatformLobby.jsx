@@ -29,24 +29,26 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
         if (!lobbyId) return;
 
         const fetchLobby = async () => {
-            const { data } = await supabase.from('platform_lobbies').select('*').eq('id', lobbyId).single();
-            if (data) {
-                // Ak sa vrátime z hry (a sme host) a status je stále playing, resetneme ho na waiting
-                if (data.host_id === user?.id && data.status === 'playing') {
-                    await supabase.from('platform_lobbies').update({ status: 'waiting', active_game_id: null }).eq('id', lobbyId);
-                    data.status = 'waiting';
-                    data.active_game_id = null;
-                } else if (data.host_id !== user?.id && data.status === 'playing' && data.active_game_id) {
-                    // Pre zúčastnených hráčov, ak sa načítajú neskoro, pošleme ich rovno do hry
-                    let subMode = null;
-                    if (data.selected_game === 'quiz') {
-                        // Nemáme tu hneď "players" refs, tak skúsime z databázy zistiť pocty (optimalne by to už mala aplikacia vedieť)
-                        // Pre fallback necháme default
-                    }
-                    setTimeout(() => onStartGameFlow(data.selected_game, data.active_game_id, subMode), 1000);
-                }
-                setLobby(data);
+            const { data, error } = await supabase.from('platform_lobbies').select('*').eq('id', lobbyId).single();
+            if (error || !data) {
+                onLeaveLobby();
+                return;
             }
+            // Ak sa vrátime z hry (a sme host) a status je stále playing, resetneme ho na waiting
+            if (data.host_id === user?.id && data.status === 'playing') {
+                await supabase.from('platform_lobbies').update({ status: 'waiting', active_game_id: null }).eq('id', lobbyId);
+                data.status = 'waiting';
+                data.active_game_id = null;
+            } else if (data.host_id !== user?.id && data.status === 'playing' && data.active_game_id) {
+                // Pre zúčastnených hráčov, ak sa načítajú neskoro, pošleme ich rovno do hry
+                let subMode = null;
+                if (data.selected_game === 'quiz') {
+                    // Nemáme tu hneď "players" refs, tak skúsime z databázy zistiť pocty 
+                }
+                setTimeout(() => onStartGameFlow(data.selected_game, data.active_game_id, subMode), 1000);
+            }
+            setLobby(data);
+            fetchPlayers(); // Fetch players only after lobby is found
         };
         const fetchPlayers = async () => {
             const { data } = await supabase.from('platform_players').select('*').eq('lobby_id', lobbyId).order('joined_at', { ascending: true });
@@ -55,7 +57,6 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
         };
 
         fetchLobby();
-        fetchPlayers();
 
         const channel = supabase.channel(`platform_lobby_${lobbyId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_lobbies', filter: `id=eq.${lobbyId}` }, (payload) => {
@@ -232,7 +233,7 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
         await supabase.from('platform_lobbies').update({ status: 'playing', active_game_id: targetGameId }).eq('id', lobbyId);
     };
 
-    if (loading || !lobby) return <div className="game-container game-portal"><div className="loader"></div></div>;
+    if (loading || !lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
 
     const gameInfo = GAMES.find(g => g.id === lobby.selected_game) || GAMES[1];
 
