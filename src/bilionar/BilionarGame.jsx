@@ -374,6 +374,36 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
     return (
         <div className="bilionar-board relative-board">
+
+            {/* Abandon Game Button */}
+            <div style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 200 }}>
+                <button
+                    onClick={() => {
+                        if (window.confirm("Naozaj chcete opustiť hru?")) {
+                            onLeave();
+                        }
+                    }}
+                    style={{
+                        background: 'rgba(239, 68, 68, 0.8)',
+                        color: 'white',
+                        border: '1px solid #ef4444',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#ef4444'}
+                    onMouseOut={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.8)'}
+                >
+                    ❌ Opustiť
+                </button>
+            </div>
+
             {/* Persistant Top Bar */}
             <div className="bilionar-top-bar absolute-top">
                 {players.map(renderPlayerAvatar)}
