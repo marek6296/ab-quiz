@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 import { useAudio } from '../hooks/useAudio';
+import { supabase } from '../lib/supabase';
 
 export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', botDifficulty = 1, p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount }) => {
     const [phase, setPhase] = useState('reveal');
@@ -9,6 +10,17 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [timeLeft, setTimeLeft] = useState(15);
     const [lastAnswer, setLastAnswer] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showReportMenu, setShowReportMenu] = useState(false);
+    const [hasReported, setHasReported] = useState(false);
+
+    // Check local storage if this client already reported this question today/ever
+    useEffect(() => {
+        if (question && question.id) {
+            const reported = localStorage.getItem(`reported_${question.id}`);
+            if (reported) setHasReported(true);
+        }
+    }, [question]);
+
     const phaseStartRef = useRef(Date.now());
     const resolvedRef = useRef(false);
 
@@ -19,6 +31,31 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     }, [onResolve]);
 
     const { playSound, stopSound } = useAudio();
+
+    const handleReport = async (reason) => {
+        if (hasReported || !question || !question.id) return;
+        setHasReported(true);
+        setShowReportMenu(false);
+        localStorage.setItem(`reported_${question.id}`, 'true');
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id || null;
+            let pName = null;
+            if (!userId) {
+                pName = localPlayerNum === 1 ? playerNames.player1 : playerNames.player2;
+            }
+
+            await supabase.from('question_reports').insert({
+                question_id: question.id,
+                user_id: userId,
+                player_name: pName,
+                reason: reason
+            });
+        } catch (e) {
+            console.error("Report zlyhal", e);
+        }
+    };
 
     const opponent = currentPlayer === 1 ? 2 : 1;
     // V 1vbot móde je lokálny hráč VŽDY hráč 1.
@@ -581,7 +618,23 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content question-modal-fixed">
+            <div className="modal-content question-modal-fixed" style={{ position: 'relative' }}>
+
+                {/* REPORT FLAG */}
+                {phase !== 'reveal' && !hasReported && (
+                    <div style={{ position: 'absolute', top: 15, right: 15, zIndex: 100 }}>
+                        <button onClick={() => setShowReportMenu(!showReportMenu)} style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', padding: '0.3rem 0.6rem', borderRadius: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '1rem' }}>🚩</span> Nahlásiť
+                        </button>
+                        {showReportMenu && (
+                            <div style={{ position: 'absolute', top: 35, right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '0.5rem', width: '140px', display: 'flex', flexDirection: 'column', gap: '0.4rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+                                <button onClick={() => handleReport('ťažká otázka')} style={{ background: '#fbbf24', color: '#000', border: 'none', borderRadius: '5px', padding: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Príliš ťažká</button>
+                                <button onClick={() => handleReport('nezmysel')} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Zlá / Nezmyselná</button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
                     <div className="reveal-animation">

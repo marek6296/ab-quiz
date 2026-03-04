@@ -10,6 +10,7 @@ export const Admin = ({ onBack }) => {
     const [filterCategory, setFilterCategory] = useState('');
     const [filterDifficulty, setFilterDifficulty] = useState('');
     const [activeTab, setActiveTab] = useState('list');
+    const [reportedList, setReportedList] = useState([]);
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -134,9 +135,57 @@ export const Admin = ({ onBack }) => {
         setLoading(false);
     };
 
+    const fetchReports = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('question_reports')
+            .select(`
+                id, reason, player_name, created_at, question_id,
+                questions ( id, question_text, answer, category, difficulty )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (data) {
+            const grouped = data.reduce((acc, rep) => {
+                const qId = rep.question_id;
+                // If question was deleted entirely, questions might be null
+                if (!rep.questions) return acc;
+                if (!acc[qId]) {
+                    acc[qId] = { question: rep.questions, reports: [] };
+                }
+                acc[qId].reports.push(rep);
+                return acc;
+            }, {});
+            setReportedList(Object.values(grouped));
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
         fetchQuestions();
     }, [filterCategory, filterDifficulty]);
+
+    useEffect(() => {
+        if (activeTab === 'reports') fetchReports();
+    }, [activeTab]);
+
+    const handleDeleteReportedQuestion = async (qId) => {
+        if (!window.confirm('Naozaj VYMAZAŤ túto otázku úplne zo servera?')) return;
+        setLoading(true);
+        await supabase.from('questions').delete().eq('id', qId);
+        await fetchReports();
+        fetchStats();
+        fetchQuestions();
+        setLoading(false);
+    };
+
+    const handleDismissReport = async (qId) => {
+        if (!window.confirm('Odstrániť všetky reporty k tejto otázke (otázka zostane)?')) return;
+        setLoading(true);
+        await supabase.from('question_reports').delete().eq('question_id', qId);
+        await fetchReports();
+        setLoading(false);
+    };
 
     const handleAddQuestion = async (e) => {
         e.preventDefault();
@@ -345,6 +394,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                         <button className={`secondary ${activeTab === 'list' ? 'active' : ''}`} onClick={() => setActiveTab('list')}>Zoznam</button>
                         <button className={`secondary ${activeTab === 'add' ? 'active' : ''}`} onClick={() => setActiveTab('add')}>Manuálne</button>
                         <button className={`secondary ${activeTab === 'generate' ? 'active' : ''}`} onClick={() => setActiveTab('generate')}>AI Generátor</button>
+                        <button className={`secondary ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')} style={{ background: activeTab === 'reports' ? '#ef4444' : 'rgba(239, 68, 68, 0.2)' }}>🚩 Nahlásené</button>
                     </div>
 
                     {activeTab === 'list' && (
@@ -764,8 +814,75 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                             </div>
                         </div>
                     )}
+
+                    {/* TAB: REPORTS */}
+                    {activeTab === 'reports' && (
+                        <div className="form-container">
+                            <h2>Nahlásené otázky hráčmi</h2>
+                            <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>Toto sú otázky, ktoré hráči priamo v hre označili ako "Ťažká" alebo "Nezmysel". Môžeš ich odtiaľto natrvalo vymazať alebo report zamietnuť.</p>
+
+                            {reportedList.length === 0 ? (
+                                <p style={{ color: '#4ade80' }}>🎉 Žiadne nahlásené otázky. Všetko vyzerá byť v poriadku.</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {reportedList.map(group => (
+                                        <div key={group.question.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+
+                                                {/* Left info block */}
+                                                <div style={{ flex: 1, minWidth: '250px' }}>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: '#3b82f6', borderRadius: '4px', fontWeight: 'bold' }}>{group.question.category}</span>
+                                                        <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: '#64748b', borderRadius: '4px', fontWeight: 'bold' }}>Obtiažnosť: {group.question.difficulty}</span>
+                                                        <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: '#ef4444', borderRadius: '4px', fontWeight: 'bold' }}>Spolu reportov: {group.reports.length}</span>
+                                                    </div>
+
+                                                    <p style={{ margin: '0.5rem 0', fontSize: '1.2rem', fontWeight: 'bold' }}>{group.question.question_text}</p>
+                                                    <p style={{ color: '#4ade80', fontWeight: 'bold', marginBottom: '1rem' }}>➔ Odpoveď: {group.question.answer}</p>
+
+                                                    {/* Reports breakdown */}
+                                                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '8px' }}>
+                                                        <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '0.8rem', color: '#94a3b8' }}>Detailné nahlásenia:</p>
+                                                        {group.reports.map((r, i) => (
+                                                            <div key={r.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', marginBottom: '0.2rem' }}>
+                                                                <span style={{ color: r.reason === 'nezmysel' ? '#ef4444' : '#fbbf24', fontWeight: 'bold' }}>[{r.reason.toUpperCase()}]</span>
+                                                                <span style={{ color: '#e2e8f0' }}>Hráč: {r.player_name || 'Anonym (Bot hra)'}</span>
+                                                                <span style={{ color: '#64748b', fontSize: '0.7rem' }}>— {new Date(r.created_at).toLocaleString('sk-SK')}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions block */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '150px' }}>
+                                                    <button onClick={() => handleDeleteReportedQuestion(group.question.id)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                                        🗑️ Zmazať otázku z DB
+                                                    </button>
+                                                    <button onClick={() => handleDismissReport(group.question.id)} style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #475569', padding: '0.75rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                                        Zamietnuť reporty
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {(loading || loadingStatus) && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{ border: '4px solid #f3f3f3', borderTop: '4px solid #3b82f6', borderRadius: '50%', width: '50px', height: '50px', animation: 'spin 1s linear infinite' }} />
+                    <p style={{ marginTop: '20px', fontSize: '1.2rem', fontWeight: 'bold' }}>{loadingStatus || "Načítavam (môže to chvíľu trvať)..."}</p>
+                </div>
+            )}
         </div>
     );
 };
