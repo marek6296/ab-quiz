@@ -910,9 +910,36 @@ const MainRouter = () => {
 
   // Load from session storage for smoother reloads
   useEffect(() => {
-    const saved = sessionStorage.getItem('ab_quiz_current_app');
-    if (saved) setCurrentApp(saved);
+    const savedApp = sessionStorage.getItem('ab_quiz_current_app');
+    const savedLobby = sessionStorage.getItem('ab_quiz_active_lobby');
+    const savedPending = sessionStorage.getItem('ab_quiz_pending_game');
+
+    if (savedApp) {
+      // If we require context but don't have it, fallback to portal menu
+      if (savedApp !== 'portal_menu' && !savedLobby && !savedPending) {
+        setCurrentApp('portal_menu');
+      } else {
+        setCurrentApp(savedApp);
+        if (savedLobby) setActiveLobbyId(savedLobby);
+        if (savedPending) {
+          try {
+            setPendingGame(JSON.parse(savedPending));
+          } catch (e) { }
+        }
+      }
+    }
   }, []);
+
+  // Sync states to session storage to survive refresh
+  useEffect(() => {
+    if (activeLobbyId) sessionStorage.setItem('ab_quiz_active_lobby', activeLobbyId);
+    else sessionStorage.removeItem('ab_quiz_active_lobby');
+  }, [activeLobbyId]);
+
+  useEffect(() => {
+    if (pendingGame) sessionStorage.setItem('ab_quiz_pending_game', JSON.stringify(pendingGame));
+    else sessionStorage.removeItem('ab_quiz_pending_game');
+  }, [pendingGame]);
 
   const handleSetApp = (app) => {
     setCurrentApp(app);
