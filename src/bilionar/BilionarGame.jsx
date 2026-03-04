@@ -29,7 +29,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
         // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
         if (activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
             const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999 };
-            supabase.from('bilionar_games').update({ state: finishState }).eq('id', activeGame.id).then();
+            supabase.from('bilionar_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
         }
 
         // Host Migration (if Host disappeared, lowest string user_id takes over)
@@ -188,7 +188,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 if (newState.phase !== current.phase) {
                     console.log("Host advancing phase to:", newState.phase);
                     onSetGame(prev => ({ ...prev, state: newState }));
-                    supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id).then();
+
+                    // Mark game as fully completed in DB if it ended (avoids zombie games)
+                    if (newState.phase === 'finished') {
+                        supabase.from('bilionar_games').update({ status: 'completed', state: newState }).eq('id', activeGame.id).then();
+                    } else {
+                        supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id).then();
+                    }
+
                     if (gameChannel) {
                         gameChannel.send({
                             type: 'broadcast',

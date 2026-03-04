@@ -67,17 +67,29 @@ export const BilionarLobby = ({
                 .select('game_id, bilionar_games(*)')
                 .eq('user_id', user.id)
                 .order('joined_at', { ascending: false })
-                .limit(1);
+                .limit(10);
 
-            if (data && data.length > 0 && data[0].bilionar_games && ['waiting', 'playing'].includes(data[0].bilionar_games.status)) {
-                const game = data[0].bilionar_games;
-                onSetGame(game);
+            if (data && data.length > 0) {
+                // Find first valid game (waiting or playing, NOT finished)
+                const validGameRow = data.find(row => {
+                    const g = row.bilionar_games;
+                    return g && ['waiting', 'playing'].includes(g.status) && g.state?.phase !== 'finished';
+                });
 
-                // If it's still waiting, go to room. If playing, setting activeGame will let BilionarApp handle transition
-                if (game.status === 'waiting') {
-                    setView('room');
+                if (validGameRow) {
+                    const game = validGameRow.bilionar_games;
+                    onSetGame(game);
+
+                    // If it's still waiting, go to room. If playing, setting activeGame will let BilionarApp handle transition
+                    if (game.status === 'waiting') {
+                        setView('room');
+                    }
+                    setActiveTab('play');
+                } else {
+                    // Safe cleanup: if they have dangling player records for dead games, let's remove them
+                    // This prevents ghost reconnections in the future.
+                    supabase.from('bilionar_players').delete().eq('user_id', user.id).then();
                 }
-                setActiveTab('play');
             }
             setLoading(false);
         };

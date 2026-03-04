@@ -135,9 +135,9 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
                     gameChannel={gameChannel}
                     onSetGame={setActiveGame}
                     onLeave={async () => {
-                        if (activeGame?.id && user?.id) {
-                            // Remove player from the database to trigger auto-victory for remaining players
-                            await supabase.from('bilionar_players').delete().match({ game_id: activeGame.id, user_id: user.id });
+                        if (user?.id) {
+                            // Remove player from all games to completely leave and prevent ghost reconnects
+                            await supabase.from('bilionar_players').delete().eq('user_id', user.id);
                         }
                         setActiveGame(null);
                         setPlayers([]);
