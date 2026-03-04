@@ -397,10 +397,21 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     }
 
-    // --- QUESTION PHASES (showing_question_only, answering, time_up, reveal_pause, reveal_results, post_question_pause) ---
+    if (gameState.phase === 'post_question_pause') {
+        return (
+            <div key="phase_post_question_pause" className="bilionar-board relative-board">
+                <div className="bilionar-top-bar absolute-top">
+                    {players.map(renderPlayerAvatar)}
+                </div>
+                {/* Screen is empty, previous question hides before the "Next question" modal */}
+            </div>
+        );
+    }
+
+    // --- QUESTION PHASES (showing_question_only, answering, time_up, reveal_pause, reveal_results) ---
 
     // Don't render full screen replaces for these phases anymore
-    // (post_question_pause, reveal_pause, time_up)
+    // (reveal_pause, time_up) fall through so the question stays on screen
 
     const currentQ = gameState.questions?.[gameState.current_index];
     const totalQ = gameState.questions?.length;
