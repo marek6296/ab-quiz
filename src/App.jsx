@@ -151,7 +151,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
   // States pre lokálne spustenie
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
-  const [localDifficulty, setLocalDifficulty] = useState(1);
+  const [localDifficulty, setLocalDifficulty] = useState([1]);
   const [localBotDifficulty, setLocalBotDifficulty] = useState(2);
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [showVersus, setShowVersus] = useState(false);
@@ -183,16 +183,23 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
   const getRandomQuestionForConfig = useCallback(async () => {
     let cats = Array.isArray(localCategory) ? localCategory : [];
-    let diff = localDifficulty;
+    let diffs = Array.isArray(localDifficulty) ? localDifficulty : [localDifficulty];
 
     if (gameMode === '1v1_online' && gameData) {
       try {
         const parsed = typeof gameData.category === 'string' ? JSON.parse(gameData.category) : gameData.category;
-        cats = Array.isArray(parsed) ? parsed : [];
+
+        // Handle extended JSON logic where category obj contains both diffs and cats
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.cats) {
+          cats = parsed.cats || [];
+          diffs = parsed.diffs || [gameData.difficulty || 1];
+        } else {
+          cats = Array.isArray(parsed) ? parsed : [];
+          diffs = [gameData.difficulty || 1];
+        }
       } catch (e) {
         cats = [];
       }
-      diff = gameData.difficulty || 1;
     }
 
     let query = supabase.from('questions').select('*');
@@ -202,7 +209,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
       const randomCat = cats[Math.floor(Math.random() * cats.length)];
       query = query.eq('category', randomCat);
     }
-    query = query.eq('difficulty', diff);
+    if (diffs.length === 1) {
+      query = query.eq('difficulty', diffs[0]);
+    } else if (diffs.length > 1) {
+      query = query.in('difficulty', diffs);
+    }
 
     if (usedQuestionIdsRef.current.size > 0) {
       query = query.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
@@ -243,7 +254,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
     return pool[Math.floor(Math.random() * pool.length)];
   }, [localCategory, localDifficulty, gameMode, gameData]);
 
-  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = 1, botDiff = 2) => {
+  const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = [1], botDiff = 2) => {
     usedQuestionIdsRef.current.clear(); // Reset used questions each new game
     setGameMode(mode);
     setGameRules(rules);

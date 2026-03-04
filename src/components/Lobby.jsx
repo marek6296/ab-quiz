@@ -13,7 +13,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
     const [gameRules, setGameRules] = useState('hex');
     const [availableCategories, setAvailableCategories] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
-    const [difficulty, setDifficulty] = useState(1);
+    const [difficulty, setDifficulty] = useState([1]); // Zmena na pole pre multi-select
     const [botDifficulty, setBotDifficulty] = useState(2); // Default to Stredný
 
     useEffect(() => {
@@ -163,11 +163,24 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                             { level: 1, label: 'Ľahké', color: '#4ade80' },
                                             { level: 2, label: 'Stredné', color: '#fbbf24' },
                                             { level: 3, label: 'Ťažké', color: '#ef4444' }
-                                        ].map(diff => (
-                                            <button key={diff.level} onClick={() => setDifficulty(diff.level)} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: difficulty === diff.level ? diff.color : 'transparent', color: difficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-                                                {diff.label}
-                                            </button>
-                                        ))}
+                                        ].map(diff => {
+                                            const isSelected = difficulty.includes(diff.level);
+                                            return (
+                                                <button
+                                                    key={diff.level}
+                                                    onClick={() => setDifficulty(prev => {
+                                                        if (prev.includes(diff.level)) {
+                                                            if (prev.length === 1) return prev; // Nedovol zrusit posledne, vzdy musi byt aspon jedno oznacene
+                                                            return prev.filter(d => d !== diff.level);
+                                                        } else {
+                                                            return [...prev, diff.level];
+                                                        }
+                                                    })}
+                                                    style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                    {diff.label}
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 </div>
 

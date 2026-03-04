@@ -90,8 +90,8 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
                 status: 'waiting',
                 game_type: gameRules,
                 is_public: true,
-                category: categories?.length > 0 ? JSON.stringify(categories) : 'Všetky kategórie',
-                difficulty: difficulty || 1,
+                category: JSON.stringify({ cats: categories || [], diffs: difficulty && difficulty.length > 0 ? difficulty : [1] }),
+                difficulty: Array.isArray(difficulty) && difficulty.length > 0 ? difficulty[0] : (difficulty || 1),
                 board_state: generateInitialBoard(gameRules),
                 current_turn: user.id
             })
@@ -118,8 +118,8 @@ export const Matchmaking = ({ user, gameRules, categories, difficulty, onMatchFo
                 game_type: gameRules,
                 is_public: false,
                 room_code: code,
-                category: categories?.length > 0 ? JSON.stringify(categories) : 'Všetky kategórie',
-                difficulty: difficulty || 1,
+                category: JSON.stringify({ cats: categories || [], diffs: difficulty && difficulty.length > 0 ? difficulty : [1] }),
+                difficulty: Array.isArray(difficulty) && difficulty.length > 0 ? difficulty[0] : (difficulty || 1),
                 board_state: generateInitialBoard(gameRules),
                 current_turn: user.id
             })
