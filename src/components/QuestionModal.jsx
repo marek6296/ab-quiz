@@ -476,7 +476,12 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                 border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
                                 {!isSystemMessage && (
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginRight: '1rem', whiteSpace: 'nowrap' }}>Tvoja odpoveď</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginRight: '1rem', whiteSpace: 'nowrap' }}>
+                                        {phase.includes('Primary')
+                                            ? (isLocalPrimary ? 'Tvoja odpoveď' : `${currentPlayerName} odpovedal:`)
+                                            : (isLocalSecondary ? 'Tvoja odpoveď' : `${opponentName} odpovedal:`)
+                                        }
+                                    </span>
                                 )}
                                 <span style={{
                                     fontSize: getDynamicSize(lastAnswer, '1rem', '1.15rem'),
