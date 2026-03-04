@@ -60,6 +60,21 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
         }
     }, [user]);
 
+    // Autoboot game from platform lobby
+    useEffect(() => {
+        if (pendingGameId && view === 'lobby') {
+            const bootGame = async () => {
+                const { data } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+                if (data) {
+                    setActiveGame(data);
+                    setView('game');
+                    if (onClearPending) onClearPending();
+                }
+            };
+            bootGame();
+        }
+    }, [pendingGameId, view, onClearPending]);
+
     // Central Subscription for Bilionár Game Cycle
     useEffect(() => {
         if (!activeGame?.id) {
