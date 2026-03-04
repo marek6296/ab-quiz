@@ -565,8 +565,8 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                             }
                         }
 
-                        // Find players who picked this answer (only show on reveal)
-                        const pickedBy = isReveal ? players.filter(p => p.selected_answer === key) : [];
+                        // Find players who picked this answer (only show on reveal) excluding myself
+                        const pickedBy = isReveal ? players.filter(p => p.selected_answer === key && p.user_id !== user.id) : [];
 
                         return (
                             <div key={key} style={{ position: 'relative' }}>
@@ -576,22 +576,22 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                     disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
                                 >
                                     <div className="option-letter">{key}:</div>
+
+                                    {isReveal && pickedBy.length > 0 && (
+                                        <div style={{ display: 'flex', gap: '4px', marginRight: '15px', flexWrap: 'wrap', maxWidth: '140px' }}>
+                                            {pickedBy.map(p => (
+                                                <div
+                                                    key={p.id}
+                                                    className="choice-dot shadow-pop"
+                                                    style={{ backgroundColor: p.color || '#ffffff', flexShrink: 0 }}
+                                                    title={p.player_name}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <div className="option-text">{optionText}</div>
                                 </button>
-
-                                {/* Player Color Indicators */}
-                                {isReveal && pickedBy.length > 0 && (
-                                    <div className="player-choice-indicators">
-                                        {pickedBy.map(p => (
-                                            <div
-                                                key={p.id}
-                                                className="choice-dot shadow-pop"
-                                                style={{ backgroundColor: p.color || '#ffffff' }}
-                                                title={p.player_name}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         );
                     })}
