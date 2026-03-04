@@ -134,7 +134,11 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
                     players={players}
                     gameChannel={gameChannel}
                     onSetGame={setActiveGame}
-                    onLeave={() => {
+                    onLeave={async () => {
+                        if (activeGame?.id && user?.id) {
+                            // Remove player from the database to trigger auto-victory for remaining players
+                            await supabase.from('bilionar_players').delete().match({ game_id: activeGame.id, user_id: user.id });
+                        }
                         setActiveGame(null);
                         setPlayers([]);
                         setView('lobby');

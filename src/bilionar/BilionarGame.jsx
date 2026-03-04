@@ -143,6 +143,24 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                     newState.phase_end = now + 6000;
                 }
 
+                // Auto-victory condition: If game started with > 1 real player and now <= 1 remains
+                // Only trigger this if we are not already finished
+                if (newState.phase !== 'finished' && newState.phase !== 'init' && newState.phase !== 'no_questions') {
+                    const realPlayersCount = players.filter(p => !p.is_bot).length;
+
+                    // Keep track of the maximum number of real players we have ever seen in this session
+                    if (realPlayersCount > (activeGame.state?.max_real_players || 0)) {
+                        newState.max_real_players = realPlayersCount;
+                    }
+
+                    // If we ever had 2+ people, and now we only have 1 (or 0), end the game
+                    if (newState.max_real_players >= 2 && realPlayersCount <= 1) {
+                        newState.phase = 'finished';
+                        newState.phase_end = now + 9999999;
+                        console.log("Game over: Not enough players remaining.");
+                    }
+                }
+
                 if (newState.phase !== current.phase) {
                     console.log("Host advancing phase to:", newState.phase);
                     onSetGame(prev => ({ ...prev, state: newState }));
