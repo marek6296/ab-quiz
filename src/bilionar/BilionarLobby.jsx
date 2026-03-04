@@ -67,7 +67,7 @@ export const BilionarLobby = ({ onStartGame, onBack }) => {
             join_code: joinCode,
             status: 'waiting',
             settings: { questions_count: 10, difficulty: 2 },
-            state: { current_question_index: 0, start_time: null }
+            state: { phase: 'init' }
         }]).select().single();
 
         if (gameError) {

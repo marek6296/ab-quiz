@@ -51,12 +51,19 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                 const { data, error } = await supabase.rpc('get_random_bilionar_questions', { limit_num: 10 });
                 // Fallback to basic fetch if RPC doesn't exist
                 let questions = data;
-                if (error || !questions) {
+                if (error || !questions || questions.length === 0) {
                     const { data: rawQ } = await supabase.from('bilionar_questions').select('*').limit(10);
                     questions = rawQ;
                 }
 
                 if (!active) return;
+
+                if (!questions || questions.length === 0) {
+                    const newState = { phase: 'no_questions' };
+                    setGameState(newState);
+                    await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
+                    return;
+                }
 
                 const newState = {
                     questions,
@@ -205,6 +212,16 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         return <div className="game-container"><h2 style={{ color: '#facc15' }}>Pripravujem otázky...</h2></div>;
     }
 
+    if (gameState.phase === 'no_questions') {
+        return (
+            <div className="game-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+                <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Žiadne otázky v databáze!</h2>
+                <p style={{ color: 'white', marginBottom: '2rem' }}>Prosím prejdite do Administrácie a vygenerujte AI otázky, aby ste mohli hrať.</p>
+                <button className="neutral" onClick={onLeave} style={{ padding: '1rem 3rem' }}>Späť do Lobby</button>
+            </div>
+        );
+    }
+
     if (gameState.phase === 'finished') {
         return (
             <div className="game-container start-screen" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white', padding: '1rem' }}>
@@ -277,7 +294,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                             statusClass = 'locked'; // Waiting for reveal
                         }
                         else if (gameState.phase === 'reveal') {
-                            if (key === currentQ.correct_answer) {
+                            if (key === currentQ?.correct_answer) {
                                 statusClass = 'correct'; // Always show right answer via blink
                             } else if (selectedAnswer === key) {
                                 statusClass = 'wrong'; // Show wrong only to the person who clicked it
