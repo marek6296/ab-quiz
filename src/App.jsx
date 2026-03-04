@@ -876,7 +876,7 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
 };
 
 const MainRouter = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [currentApp, setCurrentApp] = useState('portal_menu');
   const [activeLobbyId, setActiveLobbyId] = useState(null);
   const [incomingInvite, setIncomingInvite] = useState(null);
