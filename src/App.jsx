@@ -515,8 +515,15 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
 
   // initialPendingGame effect
   useEffect(() => {
-    if (initialPendingGame && appState === APP_STATES.HOME) {
-      handleStartGame(initialPendingGame.mode, initialPendingGame.rules, initialPendingGame.gameId);
+    if (initialPendingGame && (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY)) {
+      handleStartGame(
+        initialPendingGame.mode,
+        initialPendingGame.rules || 'hex',
+        initialPendingGame.gameId,
+        initialPendingGame.cat || [],
+        initialPendingGame.diff || [1],
+        initialPendingGame.botDiff || 2
+      );
       onClearPending();
     }
   }, [initialPendingGame, appState, handleStartGame, onClearPending]);
@@ -974,6 +981,11 @@ const MainRouter = () => {
       setPendingGame({ mode: 'bilionar', gameId });
       handleSetApp('bilionar_battle');
       // BilionarApp will pick up the pending game
+    } else if (incomingInvite?.gameType === 'higher_lower') {
+      setIncomingInvite(null);
+      setPendingGame({ mode: 'higher_lower', gameId });
+      handleSetApp('higher_lower');
+      // HigherLowerApp will pick up the pending game
     } else {
       const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
       if (!error) {
@@ -989,6 +1001,8 @@ const MainRouter = () => {
       await supabase.from('platform_players').delete().eq('lobby_id', gameId).eq('user_id', user.id);
     } else if (incomingInvite?.gameType === 'bilionar') {
       await supabase.from('bilionar_players').delete().eq('game_id', gameId).eq('user_id', user.id);
+    } else if (incomingInvite?.gameType === 'higher_lower') {
+      await supabase.from('higher_lower_players').delete().eq('game_id', gameId).eq('user_id', user.id);
     } else {
       await supabase.from('games').delete().eq('id', gameId);
     }
@@ -1010,9 +1024,9 @@ const MainRouter = () => {
         <GamePortal
           onSelectGame={(gameId) => {
             // Direct game launch without lobby (1vCPU, or direct matchmaking)
-            if (gameId === 'ab_quiz') handleSetApp('ab_quiz');
-            if (gameId === 'bilionar_battle') handleSetApp('bilionar_battle');
-            if (gameId === 'higher_lower') handleSetApp('higher_lower');
+            if (gameId === 'ab_quiz') { handleSetApp('ab_quiz'); setShowLobbyModal(false); }
+            if (gameId === 'bilionar_battle') { handleSetApp('bilionar_battle'); setShowLobbyModal(false); }
+            if (gameId === 'higher_lower') { handleSetApp('higher_lower'); setShowLobbyModal(false); }
           }}
           onOpenLobby={() => setShowLobbyModal(true)}
         />
@@ -1037,10 +1051,20 @@ const MainRouter = () => {
                   setActiveLobbyId(null);
                   setShowLobbyModal(false);
                 }}
-                onStartGameFlow={(gameType, gameId, subMode) => {
+                onStartGameFlow={(gameType, gameId, subMode, extra = {}) => {
                   setShowLobbyModal(false); // Hide the lobby modal
+                  // Destructure extra settings if provided
+                  const { rules = 'hex', cat = [], diff = [1], botDiff = 2 } = extra;
+
                   if (gameType === 'quiz') {
-                    setPendingGame({ mode: subMode || '1v1_online', rules: 'hex', gameId: gameId });
+                    setPendingGame({
+                      mode: subMode || '1v1_online',
+                      rules: rules,
+                      gameId: gameId,
+                      cat: cat,
+                      diff: diff,
+                      botDiff: botDiff
+                    });
                     handleSetApp('ab_quiz');
                   }
                   else if (gameType === 'bilionar') {
@@ -1085,6 +1109,7 @@ const MainRouter = () => {
         currentApp === 'higher_lower' && (
           <HigherLowerApp
             onBackToPortal={() => { handleSetApp('portal'); setShowLobbyModal(true); }}
+            onlineUserIds={onlineUserIds}
             pendingGameId={pendingGame?.mode === 'higher_lower' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
           />

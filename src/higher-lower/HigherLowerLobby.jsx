@@ -30,6 +30,7 @@ export const HigherLowerLobby = ({
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    console.log("HigherLowerLobby: Current view:", view, "activeTab:", activeTab, "activeGame:", activeGame?.id);
     const matchmakingTimer = useRef(null);
 
     const [botDifficulty, setBotDifficulty] = useState(2); // 1 = Easy, 2 = Medium, 3 = Hard
@@ -660,6 +661,26 @@ export const HigherLowerLobby = ({
                     </div>
                 )}
             </main>
+
+            {/* INVITE MODAL */}
+            {isInviteModalOpen && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal-content glass-panel" style={{ maxWidth: '600px', width: '90%', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ margin: 0 }}>Pozvať priateľov</h2>
+                            <button className="neutral" onClick={() => setIsInviteModalOpen(false)}>✖</button>
+                        </div>
+                        <FriendsList
+                            selectedGameRules="higher_lower"
+                            isHigherLower={true}
+                            onlineUserIds={onlineUserIds}
+                        />
+                        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                            <button className="neutral" onClick={() => setIsInviteModalOpen(false)}>Zavrieť</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

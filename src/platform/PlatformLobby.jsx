@@ -109,7 +109,11 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 if (data.selected_game === 'quiz') {
                     // Nemáme tu hneď "players" refs, tak skúsime z databázy zistiť pocty 
                 }
-                setTimeout(() => onStartGameFlow(data.selected_game, data.active_game_id, subMode), 1000);
+                setTimeout(() => onStartGameFlow(data.selected_game, data.active_game_id, subMode, {
+                    rules: data.selected_game === 'quiz' ? 'hex' : null,
+                    cat: [],
+                    diff: [1]
+                }), 1000);
             }
             setLobby(data);
             fetchPlayers(); // Fetch players only after lobby is found
@@ -138,7 +142,12 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                             subMode = isBot ? '1vbot' : '1v1_online';
                         }
                         // Launch actual game view
-                        onStartGameFlow(payload.new.selected_game, payload.new.active_game_id, subMode);
+                        // Launch actual game view
+                        onStartGameFlow(payload.new.selected_game, payload.new.active_game_id, subMode, {
+                            rules: gameRules,
+                            cat: selectedCategories,
+                            diff: difficulty
+                        });
                     }
                 }
             })
@@ -321,6 +330,20 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
 
         // Pre legacy podporu: Pred vygenerovaním zmeny `status=playing` si host zaloguje stav pre seba.
         // Hneď nasleduje OnStartGameFlow, alebo to spraví listener pre `status === playing`.
+        let subMode = null;
+        if (lobby.selected_game === 'quiz') {
+            const isBot = players.length === 2 && players[1].is_bot;
+            subMode = isBot ? '1vbot' : '1v1_online';
+        }
+
+        // Launch actual game view
+        onStartGameFlow(lobby.selected_game, targetGameId, subMode, {
+            rules: gameRules,
+            cat: selectedCategories,
+            diff: difficulty,
+            botDiff: botDifficulty
+        });
+
         await supabase.from('platform_lobbies').update({ status: 'playing', active_game_id: targetGameId }).eq('id', lobbyId);
     };
 

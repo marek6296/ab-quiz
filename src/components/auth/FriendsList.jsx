@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), isBilionar = false, existingBilionarGameId = null, isHost = true, onInvite = null }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), isBilionar = false, isHigherLower = false, existingBilionarGameId = null, existingHigherLowerGameId = null, isHost = true, onInvite = null }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -204,7 +204,56 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
             if (!existingBilionarGameId) {
                 setOutgoingInvite({ gameId: gameId, partnerName: partner.username, gameType: 'bilionar' });
             } else {
-                // Just play a sound or show a small feedback that invitation was sent
+                playSound('click');
+            }
+        } else if (isHigherLower) {
+            // HIGHER LOWER CHALLENGE LOGIC
+            let gameId = existingHigherLowerGameId;
+
+            if (!gameId) {
+                const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const { data: game, error: gameError } = await supabase.from('higher_lower_games').insert([{
+                    host_id: user.id,
+                    join_code: joinCode,
+                    status: 'waiting',
+                    settings: { difficulty: 2 },
+                    state: { phase: 'init' }
+                }]).select().single();
+
+                if (gameError) {
+                    alert(`Chyba pri vytváraní hry: ${gameError.message}`);
+                    return;
+                }
+                gameId = game.id;
+
+                // Add Host if creating new
+                await supabase.from('higher_lower_players').insert([{
+                    game_id: gameId, user_id: user.id, player_name: user?.user_metadata?.username || 'Host', is_bot: false
+                }]);
+            }
+
+            // Add Partner
+            const { error: inviteError } = await supabase.from('higher_lower_players').insert([{
+                game_id: gameId,
+                user_id: partner.id,
+                player_name: partner.username,
+                avatar_url: partner.avatar_url,
+                is_bot: false,
+                color: '#ec4899'
+            }]);
+
+            if (inviteError) {
+                if (inviteError.code === '23505') {
+                    alert(`${partner.username} už je v tejto miestnosti!`);
+                } else {
+                    alert(`Pozvánka zlyhala: ${inviteError.message}`);
+                }
+                return;
+            }
+
+            if (!existingHigherLowerGameId) {
+                setOutgoingInvite({ gameId: gameId, partnerName: partner.username, gameType: 'higher_lower' });
+            } else {
                 playSound('click');
             }
         } else {
@@ -233,6 +282,8 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
         if (outgoingInvite) {
             if (outgoingInvite.gameType === 'bilionar') {
                 await supabase.from('bilionar_games').delete().eq('id', outgoingInvite.gameId);
+            } else if (outgoingInvite.gameType === 'higher_lower') {
+                await supabase.from('higher_lower_games').delete().eq('id', outgoingInvite.gameId);
             } else {
                 await supabase.from('games').delete().eq('id', outgoingInvite.gameId);
             }

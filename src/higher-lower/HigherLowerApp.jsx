@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase';
 import { HigherLowerGame } from './HigherLowerGame';
 import { HigherLowerLobby } from './HigherLowerLobby';
 
-export const HigherLowerApp = ({ onBackToPortal, pendingGameId, onClearPending }) => {
+export const HigherLowerApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [view, setView] = useState('lobby'); // Used to just say we are loading, or directly 'game'
+    console.log("HigherLowerApp: Rendering with current view:", view, "user:", user?.id);
     const viewRef = useRef(view);
 
     useEffect(() => { viewRef.current = view; }, [view]);
@@ -106,12 +107,19 @@ export const HigherLowerApp = ({ onBackToPortal, pendingGameId, onClearPending }
         };
     }, [activeGame?.id, onBackToPortal]);
 
+    useEffect(() => {
+        if (activeGame?.status === 'playing' && view === 'lobby') {
+            setView('game');
+        }
+    }, [activeGame?.status, view]);
+
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             {view === 'lobby' ? (
                 <HigherLowerLobby
                     activeGame={activeGame}
                     players={players}
+                    onlineUserIds={onlineUserIds}
                     pendingGameId={pendingGameId}
                     onClearPending={onClearPending}
                     onSetGame={setActiveGame}

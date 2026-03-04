@@ -138,7 +138,12 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
     }, [activeGame?.id]);
 
     const prevActiveGameStatus = useRef(activeGame?.status);
-    useEffect(() => { prevActiveGameStatus.current = activeGame?.status; }, [activeGame?.status]);
+    useEffect(() => {
+        prevActiveGameStatus.current = activeGame?.status;
+        if (activeGame?.status === 'playing' && view === 'lobby') {
+            setView('game');
+        }
+    }, [activeGame?.status, view]);
 
     // Fallback sync (periodically check if game state has changed)
     useEffect(() => {
