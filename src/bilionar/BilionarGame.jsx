@@ -18,6 +18,30 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
+    // 1.5 Host Migration & Auto-Victory Fallback Drop-in
+    useEffect(() => {
+        if (!players.length || !user || !activeGame) return;
+        const hostStillHere = players.some(p => p.user_id === activeGame.host_id);
+        const realPlayers = players.filter(p => !p.is_bot);
+        const realPlayersCount = realPlayers.length;
+
+        // Auto Victory Check (Any Real Client can trigger this if they notice they are the only one left after a true multiplayer start)
+        // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
+        if (activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+            const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999 };
+            supabase.from('bilionar_games').update({ state: finishState }).eq('id', activeGame.id).then();
+        }
+
+        // Host Migration (if Host disappeared, lowest string user_id takes over)
+        if (!hostStillHere && realPlayersCount > 0 && gameState.phase !== 'finished' && activeGame.status === 'playing') {
+            const nextHostId = [...realPlayers].sort((a, b) => a.user_id.localeCompare(b.user_id))[0].user_id;
+            if (nextHostId === user.id) {
+                console.log("Host migration: I am the new host!");
+                supabase.from('bilionar_games').update({ host_id: user.id }).eq('id', activeGame.id).then();
+            }
+        }
+    }, [players, activeGame.host_id, user, activeGame.state?.max_real_players, gameState.phase, activeGame.status]);
+
     // 2. HOST Server Loop - Drives the Game State across all clients
     useEffect(() => {
         if (!isHost) return;
@@ -359,7 +383,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 <div className="message-modal dramatic-pop">
                     <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Žiadne otázky v databáze!</h2>
                     <p style={{ color: 'white', marginBottom: '2rem' }}>Prosím prejdite do Administrácie a vygenerujte AI otázky.</p>
-                    <button className="neutral" onClick={onLeave} style={{ padding: '1rem 3rem' }}>Späť do Lobby</button>
+                    <button className="neutral" onClick={onLeave} style={{ padding: '1rem 3rem' }}>Späť do Menu</button>
                 </div>
             </div>
         );
@@ -379,7 +403,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                         </div>
                     ))}
                 </div>
-                <button className="primary" onClick={onLeave} style={{ marginTop: '3rem', padding: '1.2rem 4rem', fontSize: '1.2rem' }}>Späť do Lobby</button>
+                <button className="primary" onClick={onLeave} style={{ marginTop: '3rem', padding: '1.2rem 4rem', fontSize: '1.2rem' }}>Späť do Menu</button>
             </div>
         );
     }
