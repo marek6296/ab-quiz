@@ -63,12 +63,6 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                     <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setSetupMode(null); }}>
                         <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
                     </button>
-                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')}>
-                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
-                    </button>
-                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
-                    </button>
                     {profile?.is_admin && (
                         <button className="nav-item" onClick={onShowAdmin} style={{ color: '#f8fafc', fontWeight: 'bold' }}>
                             <span style={{ fontSize: '1.5rem' }}>🛠️</span> Administrácia
@@ -123,27 +117,6 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                 <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
                             </div>
 
-                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_private_create')}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                                <h3>Založiť Miestnosť</h3>
-                                <p>Vytvor privátnu hru s vlastnými pravidlami a pošli kód kamošovi.</p>
-                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
-                            </div>
-
-                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_private_join')}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
-                                <h3>Pripojiť sa</h3>
-                                <p>Máš kód od kamaráta? Zadaj ho do vyhľadávača a prepoj sa na neho.</p>
-                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
-                            </div>
-
-                            <div className="mode-card primary" onClick={() => setSetupMode('1v1_invite')}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                                <h3>Hrať s priateľom</h3>
-                                <p>Vyber si kategórie, náročnosť a priamo vyzvi kamoša zo zoznamu.</p>
-                                <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Vyzvať priateľa →</span>
-                            </div>
-
                             <div className="mode-card primary" onClick={() => setSetupMode('1vbot')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                                 <h3>Tréning s BOTom</h3>
@@ -162,226 +135,87 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
 
                         <h2 style={{ fontSize: '2rem', marginBottom: '2rem', color: '#f8fafc' }}>Konfigurácia Hry</h2>
 
-                        {setupMode !== '1v1_private_join' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                                {/* Rules Selection */}
-                                <div>
-                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Herné Pravidlá</label>
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <button className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => setGameRules('hex')}>
-                                            Hex (Cesta)
-                                        </button>
-                                        <button className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => setGameRules('points')}>
-                                            Body (Rýchlosť)
-                                        </button>
-                                    </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            {/* Rules Selection */}
+                            <div>
+                                <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Herné Pravidlá</label>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => setGameRules('hex')}>
+                                        Hex (Cesta)
+                                    </button>
+                                    <button className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '1rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => setGameRules('points')}>
+                                        Body (Rýchlosť)
+                                    </button>
                                 </div>
+                            </div>
 
-                                {/* Difficulty Selection */}
+                            {/* Difficulty Selection */}
+                            <div>
+                                <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Náročnosť Otázok</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
+                                    {[
+                                        { level: 1, label: 'Ľahké', color: '#4ade80' },
+                                        { level: 2, label: 'Stredné', color: '#fbbf24' },
+                                        { level: 3, label: 'Ťažké', color: '#ef4444' }
+                                    ].map(diff => {
+                                        const isSelected = difficulty.includes(diff.level);
+                                        return (
+                                            <button
+                                                key={diff.level}
+                                                onClick={() => setDifficulty(prev => {
+                                                    if (prev.includes(diff.level)) {
+                                                        if (prev.length === 1) return prev;
+                                                        return prev.filter(d => d !== diff.level);
+                                                    } else {
+                                                        return [...prev, diff.level];
+                                                    }
+                                                })}
+                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                {diff.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Bot Difficulty Selection */}
+                            {setupMode === '1vbot' && (
                                 <div>
-                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Náročnosť Otázok</label>
+                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Sila BOTa (Nervozita, IQ a postreh)</label>
                                     <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
                                         {[
-                                            { level: 1, label: 'Ľahké', color: '#4ade80' },
-                                            { level: 2, label: 'Stredné', color: '#fbbf24' },
-                                            { level: 3, label: 'Ťažké', color: '#ef4444' }
-                                        ].map(diff => {
-                                            const isSelected = difficulty.includes(diff.level);
-                                            return (
-                                                <button
-                                                    key={diff.level}
-                                                    onClick={() => setDifficulty(prev => {
-                                                        if (prev.includes(diff.level)) {
-                                                            if (prev.length === 1) return prev; // Nedovol zrusit posledne, vzdy musi byt aspon jedno oznacene
-                                                            return prev.filter(d => d !== diff.level);
-                                                        } else {
-                                                            return [...prev, diff.level];
-                                                        }
-                                                    })}
-                                                    style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
-                                                    {diff.label}
-                                                </button>
-                                            )
-                                        })}
+                                            { level: 1, label: 'Ľahký', color: '#4ade80' },
+                                            { level: 2, label: 'Stredný', color: '#fbbf24' },
+                                            { level: 3, label: 'Ťažký', color: '#ef4444' }
+                                        ].map(diff => (
+                                            <button key={diff.level} onClick={() => setBotDifficulty(diff.level)} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: botDifficulty === diff.level ? diff.color : 'transparent', color: botDifficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                {diff.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Bot Difficulty Selection */}
-                                {setupMode === '1vbot' && (
-                                    <div>
-                                        <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Sila BOTa (Nervozita, IQ a postreh)</label>
-                                        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
-                                            {[
-                                                { level: 1, label: 'Ľahký', color: '#4ade80' },
-                                                { level: 2, label: 'Stredný', color: '#fbbf24' },
-                                                { level: 3, label: 'Ťažký', color: '#ef4444' }
-                                            ].map(diff => (
-                                                <button key={diff.level} onClick={() => setBotDifficulty(diff.level)} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', fontWeight: 'bold', background: botDifficulty === diff.level ? diff.color : 'transparent', color: botDifficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-                                                    {diff.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Category Selection */}
-                                <div>
-                                    <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Kategórie</label>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                        <button onClick={() => setSelectedCategories([])} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', fontWeight: isAllSelected ? 'bold' : 'normal', background: isAllSelected ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: isAllSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isAllSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                                            ✨ Všetky
-                                        </button>
-                                        {availableCategories.map(c => {
-                                            const isSelected = selectedCategories.includes(c);
-                                            return (
-                                                <button key={c} onClick={() => toggleCategory(c)} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#38bdf8' : '#94a3b8', border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                                                    {c}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {setupMode === '1v1_invite' ? (
-                                    <div style={{ marginTop: '2rem' }}>
-                                        <label style={{ display: 'block', color: '#38bdf8', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center', fontSize: '1.2rem' }}>
-                                            Krok 2: Vyber si priateľa, ktorého vyzveš
-                                        </label>
-                                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '1.5rem', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                                            <FriendsList
-                                                selectedGameRules={gameRules}
-                                                selectedCategory={selectedCategories}
-                                                selectedDifficulty={difficulty[0] || 1}
-                                                onlineUserIds={onlineUserIds}
-                                            />
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', marginTop: '1rem' }} onClick={handleStartFromSetup}>
-                                        Potvrdiť a Spustiť 🚀
+                            {/* Category Selection */}
+                            <div>
+                                <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Kategórie</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                    <button onClick={() => setSelectedCategories([])} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', fontWeight: isAllSelected ? 'bold' : 'normal', background: isAllSelected ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: isAllSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isAllSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                                        ✨ Všetky
                                     </button>
-                                )}
-                            </div>
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                                <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Pre pripojenie k existujúcej miestnosti pokračujte tlačidlom nižšie, ktoré vám otvorí panel na zadanie kódu miestnosti.</p>
-                                <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', width: '100%' }} onClick={handleStartFromSetup}>
-                                    Prejsť na zadávanie Kódu 🔑
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === 'friends' && (
-                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                            <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', margin: 0 }}>Social a Priatelia</h2>
-                        </div>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov, pridávať si ich a rovno ich vyzývať do napínavých duelov.</p>
-                            <FriendsList
-                                selectedGameRules={gameRules}
-                                selectedCategory={selectedCategories}
-                                selectedDifficulty={difficulty}
-                                onlineUserIds={onlineUserIds}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'profile' && (
-                    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', marginBottom: '2rem' }}>Môj Profil</h2>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-
-                            {/* Avatar Section */}
-                            <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 2rem' }}>
-                                <div style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    borderRadius: '50%',
-                                    background: profile?.avatar_url ? 'transparent' : 'var(--primary-gradient)',
-                                    border: '4px solid rgba(255,255,255,0.1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '3.5rem',
-                                    overflow: 'hidden'
-                                }}>
-                                    {profile?.avatar_url ? (
-                                        <img
-                                            src={`${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
-                                            alt=""
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = '👤'; }}
-                                        />
-                                    ) : '👤'}
+                                    {availableCategories.map(c => {
+                                        const isSelected = selectedCategories.includes(c);
+                                        return (
+                                            <button key={c} onClick={() => toggleCategory(c)} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#38bdf8' : '#94a3b8', border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                                                {c}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                                <label
-                                    htmlFor="avatar-upload"
-                                    style={{
-                                        position: 'absolute', bottom: '0', right: '0',
-                                        background: '#38bdf8', width: '36px', height: '36px',
-                                        borderRadius: '50%', display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', cursor: 'pointer', border: '3px solid #0f172a',
-                                        fontSize: '1.2rem'
-                                    }}
-                                >
-                                    📷
-                                </label>
-                                <input
-                                    id="avatar-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    hidden
-                                    onChange={async (e) => {
-                                        const file = e.target.files[0];
-                                        if (!file) return;
-
-                                        const fileExt = file.name.split('.').pop();
-                                        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-                                        const filePath = fileName;
-
-                                        // 1. Upload to Supabase Storage
-                                        const { error: uploadError } = await supabase.storage
-                                            .from('profile-pictures')
-                                            .upload(filePath, file, {
-                                                upsert: true,
-                                                contentType: file.type
-                                            });
-
-                                        if (uploadError) {
-                                            alert("Chyba pri nahrávaní: " + uploadError.message);
-                                            return;
-                                        }
-
-                                        // 2. Get Public URL
-                                        const { data: { publicUrl } } = supabase.storage
-                                            .from('profile-pictures')
-                                            .getPublicUrl(filePath);
-
-                                        // 3. Update Profile
-                                        const { error: updateError } = await supabase.from('profiles')
-                                            .update({ avatar_url: publicUrl })
-                                            .eq('id', user.id);
-
-                                        if (updateError) {
-                                            alert("Chyba pri aktualizácii profilu");
-                                        } else {
-                                            setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
-                                        }
-                                    }}
-                                />
                             </div>
 
-                            <h3 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '0.5rem' }}>{profile?.username}</h3>
-                            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{user?.email}</p>
-
-                            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', marginBottom: '2rem' }} />
-
-                            <button className="neutral" onClick={() => signOut()} style={{ padding: '1rem 2rem', border: '1px solid #ef4444', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}>
-                                Odhlásiť sa zo systému
+                            <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', marginTop: '1rem' }} onClick={handleStartFromSetup}>
+                                Potvrdiť a Spustiť 🚀
                             </button>
                         </div>
                     </div>

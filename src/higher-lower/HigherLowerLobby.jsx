@@ -383,12 +383,6 @@ export const HigherLowerLobby = ({
                     <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setView(activeGame ? 'room' : 'menu'); }} style={{ ...(activeTab === 'play' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
                         <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
                     </button>
-                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')} style={{ ...(activeTab === 'friends' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
-                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
-                    </button>
-                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')} style={{ ...(activeTab === 'profile' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
-                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
-                    </button>
                     {profile?.is_admin && onShowAdmin && (
                         <button className="nav-item" onClick={onShowAdmin} style={{ color: '#f8fafc', fontWeight: 'bold' }}>
                             <span style={{ fontSize: '1.5rem' }}>🛠️</span> Administrácia
@@ -443,32 +437,6 @@ export const HigherLowerLobby = ({
                                         <h3 style={{ color: '#facc15' }}>Rýchla Hra</h3>
                                         <p>Pripojíme ťa k náhodným hráčom online. Kto nahrá najvyššie skóre?</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={() => handleHostGame({ isPublic: false })} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                                        <h3 style={{ color: '#facc15' }}>Založiť Miestnosť</h3>
-                                        <p>Vytvor privátnu hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={() => setView('join')} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
-                                        <h3 style={{ color: '#facc15' }}>Pripojiť sa</h3>
-                                        <p>Máš kód od kamaráta? Zadaj ho a prepoj sa priamo do jeho hry.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={async () => {
-                                        const game = await handleHostGame({ isPublic: false });
-                                        if (game && !game.message) {
-                                            setIsInviteModalOpen(true);
-                                        }
-                                    }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                                        <h3 style={{ color: '#facc15' }}>Hrať s priateľmi</h3>
-                                        <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
                                     </div>
 
                                     <div className="mode-card primary" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
@@ -629,37 +597,7 @@ export const HigherLowerLobby = ({
                     </>
                 )}
 
-                {activeTab === 'friends' && (
-                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                            <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', margin: 0 }}>Social a Priatelia</h2>
-                        </div>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
-                            <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov a pridávať si ich do priateľov.</p>
-                            <FriendsList
-                                selectedGameRules="higher_lower"
-                                isHigherLower={true}
-                                onlineUserIds={onlineUserIds}
-                            />
-                        </div>
-                    </div>
-                )}
 
-                {activeTab === 'profile' && (
-                    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', marginBottom: '2rem' }}>Môj Profil</h2>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ width: '120px', height: '120px', margin: '0 auto 1.5rem', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '4px solid #facc15', overflow: 'hidden' }}>
-                                {profile?.avatar_url ? (
-                                    <img src={`${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = '👤'; }} />
-                                ) : <div style={{ fontSize: '4rem', lineHeight: '110px' }}>👤</div>}
-                            </div>
-                            <h3 style={{ fontSize: '2rem', color: 'white', marginBottom: '0.5rem' }}>{profile?.username}</h3>
-                            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{profile?.email}</p>
-                            <button className="danger" onClick={signOut} style={{ padding: '1rem 2rem', fontSize: '1.2rem', width: '100%' }}>Odhlásiť sa</button>
-                        </div>
-                    </div>
-                )}
             </main>
 
             {/* INVITE MODAL */}

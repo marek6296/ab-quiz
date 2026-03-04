@@ -63,7 +63,7 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
                     }}
                 >
                     <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 30px rgba(16, 185, 129, 0.6)' }}>🎮</div>
-                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#34d399', fontWeight: '800' }}>Multiplayer Lobby</h3>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#34d399', fontWeight: '800' }}>Friends Lobby</h3>
                     <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
                         Vytvorte si súkromnú miestnosť, pozvite priateľov a spoločne si vyberte z našich hier!
                     </p>

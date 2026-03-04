@@ -467,12 +467,6 @@ export const BilionarLobby = ({
                     <button className={`nav-item ${activeTab === 'play' ? 'active' : ''}`} onClick={() => { setActiveTab('play'); setView(activeGame ? 'room' : 'menu'); }} style={{ ...(activeTab === 'play' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
                         <span style={{ fontSize: '1.5rem' }}>🎮</span> Hrať
                     </button>
-                    <button className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} onClick={() => setActiveTab('friends')} style={{ ...(activeTab === 'friends' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
-                        <span style={{ fontSize: '1.5rem' }}>👥</span> Priatelia
-                    </button>
-                    <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')} style={{ ...(activeTab === 'profile' && { background: 'rgba(250, 204, 21, 0.15)', color: '#facc15', borderLeft: '4px solid #facc15' }) }}>
-                        <span style={{ fontSize: '1.5rem' }}>👤</span> Profil
-                    </button>
                     {profile?.is_admin && onShowAdmin && (
                         <button className="nav-item" onClick={onShowAdmin} style={{ color: '#f8fafc', fontWeight: 'bold' }}>
                             <span style={{ fontSize: '1.5rem' }}>🛠️</span> Administrácia
@@ -527,27 +521,6 @@ export const BilionarLobby = ({
                                         <h3 style={{ color: '#facc15' }}>Rýchla Hra</h3>
                                         <p>Najrýchlejšia cesta k miliónu. Pripojíme ťa k náhodným hráčom v otvorenej miestnosti.</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('host'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                                        <h3 style={{ color: '#facc15' }}>Založiť Miestnosť</h3>
-                                        <p>Vytvor privátnu hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={() => setView('join')} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
-                                        <h3 style={{ color: '#facc15' }}>Pripojiť sa</h3>
-                                        <p>Máš kód od kamaráta? Zadaj ho a prepoj sa priamo do jeho hry.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
-                                    </div>
-
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                                        <h3 style={{ color: '#facc15' }}>Hrať s priateľmi</h3>
-                                        <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
-                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
                                     </div>
 
                                     <div className="mode-card primary" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
@@ -778,90 +751,7 @@ export const BilionarLobby = ({
                     </>
                 )}
 
-                {activeTab === 'friends' && (
-                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                            <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', margin: 0 }}>Social a Priatelia</h2>
-                        </div>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '2rem', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
-                            <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov a pridávať si ich do priateľov.</p>
-                            <FriendsList
-                                selectedGameRules="bilionar"
-                                isBilionar={true}
-                                onlineUserIds={onlineUserIds}
-                            />
-                        </div>
-                    </div>
-                )}
 
-                {activeTab === 'profile' && (
-                    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', marginBottom: '2rem' }}>Môj Profil</h2>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 2rem' }}>
-                                <div style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    borderRadius: '50%',
-                                    background: profile?.avatar_url ? 'transparent' : 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)',
-                                    border: '4px solid rgba(255,255,255,0.1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '3.5rem',
-                                    overflow: 'hidden'
-                                }}>
-                                    {profile?.avatar_url ? (
-                                        <img
-                                            src={`${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}`}
-                                            alt=""
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = '👤'; }}
-                                        />
-                                    ) : '👤'}
-                                </div>
-                                <label
-                                    htmlFor="avatar-upload"
-                                    style={{
-                                        position: 'absolute', bottom: '0', right: '0',
-                                        background: '#facc15', width: '36px', height: '36px',
-                                        borderRadius: '50%', display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', cursor: 'pointer', border: '3px solid #0f172a',
-                                        fontSize: '1.2rem'
-                                    }}
-                                >
-                                    📷
-                                </label>
-                                <input
-                                    id="avatar-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    hidden
-                                    onChange={async (e) => {
-                                        const file = e.target.files[0];
-                                        if (!file) return;
-                                        const fileExt = file.name.split('.').pop();
-                                        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-                                        const { error: uploadError } = await supabase.storage.from('profile-pictures').upload(fileName, file, { upsert: true, contentType: file.type });
-                                        if (uploadError) { alert("Chyba pri nahrávaní: " + uploadError.message); return; }
-                                        const { data: { publicUrl } } = supabase.storage.from('profile-pictures').getPublicUrl(fileName);
-                                        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
-                                        if (updateError) { alert("Chyba pri aktualizácii profilu"); } else { setProfile(prev => ({ ...prev, avatar_url: publicUrl })); }
-                                    }}
-                                />
-                            </div>
-
-                            <h3 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '0.5rem' }}>{profile?.username}</h3>
-                            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{user?.email}</p>
-
-                            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', marginBottom: '2rem' }} />
-
-                            <button className="neutral" onClick={() => signOut()} style={{ padding: '1rem 2rem', border: '1px solid #ef4444', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}>
-                                Odhlásiť sa zo systému
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 {isInviteModalOpen && activeGame && (
                     <div className="modal-overlay" style={{ zIndex: 10000 }}>
