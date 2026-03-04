@@ -728,15 +728,15 @@ const ABQuizApp = ({ onBackToPortal }) => {
           )}
 
           <h1 className="game-title">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1rem', overflow: 'hidden' }}>
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}
               </span>
-              {renderAvatar(1, '42px', 'var(--player1-color)')}
+              {renderAvatar(1, '65px', 'var(--player1-color)')}
             </div>
             <span className="vs">VS</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem', overflow: 'hidden' }}>
-              {renderAvatar(2, '42px', 'var(--player2-color)')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '1rem', overflow: 'hidden' }}>
+              {renderAvatar(2, '65px', 'var(--player2-color)')}
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}
               </span>
