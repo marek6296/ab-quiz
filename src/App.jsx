@@ -199,7 +199,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
   }, [user]);
 
   // Pass necessary info down to the game engine
-  const { board, currentPlayer, winner, claimHexagon, resetGame, localPlayerNum, p1Score, p2Score, p1Combo, p2Combo, gameData, presenceCount } = useGameState({
+  const {
+    board, currentPlayer, winner, claimHexagon, resetGame,
+    localPlayerNum, p1Score, p2Score, p1Combo, p2Combo,
+    gameData, presenceCount, seenIds, markQuestionAsSeen
+  } = useGameState({
     userId: user?.id,
     gameMode,
     gameRules,
@@ -230,8 +234,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
 
     let query = supabase.from('questions').select('*');
     if (cats.length > 0) {
-      // Pick *one* random category to query. This guarantees perfect randomization 
-      // across checked categories rather than pulling sequentially sorted buckets.
       const randomCat = cats[Math.floor(Math.random() * cats.length)];
       query = query.eq('category', randomCat);
     }
@@ -241,44 +243,51 @@ const ABQuizApp = ({ onBackToPortal }) => {
       query = query.in('difficulty', diffs);
     }
 
-    if (usedQuestionIdsRef.current.size > 0) {
-      query = query.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
+    // Combine session-used questions and DB-seen questions (history)
+    const sessionUsed = Array.from(usedQuestionIdsRef.current);
+    const historySeen = Array.isArray(seenIds) ? seenIds : [];
+    const allExclusions = [...new Set([...sessionUsed, ...historySeen])];
+
+    if (allExclusions.length > 0) {
+      // Use shorter filter first (session used) if history is too large, but for now try all
+      query = query.not('id', 'in', `(${allExclusions.join(',')})`);
     }
 
     const { data: pool, error } = await query.limit(100);
 
     if (error || !pool || pool.length === 0) {
-      console.warn("No questions match config or all used! Falling back...");
+      console.warn("No UNSEEN questions match config. Falling back to repeating...");
 
-      // Fallback 1: Just the categories without difficulty constraint
+      // Fallback 1: Only avoid session duplicates (allow repeating history)
       let fallbackQuery = supabase.from('questions').select('*');
       if (cats.length > 0) {
-        fallbackQuery = fallbackQuery.in('category', cats);
+        fallbackQuery = fallbackQuery.eq('category', cats[Math.floor(Math.random() * cats.length)]);
       }
-      if (usedQuestionIdsRef.current.size > 0) {
-        fallbackQuery = fallbackQuery.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
+      if (diffs.length === 1) {
+        fallbackQuery = fallbackQuery.eq('difficulty', diffs[0]);
+      } else if (diffs.length > 1) {
+        fallbackQuery = fallbackQuery.in('difficulty', diffs);
       }
-      let { data: fallbackPool } = await fallbackQuery.limit(50);
 
-      // Fallback 2: Any question at all from DB
-      if (!fallbackPool || fallbackPool.length === 0) {
-        let globalQuery = supabase.from('questions').select('*');
-        if (usedQuestionIdsRef.current.size > 0) {
-          globalQuery = globalQuery.not('id', 'in', `(${Array.from(usedQuestionIdsRef.current).join(',')})`);
-        }
-        const { data: globalFallback } = await globalQuery.limit(50);
-        fallbackPool = globalFallback;
+      if (sessionUsed.length > 0) {
+        fallbackQuery = fallbackQuery.not('id', 'in', `(${sessionUsed.join(',')})`);
       }
+
+      const { data: fallbackPool } = await fallbackQuery.limit(50);
 
       if (fallbackPool && fallbackPool.length > 0) {
         return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
       }
 
-      return { id: 1, question_text: "Otázky pre túto kombináciu sa nenašli...", answer: "Žiadna" };
+      // Fallback 2: Pure random from category/difficulty (ignore session too if needed)
+      const { data: panicPool } = await supabase.from('questions').select('*').in('category', cats).limit(50);
+      if (panicPool && panicPool.length > 0) return panicPool[Math.floor(Math.random() * panicPool.length)];
+
+      return { id: 'dummy', question_text: "Otázky sa nenašli...", answer: "Žiadna" };
     }
 
     return pool[Math.floor(Math.random() * pool.length)];
-  }, [localCategory, localDifficulty, gameMode, gameData]);
+  }, [localCategory, localDifficulty, gameMode, gameData, seenIds]);
 
   const handleStartGame = useCallback((mode, rules = 'hex', gameId = null, cat = [], diff = [1], botDiff = 2) => {
     usedQuestionIdsRef.current.clear(); // Reset used questions each new game
@@ -666,6 +675,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
               onSyncModal={handleSyncModal}
               localPlayerNum={localPlayerNum}
               presenceCount={presenceCount}
+              markQuestionAsSeen={markQuestionAsSeen}
               playerNames={{
                 player1: gameMode === '1v1_online'
                   ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))

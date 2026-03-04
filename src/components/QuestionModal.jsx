@@ -3,7 +3,7 @@ import { isAnswerCorrect } from '../utils/stringUtils';
 import { useAudio } from '../hooks/useAudio';
 import { supabase } from '../lib/supabase';
 
-export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', botDifficulty = 1, p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount }) => {
+export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', botDifficulty = 1, p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount, markQuestionAsSeen }) => {
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -12,6 +12,13 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showReportMenu, setShowReportMenu] = useState(false);
     const [hasReported, setHasReported] = useState(false);
+
+    // Record this question as seen for the user profile
+    useEffect(() => {
+        if (question && question.id && markQuestionAsSeen) {
+            markQuestionAsSeen(question.id);
+        }
+    }, [question, markQuestionAsSeen]);
 
     // Check local storage if this client already reported this question today/ever
     useEffect(() => {

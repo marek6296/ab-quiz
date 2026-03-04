@@ -38,6 +38,21 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     const [p1Combo, setP1Combo] = useState(localInitial?.p1Combo || 0);
     const [p2Combo, setP2Combo] = useState(localInitial?.p2Combo || 0);
 
+    // Seen Questions Tracking
+    const [seenIds, setSeenIds] = useState([]);
+
+    // For local games vs BOT, just fetch current user's seen questions once
+    useEffect(() => {
+        if (gameMode !== '1v1_online' && userId) {
+            supabase.from('user_seen_questions')
+                .select('question_id')
+                .eq('user_id', userId)
+                .then(({ data }) => {
+                    if (data) setSeenIds(data.map(s => s.question_id));
+                });
+        }
+    }, [gameMode, userId]);
+
     // Continuous Persistence for Local Games
     useEffect(() => {
         if (gameMode !== '1v1_online' && board && board.length > 0) {
@@ -63,6 +78,16 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 // determine current player 1 or 2 based on ID
                 setCurrentPlayer(data.current_turn === data.player1_id ? 1 : 2);
                 if (data.winner_id) setWinner(data.winner_id === data.player1_id ? 1 : 2);
+
+                // Fetch seen questions for both players to avoid repetition
+                const { data: seenData } = await supabase
+                    .from('user_seen_questions')
+                    .select('question_id')
+                    .in('user_id', [data.player1_id, data.player2_id]);
+
+                if (seenData) {
+                    setSeenIds(seenData.map(s => s.question_id));
+                }
             } else if (error && error.code === 'PGRST116') {
                 // Hra uz neexistuje (0 rows returned)
                 alert('Túto hru už server neeviduje (ukončená).');
@@ -253,6 +278,21 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         ? (gameData.player1_id === userId ? 1 : 2)
         : 1; // if local BOT, local user is always player 1 
 
+    const markQuestionAsSeen = useCallback(async (qId) => {
+        if (!userId || !qId) return;
+
+        // Optimistically update local state
+        setSeenIds(prev => [...new Set([...prev, qId])]);
+
+        // Persist to DB
+        const { error } = await supabase.from('user_seen_questions').upsert({
+            user_id: userId,
+            question_id: qId
+        }, { onConflict: 'user_id, question_id' });
+
+        if (error) console.error("Error saving seen question:", error);
+    }, [userId]);
+
     return {
         board,
         currentPlayer,
@@ -265,6 +305,8 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         p1Combo,
         p2Combo,
         gameData,
-        presenceCount
+        presenceCount,
+        seenIds,
+        markQuestionAsSeen
     };
 };
