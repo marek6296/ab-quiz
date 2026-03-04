@@ -30,12 +30,13 @@ export const GamePortal = ({ onSelectGame }) => {
 
                 <div
                     className="mode-card"
-                    style={{ minWidth: '300px', flex: 1, opacity: 0.6, cursor: 'not-allowed', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '3rem 2rem' }}
+                    onClick={() => onSelectGame('bilionar_battle')}
+                    style={{ minWidth: '300px', flex: 1, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '3rem 2rem', background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.2)' }}
                 >
-                    <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🚧</div>
-                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#f8fafc' }}>Pripravujeme</h3>
-                    <p style={{ fontSize: '1.1rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6' }}>Usilovne pracujeme na vývoji ďalších skvelých hier do tejto kolekcie.</p>
-                    <span style={{ color: '#64748b', fontWeight: 'bold', fontSize: '1.2rem', marginTop: 'auto', background: 'rgba(255,255,255,0.05)', padding: '0.8rem 2rem', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>Už čoskoro</span>
+                    <div style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 20px rgba(250, 204, 21, 0.4)' }}>💰</div>
+                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#facc15' }}>Bilionár Battle</h3>
+                    <p style={{ fontSize: '1.1rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6' }}>Súboj až pre 8 hráčov na čas. Odpovedz najrýchlejšie a prekonaj priateľov v tejto profesionálnej show!</p>
+                    <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', marginTop: 'auto', background: '#facc15', padding: '0.8rem 2rem', borderRadius: '30px', boxShadow: '0 0 15px rgba(250, 204, 21, 0.5)' }}>Hrať teraz →</span>
                 </div>
             </div>
         </div>

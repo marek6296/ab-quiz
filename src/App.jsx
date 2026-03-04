@@ -13,6 +13,7 @@ import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 import { useGameStore, APP_STATES } from './game-engine/store';
 import { GamePortal } from './components/GamePortal';
+import { BilionarApp } from './bilionar/BilionarApp';
 
 // Custom Hooks pre logiku hry
 import { useBlockNavigation } from './hooks/useBlockNavigation';
@@ -940,6 +941,10 @@ const MainRouter = () => {
 
   if (currentApp === 'ab_quiz') {
     return <ABQuizApp onBackToPortal={() => handleSetApp('portal')} />;
+  }
+
+  if (currentApp === 'bilionar_battle') {
+    return <BilionarApp onBackToPortal={() => handleSetApp('portal')} />;
   }
 
   return null;
