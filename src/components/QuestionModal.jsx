@@ -719,18 +719,33 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     {/* Secondary Guess Choice Phase */}
                     {phase === 'opponentChoice' && (
                         <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                            <div className="choice-icon">⚔️</div>
-                            <h2 className="choice-title">Súper zaváhal!</h2>
-                            <p className="choice-description">
-                                {opponentName}, máš jedinečnú šancu ukradnúť toto pole pre seba. Riskneš to?
-                            </p>
+                            <div className="category-badge opponent-badge">
+                                ROZHODOVANIE
+                            </div>
+                            <div className="question-text" style={(() => {
+                                const text = question.question_text || question.text || '';
+                                const len = text.length;
+                                const isMobile = window.innerWidth <= 768;
+                                let fontSize = isMobile ? '1.15rem' : '2rem';
+                                if (len > 120) fontSize = isMobile ? '0.85rem' : '1.4rem';
+                                else if (len > 80) fontSize = isMobile ? '0.95rem' : '1.7rem';
+                                return { fontSize };
+                            })()}>{question.question_text || question.text}</div>
+                            {renderPlaceholder(question.answer)}
+
+                            <div className="turn-info">
+                                <h3 className="turn-label">Šancu môže dostať</h3>
+                                <div className="turn-player-name" style={{ color: opponent === 1 ? '#3b82f6' : '#f97316' }}>
+                                    {opponentName}
+                                </div>
+                            </div>
 
                             <div className="timer-bar-container compact-timer">
                                 <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
                             </div>
 
                             {isLocalSecondary ? (
-                                <div className="modal-primary-actions">
+                                <div className="modal-primary-actions" style={{ marginTop: '0.5rem' }}>
                                     <button className="primary submit-btn" onClick={() => {
                                         setPhase('opponent');
                                         setTimeLeft(15);
@@ -749,7 +764,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             ) : (
                                 <div className="wait-status">
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
-                                    <span>Čaká sa kým sa {opponentName} rozhodne</span>
+                                    <span>{opponentName} sa rozhoduje...</span>
                                 </div>
                             )}
                         </div>
