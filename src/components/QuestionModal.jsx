@@ -41,10 +41,9 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const userId = session?.user?.id || null;
-            let pName = null;
-            if (!userId) {
-                pName = localPlayerNum === 1 ? playerNames.player1 : playerNames.player2;
-            }
+
+            // Nikdy nenechávame player_name prázdne, ak vieme získať meno z playerNames
+            const pName = localPlayerNum === 1 ? playerNames.player1 : playerNames.player2;
 
             await supabase.from('question_reports').insert({
                 question_id: question.id,
