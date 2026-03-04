@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BilionarAdmin } from './BilionarAdmin';
 import { BilionarLobby } from './BilionarLobby';
+import { BilionarGame } from './BilionarGame';
 
 export const BilionarApp = ({ onBackToPortal }) => {
     const { user } = useAuth();
@@ -38,11 +39,10 @@ export const BilionarApp = ({ onBackToPortal }) => {
 
     if (view === 'game') {
         return (
-            <div className="game-container in-game" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white', padding: '1rem' }}>
-                <h2 style={{ color: '#facc15' }}>HRA SA ZAČALA!</h2>
-                <p>Tu bude grafika samotnej hry s otázkami (WIP).</p>
-                <button className="danger" onClick={() => setView('lobby')} style={{ marginTop: '2rem', padding: '1rem 2rem' }}>Ukončiť/Opustiť (Dev)</button>
-            </div>
+            <BilionarGame
+                activeGame={activeGame}
+                onLeave={() => setView('lobby')}
+            />
         );
     }
 
