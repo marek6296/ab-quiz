@@ -620,20 +620,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         <div className="modal-overlay">
             <div className="modal-content question-modal-fixed" style={{ position: 'relative' }}>
 
-                {/* REPORT FLAG */}
-                {phase !== 'reveal' && !hasReported && (
-                    <div style={{ position: 'absolute', top: 15, right: 15, zIndex: 100 }}>
-                        <button onClick={() => setShowReportMenu(!showReportMenu)} style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', padding: '0.3rem 0.6rem', borderRadius: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '1rem' }}>🚩</span> Nahlásiť
-                        </button>
-                        {showReportMenu && (
-                            <div style={{ position: 'absolute', top: 35, right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '0.5rem', width: '140px', display: 'flex', flexDirection: 'column', gap: '0.4rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
-                                <button onClick={() => handleReport('ťažká otázka')} style={{ background: '#fbbf24', color: '#000', border: 'none', borderRadius: '5px', padding: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Príliš ťažká</button>
-                                <button onClick={() => handleReport('nezmysel')} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '5px', padding: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Zlá / Nezmyselná</button>
-                            </div>
-                        )}
-                    </div>
-                )}
+
 
                 {/* Reveal Phase Animation */}
                 {phase === 'reveal' && (
@@ -764,6 +751,38 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                 {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole zostáva voľné.`, false, true)}
                 {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole zostáva voľné.`, false, true)}
 
+                {/* REPORT FLAG - Moved to bottom for Z-index overlay safety */}
+                {!hasReported && (
+                    <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 999 }}>
+                        <button
+                            onClick={() => setShowReportMenu(!showReportMenu)}
+                            style={{
+                                background: 'rgba(15, 23, 42, 0.8)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                color: '#e2e8f0',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                padding: '0.4rem 0.8rem',
+                                borderRadius: '12px',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            <span style={{ fontSize: '0.9rem' }}>🚩</span> Nahlásiť
+                        </button>
+                        {showReportMenu && (
+                            <div style={{ position: 'absolute', top: '110%', right: 0, background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '0.6rem', width: '160px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 15px 35px rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease-out' }}>
+                                <button onClick={() => handleReport('ťažká otázka')} style={{ background: '#fbbf24', color: '#000', border: 'none', borderRadius: '8px', padding: '0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>⚠️ Príliš ťažká</button>
+                                <button onClick={() => handleReport('nezmysel')} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.6rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>❌ Zlá / Nezmyselná</button>
+                                <button onClick={() => setShowReportMenu(false)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontSize: '0.7rem', cursor: 'pointer', marginTop: '0.2rem' }}>Zrušiť</button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
