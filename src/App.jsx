@@ -417,14 +417,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
   // Turn Transition Tracking (Selecting...)
   useEffect(() => {
     if (appState !== APP_STATES.IN_GAME || winner || activeModal) return;
-    if (currentPlayer === lastAnnouncedTurnRef.current) return;
-
-    // Skip if game just started (handled by handleStartGame sequence)
-    if (lastAnnouncedTurnRef.current === 0) {
-      lastAnnouncedTurnRef.current = currentPlayer;
-      return;
-    }
-
     const pName = currentPlayer === 1
       ? (gameMode === '1v1_online' ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper')) : (profile?.username || 'Hráč 1'))
       : (gameMode === '1vbot' ? 'BOT' : (gameMode === '1v1_online' ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper')) : 'Hráč 2'));
@@ -554,6 +546,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
   useEffect(() => {
     if (activeModal && !prevActiveModalRef.current) {
       playSound('click');
+      // Reset turn announcement ref so it triggers again when this modal closes
+      lastAnnouncedTurnRef.current = 0;
     }
     if (activeModal?.question?.id) {
       usedQuestionIdsRef.current.add(activeModal.question.id);
