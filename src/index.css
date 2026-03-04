@@ -2795,6 +2795,7 @@ button.small {
     letter-spacing: 0.08em;
   }
 }
+
 /* =========================================================
    BILIONÁR BATTLE STYLES (SINGLE SCREEN & MOBILE FIRST)
    ========================================================= */
@@ -2806,7 +2807,8 @@ button.small {
   color: white;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* No scrolling allowed */
+  overflow: hidden;
+  /* No scrolling allowed */
   font-family: 'Inter', sans-serif;
   position: relative;
 }
@@ -2873,7 +2875,7 @@ button.small {
   font-size: 2rem;
   font-weight: 900;
   color: #facc15;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
 }
 
 /* QUESTION BOX */
@@ -2890,7 +2892,7 @@ button.small {
   padding: 2rem 1.5rem;
   text-align: center;
   width: 100%;
-  box-shadow: 0 0 20px rgba(250, 204, 21, 0.15), inset 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.5);
   position: relative;
 }
 
@@ -2910,7 +2912,8 @@ button.small {
 }
 
 .bilionar-question-box h2 {
-  font-size: clamp(1.2rem, 4vw, 2rem); /* Responsive font size */
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  /* Responsive font size */
   margin: 0;
   line-height: 1.4;
   font-weight: 700;
@@ -2928,15 +2931,18 @@ button.small {
 
 @media (max-width: 600px) {
   .bilionar-options-grid {
-    grid-template-columns: 1fr; /* Stack vertically on small mobile */
+    grid-template-columns: 1fr;
+    /* Stack vertically on small mobile */
     gap: 0.8rem;
   }
 }
 
 .bilionar-option-btn {
   background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
-  border: 2px solid #3b82f6; /* Blue default border */
-  border-radius: 30px; /* Pill shape */
+  border: 2px solid #3b82f6;
+  /* Blue default border */
+  border-radius: 30px;
+  /* Pill shape */
   padding: 1rem;
   display: flex;
   align-items: center;
@@ -2982,7 +2988,8 @@ button.small {
 
 .bilionar-option-btn.selected .option-letter,
 .bilionar-option-btn.selected .option-text {
-  color: #020617; /* Dark text on yellow background */
+  color: #020617;
+  /* Dark text on yellow background */
 }
 
 .bilionar-option-btn.correct {
@@ -3006,8 +3013,13 @@ button.small {
 }
 
 @keyframes pulse-correct {
-  0% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
-  100% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.8); }
+  0% {
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+  }
+
+  100% {
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.8);
+  }
 }
 
 
@@ -3018,21 +3030,39 @@ button.small {
 /* Question Transition Screens */
 .bilionar-intermission {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background: rgba(2, 6, 23, 0.95);
   z-index: 50;
-  animation: fadeInOut 2s ease-in-out;
+  animation: fadeInOut 4s ease-in-out forwards;
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: scale(0.9); }
-  20% { opacity: 1; transform: scale(1); }
-  80% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  85% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
 }
 
 .bilionar-intermission-text {
@@ -3040,12 +3070,29 @@ button.small {
   font-weight: 900;
   color: #facc15;
   text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
-  animation: slideUpFade 0.5s ease-out;
+  animation: slideUpFade 4s ease-out forwards;
 }
 
 @keyframes slideUpFade {
-  0% { opacity: 0; transform: translateY(30px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
 }
 
 /* Time's Up Alert */
@@ -3067,20 +3114,28 @@ button.small {
 }
 
 @keyframes popInAlert {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 /* Specific state animations */
 .bilionar-option-btn.locked {
   background: linear-gradient(90deg, #ca8a04 0%, #a16207 100%);
   border-color: #facc15;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
   opacity: 0.9;
 }
 
 .bilionar-option-btn.locked .option-text {
-  color: #fef08a; /* Slightly muted yellow text for locked state */
+  color: #fef08a;
+  /* Slightly muted yellow text for locked state */
 }
 
 /* Score popup animation */
@@ -3096,7 +3151,13 @@ button.small {
 }
 
 @keyframes floatUpFade {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
-}
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 
+  100% {
+    opacity: 0;
+    transform: translateY(-50px) scale(1.5);
+  }
+}
