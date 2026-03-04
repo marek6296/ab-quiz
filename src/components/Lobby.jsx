@@ -326,11 +326,11 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
 
                                         const fileExt = file.name.split('.').pop();
                                         const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-                                        const filePath = `avatars/${fileName}`;
+                                        const filePath = fileName;
 
                                         // 1. Upload to Supabase Storage
                                         const { error: uploadError } = await supabase.storage
-                                            .from('avatars')
+                                            .from('profile-pictures')
                                             .upload(filePath, file);
 
                                         if (uploadError) {
@@ -340,7 +340,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
 
                                         // 2. Get Public URL
                                         const { data: { publicUrl } } = supabase.storage
-                                            .from('avatars')
+                                            .from('profile-pictures')
                                             .getPublicUrl(filePath);
 
                                         // 3. Update Profile
