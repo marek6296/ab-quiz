@@ -85,10 +85,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                 <div className="user-profile" style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{
                         width: '32px', height: '32px', borderRadius: '50%',
-                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover` : 'var(--primary-gradient)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0
+                        background: 'rgba(255,255,255,0.05)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0,
+                        overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)'
                     }}>
-                        {!profile?.avatar_url && '👤'}
+                        {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : '👤'}
                     </div>
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{profile?.username || 'Hráč'}</div>
@@ -293,7 +296,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                     width: '100%',
                                     height: '100%',
                                     borderRadius: '50%',
-                                    background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover` : 'var(--primary-gradient)',
+                                    background: profile?.avatar_url ? 'transparent' : 'var(--primary-gradient)',
                                     border: '4px solid rgba(255,255,255,0.1)',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -301,7 +304,9 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                     fontSize: '3.5rem',
                                     overflow: 'hidden'
                                 }}>
-                                    {!profile?.avatar_url && '👤'}
+                                    {profile?.avatar_url ? (
+                                        <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : '👤'}
                                 </div>
                                 <label
                                     htmlFor="avatar-upload"

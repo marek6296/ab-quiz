@@ -27,8 +27,8 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
         status,
         user_id,
         friend_id,
-        sender:profiles!friends_user_id_fkey(id, username, online_status),
-        receiver:profiles!friends_friend_id_fkey(id, username, online_status)
+        sender:profiles!friends_user_id_fkey(id, username, online_status, avatar_url),
+        receiver:profiles!friends_friend_id_fkey(id, username, online_status, avatar_url)
       `)
             .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
@@ -76,7 +76,7 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
         // Search for users by username or email, excluding the current user
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, email')
+            .select('id, username, email, avatar_url')
             .or(`username.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
             .neq('id', user.id)
             .limit(5);
@@ -209,7 +209,10 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                     <h4>Výsledky hľadania</h4>
                     <ul>
                         {searchResults.map(result => (
-                            <li key={result.id} className="friend-item">
+                            <li key={result.id} className="friend-item" style={{ gap: '0.75rem' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                    {result.avatar_url ? <img src={result.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                                </div>
                                 <span>{result.username}</span>
                                 <button className="secondary small" onClick={() => sendFriendRequest(result.id)}>Pridať</button>
                             </li>
@@ -224,7 +227,10 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                     <h4>Žiadosti o priateľstvo</h4>
                     <ul>
                         {pendingReceived.map(req => (
-                            <li key={req.id} className="friend-item pending">
+                            <li key={req.id} className="friend-item pending" style={{ gap: '0.75rem' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                    {req.sender.avatar_url ? <img src={req.sender.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                                </div>
                                 <span>{req.sender.username}</span>
                                 <div className="actions">
                                     <button className="primary small" onClick={() => processRequest(req.id, 'accepted')}>Prijať</button>
@@ -250,10 +256,20 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
 
                             return (
                                 <li key={friend.id} className="friend-item">
-                                    <div className="friend-info">
-                                        <span className={`status-dot ${onlineClass}`}></span>
-                                        <span>{partner.username}</span>
-                                        {partner.online_status === 'playing' && <span style={{ fontSize: '0.7rem', color: '#fbbf24', marginLeft: '0.5rem' }}>• V hre</span>}
+                                    <div className="friend-info" style={{ gap: '0.75rem' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                                {partner.avatar_url ? <img src={partner.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                                            </div>
+                                            <span
+                                                className={`status-dot ${onlineClass}`}
+                                                style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '10px', height: '10px', border: '2px solid #1e293b' }}
+                                            ></span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: 600 }}>{partner.username}</span>
+                                            {partner.online_status === 'playing' && <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>V hre</span>}
+                                        </div>
                                     </div>
                                     <div className="actions">
                                         <button

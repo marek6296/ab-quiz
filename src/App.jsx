@@ -450,7 +450,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
         height: size,
         borderRadius: '50%',
         border: `2px solid ${borderColor}`,
-        background: url ? `url(${url}) center/cover` : 'rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.05)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -458,7 +458,11 @@ const ABQuizApp = ({ onBackToPortal }) => {
         flexShrink: 0,
         overflow: 'hidden'
       }}>
-        {!url && (playerNum === 2 && gameMode === '1vbot' ? '🤖' : '👤')}
+        {url ? (
+          <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          playerNum === 2 && gameMode === '1vbot' ? '🤖' : '👤'
+        )}
       </div>
     );
   };
