@@ -411,31 +411,79 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     };
 
     const renderFeedback = (title, message, isSuccess, showAnswer = false) => (
-        <div className={`feedback-overlay ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{ animation: 'feedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <h2 className="feedback-title" style={{ color: isSuccess ? '#4ade80' : '#ef4444' }}>{title}</h2>
-            <p className="feedback-message">{message}</p>
+        <div className={`feedback-overlay-content ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{
+            animation: 'feedbackPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            width: '100%',
+            textAlign: 'center',
+            minHeight: '300px'
+        }}>
+            <h2 className="feedback-result-title" style={{
+                color: isSuccess ? '#4ade80' : '#ef4444',
+                fontSize: window.innerWidth <= 768 ? '2.5rem' : '4rem',
+                margin: '0 0 1rem 0',
+                textShadow: isSuccess ? '0 0 20px rgba(74, 222, 128, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
+                fontWeight: '900',
+                letterSpacing: '0.05em'
+            }}>
+                {title}
+            </h2>
+            <p className="feedback-result-message" style={{
+                fontSize: window.innerWidth <= 768 ? '1rem' : '1.3rem',
+                color: 'rgba(255, 255, 255, 0.9)',
+                margin: '0 0 2rem 0',
+                maxWidth: '80%',
+                lineHeight: '1.4'
+            }}>
+                {message}
+            </p>
 
             {isSuccess && gameRules === 'points' && earnedPoints > 0 && (
-                <div className="feedback-points">
+                <div className="feedback-points-tag" style={{
+                    background: 'rgba(74, 222, 128, 0.2)',
+                    color: '#4ade80',
+                    padding: '0.5rem 1.5rem',
+                    borderRadius: '2rem',
+                    fontWeight: 'bold',
+                    marginBottom: '1.5rem',
+                    border: '1px solid rgba(74, 222, 128, 0.3)'
+                }}>
                     +{earnedPoints} bodov!
                 </div>
             )}
 
             {(showAnswer || lastAnswer) && (
-                <div className="feedback-answer-box">
+                <div className="feedback-result-answer-card" style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '1rem',
+                    padding: '1.5rem',
+                    width: '100%',
+                    maxWidth: '400px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                }}>
                     {lastAnswer && (
-                        <p className="feedback-last-answer" style={{ marginBottom: showAnswer ? '0.5rem' : 0 }}>
-                            Zadaná: <strong style={{ color: '#fff' }}>{lastAnswer}</strong>
-                        </p>
+                        <div className="answer-entry" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <span className="answer-label" style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tvoja odpoveď</span>
+                            <span className="answer-value" style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>{lastAnswer}</span>
+                        </div>
                     )}
                     {showAnswer && (
-                        <div style={{ borderTop: lastAnswer ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: lastAnswer ? '0.5rem' : 0 }}>
-                            <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: 0 }}>
-                                Správne:
-                            </p>
-                            <p className="feedback-correct-answer">
-                                {question.answer}
-                            </p>
+                        <div className="answer-entry correct" style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.2rem',
+                            paddingTop: lastAnswer ? '1rem' : 0,
+                            borderTop: lastAnswer ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+                        }}>
+                            <span className="answer-label" style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Správne bolo</span>
+                            <span className="answer-value" style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: 'bold' }}>{question.answer}</span>
                         </div>
                     )}
                 </div>
@@ -722,7 +770,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     )}
 
                     {/* Feedback Phases for Primary Player */}
-                    {phase === 'feedbackPrimaryCorrect' && renderFeedback('VÝBORNÉ!', `${currentPlayerName} získava toto pole!`, true, true)}
+                    {phase === 'feedbackPrimaryCorrect' && renderFeedback('SPRÁVNE', `${currentPlayerName} získava toto pole!`, true, true)}
                     {phase === 'feedbackPrimaryIncorrect' && renderFeedback('VEDĽA!', `Nesprávna odpoveď. Šancu teraz dostáva súper.`, false, false)}
                     {phase === 'feedbackPrimaryTime' && renderFeedback('NESKORO!', `Čas vypršal. Šancu teraz dostáva súper.`, false, false)}
 
@@ -835,8 +883,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     )}
 
                     {/* Feedback Secondary - Final States show correct answer for 5s */}
-                    {phase === 'feedbackSecondaryCorrect' && renderFeedback('SKVELÉ!', `${opponentName} využil šancu a získava pole!`, true, true)}
-                    {phase === 'feedbackSecondaryBlack' && renderFeedback('NEVYUŽITÉ', `Pole zostáva voľné pre ďalšie ťahy.`, false, true)}
+                    {phase === 'feedbackSecondaryCorrect' && renderFeedback('SPRÁVNE', `${opponentName} využil šancu a získava pole!`, true, true)}
+                    {phase === 'feedbackSecondaryBlack' && renderFeedback('SÚPER NEVYUŽIL ŠANCU', `Pole zostáva voľné pre ďalšie ťahy.`, false, true)}
                     {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('CHYBA!', `${opponentName} nevyužil šancu. Pole zostáva voľné.`, false, true)}
                     {phase === 'feedbackSecondaryBlackTime' && renderFeedback('POMALÉ!', `${opponentName} nestihol zareagovať. Pole zostáva voľné.`, false, true)}
                 </div>
