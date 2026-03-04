@@ -70,12 +70,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
     const isBotPrimaryTurn = gameMode === '1vbot' && currentPlayer === 2 && phase === 'currentPlayer';
     const isBotSecondaryTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponent';
+    const isBotChoiceTurn = gameMode === '1vbot' && opponent === 2 && phase === 'opponentChoice';
 
-    // Auto-skip 'opponentChoice' phase for the Bot
+    // Auto-skip 'opponentChoice' phase for the Bot with a realistic thinking delay
     useEffect(() => {
         if (phase === 'opponentChoice' && gameMode === '1vbot' && opponent === 2) {
-            setPhase('opponent'); // Proceed to answer
-            setTimeLeft(15);
+            const timer = setTimeout(() => {
+                setPhase('opponent'); // Proceed to answer
+                setTimeLeft(15);
+            }, 1800);
+            return () => clearTimeout(timer);
         }
     }, [phase, gameMode, opponent]);
 
@@ -768,9 +772,11 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                     </button>
                                 </div>
                             ) : (
-                                <div className="wait-status">
+                                <div className="wait-status" style={{ marginTop: '1rem' }}>
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
-                                    <span>{opponentName} sa rozhoduje...</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: '500' }}>
+                                        {opponentName} sa rozhoduje, či zoberie alebo zahodí túto otázku...
+                                    </span>
                                 </div>
                             )}
                         </div>
