@@ -237,9 +237,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         if (isSubmitting) return;
         setIsSubmitting(true);
 
-        setLastAnswer('Hráč nevyužil šancu');
+        const declineText = `${opponentName} nevyužil šancu`;
+        setLastAnswer(declineText);
         setPhase('feedbackSecondaryBlack');
-        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: 'Hráč nevyužil šancu' });
+        if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlack', lastAnswer: declineText });
         if (!resolvedRef.current) {
             resolvedRef.current = true;
             setTimeout(() => onResolveRef.current('black', 0, true), 5000);
@@ -416,6 +417,21 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         const icon = isSuccess ? '✅' : (isUnused ? '🛡️' : '❌');
         const isMobile = window.innerWidth <= 768;
 
+        // Auto-resizing for long answers
+        const getDynamicSize = (text, mobileBase, desktopBase) => {
+            if (!text) return isMobile ? mobileBase : desktopBase;
+            const len = text.length;
+            if (len > 45) return isMobile ? '0.65rem' : '0.8rem';
+            if (len > 35) return isMobile ? '0.75rem' : '0.9rem';
+            if (len > 25) return isMobile ? '0.85rem' : '1.1rem';
+            if (len > 15) return isMobile ? '0.95rem' : '1.3rem';
+            return isMobile ? mobileBase : desktopBase;
+        };
+
+        const isSystemMessage = lastAnswer?.includes('nevyužil šancu') ||
+            lastAnswer?.includes('nestihol zareagovať') ||
+            lastAnswer?.includes('Odpojil sa');
+
         return (
             <div className="feedback-result-wrapper" style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -459,8 +475,19 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                 background: 'rgba(15, 23, 42, 0.5)', padding: '1.25rem', borderRadius: '1.25rem',
                                 border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Tvoja odpoveď</span>
-                                <span style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 'bold' }}>{lastAnswer}</span>
+                                {!isSystemMessage && (
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginRight: '1rem', whiteSpace: 'nowrap' }}>Tvoja odpoveď</span>
+                                )}
+                                <span style={{
+                                    fontSize: getDynamicSize(lastAnswer, '1rem', '1.15rem'),
+                                    color: '#fff',
+                                    fontWeight: 'bold',
+                                    textAlign: isSystemMessage ? 'center' : 'right',
+                                    width: isSystemMessage ? '100%' : 'auto',
+                                    lineHeight: '1.2'
+                                }}>
+                                    {lastAnswer}
+                                </span>
                             </div>
                         )}
                         {showAnswer && (
@@ -468,8 +495,16 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                 background: 'rgba(74, 222, 128, 0.05)', padding: '1.25rem', borderRadius: '1.25rem',
                                 border: '1px solid rgba(74, 222, 128, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
-                                <span style={{ fontSize: '0.8rem', color: '#4ade80', textTransform: 'uppercase', fontWeight: 'bold' }}>Správne bolo</span>
-                                <span style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: '900' }}>{question.answer}</span>
+                                <span style={{ fontSize: '0.8rem', color: '#4ade80', textTransform: 'uppercase', fontWeight: 'bold', marginRight: '1rem', whiteSpace: 'nowrap' }}>Správne bolo</span>
+                                <span style={{
+                                    fontSize: getDynamicSize(question.answer, '1.2rem', '1.5rem'),
+                                    color: '#4ade80',
+                                    fontWeight: '900',
+                                    textAlign: 'right',
+                                    lineHeight: '1.1'
+                                }}>
+                                    {question.answer}
+                                </span>
                             </div>
                         )}
                     </div>
@@ -664,18 +699,20 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                                 if (onSyncModal) onSyncModal({ phase: 'opponentChoice', lastAnswer: '' });
                             }, 2500);
                         } else if (phase === 'opponentChoice') {
+                            const failMsg = `${opponentName} nevyužil šancu`;
                             setPhase('feedbackSecondaryBlackTime');
-                            setLastAnswer('Čas vypršal');
-                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
+                            setLastAnswer(failMsg);
+                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: failMsg });
 
                             if (!resolvedRef.current) {
                                 resolvedRef.current = true;
                                 setTimeout(() => onResolveRef.current('black', 0, true), 5000);
                             }
                         } else {
+                            const failMsg = `${opponentName} nestihol zareagovať`;
                             setPhase('feedbackSecondaryBlackTime');
-                            setLastAnswer('Čas vypršal');
-                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: 'Čas vypršal' });
+                            setLastAnswer(failMsg);
+                            if (onSyncModal) onSyncModal({ phase: 'feedbackSecondaryBlackTime', lastAnswer: failMsg });
 
                             if (!resolvedRef.current) {
                                 resolvedRef.current = true;
