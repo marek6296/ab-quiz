@@ -139,11 +139,11 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         break;
                     case 'time_up':
                         newState.phase = 'reveal_pause';
-                        newState.phase_end = now + 2000; // 2s dramatic pause
+                        newState.phase_end = now + 1000; // 1s dramatic pause (keep it short)
                         break;
                     case 'reveal_pause':
                         newState.phase = 'reveal_results';
-                        newState.phase_end = now + 4000; // 4s showing correct answer & colors
+                        newState.phase_end = now + 5000; // 5s showing correct answer & colors
                         break;
                     case 'reveal_results':
                         if (gameState.current_index < (gameState.questions?.length - 1)) {
@@ -397,31 +397,10 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     }
 
-    if (gameState.phase === 'post_question_pause' || gameState.phase === 'reveal_pause') {
-        return (
-            <div key={`pause_${gameState.phase}`} className="bilionar-board">
-                {/* Empty board for dramatic effect, keeping top bar */}
-                <div className="bilionar-top-bar">
-                    {players.map(renderPlayerAvatar)}
-                </div>
-            </div>
-        );
-    }
+    // --- QUESTION PHASES (showing_question_only, answering, time_up, reveal_pause, reveal_results, post_question_pause) ---
 
-    if (gameState.phase === 'time_up') {
-        return (
-            <div key="phase_time_up" className="bilionar-board fullscreen-flex relative-board">
-                <div className="bilionar-top-bar absolute-top">
-                    {players.map(renderPlayerAvatar)}
-                </div>
-                <div className="message-modal dramatic-pop">
-                    <h2>Koniec časového limitu</h2>
-                </div>
-            </div>
-        );
-    }
-
-    // --- QUESTION PHASES (showing_question_only, answering, reveal_results) ---
+    // Don't render full screen replaces for these phases anymore
+    // (post_question_pause, reveal_pause, time_up)
 
     const currentQ = gameState.questions?.[gameState.current_index];
     const totalQ = gameState.questions?.length;
@@ -516,6 +495,15 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
             <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
                 <button className="danger" onClick={onLeave} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Opustiť (Dev)</button>
             </div>
+
+            {/* OVERLAYS FOR QUESTION PHASES */}
+            {gameState.phase === 'time_up' && (
+                <div className="fullscreen-flex" style={{ background: 'transparent', pointerEvents: 'none' }}>
+                    <div className="message-modal dramatic-pop">
+                        <h2>Koniec časového limitu</h2>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
