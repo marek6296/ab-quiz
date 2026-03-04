@@ -191,6 +191,7 @@ AKCIA:
 2. Odpoveď MAXIMÁLNE stručná (ideálne 1-2 slová, nie celé vety).
 3. Oprav štylistiku otázky, aby nebola robotická, ale znela ako z úst moderátora (t.j. jasná, jednoznačná).
 4. Priraď/Oprav náročnosť (difficulty): 1=ľahké/odpoveď pre masy(95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké/veľké detaily.
+4b. Ak ide o kategóriu "Hry", uprav vágne otázky na prudko špecifické, aby obsahovali jasne identifikovateľné detaily o najznámejších celosvetových videohrách (napr. meno postavy, mesto z hry).
 5. Vráť SPÄŤ rovnaké "id", aby sme otázku aktualizovali.
 6. STRIKTNÝ ZÁKAZ (KRITICKÉ): Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej koreň slova, a nesmie byť odpoveď ani nijako priamo zrejmá z preklepu či z kontextu vETY. Ak tam je akýkoľvek náznak odpovede alebo načrtnutá odpoveď, OKAMŽITE OD ZÁKLADU preformuluj otázku tak, aby odpoveď nebola nijako obsiahnutá v texte zadania. Písanie odpovede do samotnej otázky je fatálna chyba!
 Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_text, answer, difficulty, category.`
@@ -622,6 +623,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
     4. ŠPECIFIKÁ TÉM:
        - 'Slovensko': Len unikátne slovenské fakty (najvyššie, najstaršie, jediné).
        - 'Logika a Hádanky': Klasické vtipné hádanky, kde je odpoveď zväčša predmet alebo zviera.
+       - 'Hry': Generuj otázky LEN o notoricky najznámejších videoherných tituloch (Minecraft, GTA, Mafia, Zaklínač, CS:GO, LoL, Mario atď.). Otázka musí mať vysoko špecifický záchytný bod (presné meno postavy, mesta, legendárnej zbrane), aby ju normálny hráč okamžite spoznal. ZAKÁZANÉ sú vágne a ojedinelé fakty z neznámych indie hier.
     5. ABSOLÚTNE ZAKÁZANÉ (KRITICKÉ): Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej časť, koreň slova a nesmie ju ani nijako okato našepkávať z kontextu! (Príklad ZLEJ otázky: "Aká rieka tečie cez mestský park, ktorý sa volá po nej - park rieky Dunaj?" Odpoveď: "Dunaj" - TOTO JE ZLÉ A STRIKTNE ZAKÁZANÉ! Správne: "Ktorá veľká európska rieka preteká priamo hlavným mestom Slovenska?"). Objavujúca sa odpoveď alebo jej obrys v samotnom texte otázky je fatálnou chybou, ktorú nesmieš spraviť!
     6. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                             },
