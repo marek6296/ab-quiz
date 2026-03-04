@@ -63,8 +63,6 @@ body.game-active {
 
 #root {
   width: 100%;
-  max-width: 1400px;
-  padding: 1rem 2rem 2rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -238,6 +236,9 @@ h2 {
   justify-content: center;
   align-items: center;
   min-height: 80vh;
+  width: 100%;
+  max-width: 1400px;
+  padding: 1rem 2rem 2rem;
 }
 
 /* Status Board */
@@ -2802,13 +2803,14 @@ button.small {
 
 .bilionar-board {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
   color: white;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* No scrolling allowed */
+  overscroll-behavior: none;
   font-family: 'Inter', sans-serif;
   position: relative;
 }
@@ -2840,11 +2842,13 @@ button.small {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
-  max-width: 800px;
+  padding: 1.5rem;
+  max-width: 1000px;
+  /* Increased from 800px for less "narrow" look */
   margin: 0 auto;
   width: 100%;
-  gap: 1.5rem;
+  gap: 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* TIMER */
@@ -2889,7 +2893,8 @@ button.small {
   background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
   border: 2px solid #facc15;
   border-radius: 12px;
-  padding: 2rem 1.5rem;
+  padding: clamp(2rem, 6vh, 4rem) 2rem;
+  /* Dynamic vertical padding */
   text-align: center;
   width: 100%;
   box-shadow: 0 0 20px rgba(250, 204, 21, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.5);
