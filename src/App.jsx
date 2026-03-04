@@ -153,7 +153,7 @@ const TurnAnnouncement = ({ announcement }) => {
 };
 
 // Wrapper component to use the Auth context
-const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending }) => {
+const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineUserIds }) => {
   const { user } = useAuth();
   const {
     appState, setAppState,
@@ -184,7 +184,6 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending }) => {
   }, [activeModal, gameMode]);
   const [profile, setProfile] = useState(null);
   const [opponentName, setOpponentName] = useState(null);
-  const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showAdmin, setShowAdmin] = useState(() => localStorage.getItem('ab_quiz_show_admin') === 'true');
 
@@ -226,27 +225,6 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending }) => {
     if (user?.id) {
       supabase.from('profiles').select('username, is_admin, avatar_url').eq('id', user.id).single()
         .then(({ data }) => setProfile(data));
-
-      // Global Presence Tracking
-      const channel = supabase.channel('global-presence', {
-        config: { presence: { key: user.id } }
-      });
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          const onlineIds = new Set(Object.keys(state));
-          setOnlineUserIds(onlineIds);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await channel.track({ online_at: new Date().toISOString() });
-          }
-        });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
   }, [user]);
 
@@ -900,6 +878,32 @@ const MainRouter = () => {
   const [currentApp, setCurrentApp] = useState('portal');
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [pendingGame, setPendingGame] = useState(null);
+  const [onlineUserIds, setOnlineUserIds] = useState(new Set());
+
+  // Global Presence Tracking across the whole application
+  useEffect(() => {
+    if (user?.id) {
+      const channel = supabase.channel('global-presence', {
+        config: { presence: { key: user.id } }
+      });
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const onlineIds = new Set(Object.keys(state));
+          setOnlineUserIds(onlineIds);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({ online_at: new Date().toISOString() });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   // Load from session storage for smoother reloads
   useEffect(() => {
@@ -964,9 +968,10 @@ const MainRouter = () => {
           onBackToPortal={() => handleSetApp('portal')}
           initialPendingGame={pendingGame}
           onClearPending={() => setPendingGame(null)}
+          onlineUserIds={onlineUserIds}
         />
       )}
-      {currentApp === 'bilionar_battle' && <BilionarApp onBackToPortal={() => handleSetApp('portal')} />}
+      {currentApp === 'bilionar_battle' && <BilionarApp onBackToPortal={() => handleSetApp('portal')} onlineUserIds={onlineUserIds} />}
 
       <GameInviteModal
         invite={incomingInvite}

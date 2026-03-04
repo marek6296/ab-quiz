@@ -294,7 +294,19 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
 
             {/* Accepted Friends */}
             <div className="friend-section">
-                <h4>Moji Priatelia</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0 }}>Moji Priatelia</h4>
+                    <button
+                        className="secondary small"
+                        onClick={() => {
+                            setLoading(true);
+                            fetchFriends().finally(() => setLoading(false));
+                        }}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', opacity: 0.8 }}
+                    >
+                        ↻ Obnoviť
+                    </button>
+                </div>
                 {acceptedFriends.length === 0 ? (
                     <p className="placeholder-text" style={{ marginTop: '0.5rem', textAlign: 'left' }}>Ešte nemáte žiadnych priateľov.</p>
                 ) : (
