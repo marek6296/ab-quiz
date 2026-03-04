@@ -139,19 +139,23 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
     const handleChallenge = async (partner) => {
         if (outgoingInvite) return; // Zabránenie viacnásobnému výzvaniu
 
+        // Fix difficulty if it's passed as an array
+        const diff = Array.isArray(selectedDifficulty) ? selectedDifficulty[0] : selectedDifficulty;
+
         const { data, error } = await supabase.from('games').insert({
             player1_id: user.id,
             player2_id: partner.id,
             current_turn: user.id, // Challenger starts first
             game_type: selectedGameRules,
             category: JSON.stringify(selectedCategory),
-            difficulty: selectedDifficulty,
+            difficulty: parseInt(diff) || 1,
+            is_public: false, // Private invite 
             board_state: generateInitialBoard(selectedGameRules)
         }).select().single();
 
         if (error) {
             console.error('Error creating game invite:', error);
-            alert('Nepodarilo sa vytvoriť hru.');
+            alert(`Nepodarilo sa vytvoriť hru: ${error.message}`);
         } else {
             setOutgoingInvite({ gameId: data.id, partnerName: partner.username });
         }

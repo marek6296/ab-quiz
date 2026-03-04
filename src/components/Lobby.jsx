@@ -122,6 +122,13 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                 <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
                             </div>
 
+                            <div className="mode-card" onClick={() => setSetupMode('1v1_invite')}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+                                <h3>Hrať s priateľom</h3>
+                                <p>Vyber si kategórie, náročnosť a priamo vyzvi kamoša zo zoznamu.</p>
+                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Vyzvať priateľa →</span>
+                            </div>
+
                             <div className="mode-card" onClick={() => setSetupMode('1vbot')}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                                 <h3>Tréning s BOTom</h3>
@@ -220,9 +227,25 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                                     </div>
                                 </div>
 
-                                <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', marginTop: '1rem' }} onClick={handleStartFromSetup}>
-                                    Potvrdiť a Spustiť 🚀
-                                </button>
+                                {setupMode === '1v1_invite' ? (
+                                    <div style={{ marginTop: '2rem' }}>
+                                        <label style={{ display: 'block', color: '#38bdf8', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center', fontSize: '1.2rem' }}>
+                                            Krok 2: Vyber si priateľa, ktorého vyzveš
+                                        </label>
+                                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '1.5rem', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                            <FriendsList
+                                                selectedGameRules={gameRules}
+                                                selectedCategory={selectedCategories}
+                                                selectedDifficulty={difficulty[0] || 1}
+                                                onlineUserIds={onlineUserIds}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button className="primary" style={{ padding: '1.25rem', fontSize: '1.2rem', marginTop: '1rem' }} onClick={handleStartFromSetup}>
+                                        Potvrdiť a Spustiť 🚀
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div style={{ textAlign: 'center', padding: '2rem 0' }}>
