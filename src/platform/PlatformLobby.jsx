@@ -250,8 +250,8 @@ export const PlatformLobby = ({ lobbyId, onLeaveLobby, onStartGameFlow }) => {
     }
 
     return (
-        <div className="game-container game-portal" style={{ padding: '2rem', height: '100vh', overflowY: 'auto' }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto', background: 'rgba(15, 23, 42, 0.7)', padding: '2.5rem', borderRadius: '24px', border: `2px solid ${gameInfo.color}50` }}>
+        <div style={{ padding: '2rem', width: '100%', minHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ maxWidth: '900px', margin: '0 auto', background: 'rgba(15, 23, 42, 0.9)', padding: '2.5rem', borderRadius: '24px', border: `2px solid ${gameInfo.color}50` }}>
 
                 {/* Header Lobby */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>

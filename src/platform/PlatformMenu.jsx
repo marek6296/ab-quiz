@@ -124,29 +124,18 @@ export const PlatformMenu = ({ onLobbyJoined, onSignOut }) => {
     };
 
     return (
-        <div className="game-container game-portal" style={{
-            height: '100vh',
+        <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem',
-            overflow: 'hidden',
-            position: 'relative'
+            padding: '2rem',
+            width: '100%',
+            minHeight: '80vh'
         }}>
-            <div className="portal-bg-glow" style={{ background: '#3b82f6', top: '-10%', left: '-10%' }}></div>
-            <div className="portal-bg-glow" style={{ background: '#facc15', bottom: '-10%', right: '-10%', animationDelay: '-5s' }}></div>
-
-            <button className="neutral logout-btn" onClick={onSignOut} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}>
-                Odhlásiť sa
-            </button>
-
-            <div className="portal-header entrance-fade" style={{ animationDelay: '0.1s' }}>
-                <h1 className="hero-logo" style={{ fontSize: '4rem', marginBottom: '1rem', textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>Quizovník Platform</h1>
-            </div>
-
-            <div className="entrance-fade" style={{ animationDelay: '0.3s', textAlign: 'center', maxWidth: '600px', width: '100%' }}>
-                <p style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '3rem' }}>Vitajte na centrálnom portáli. Založte si novú Lobby alebo sa pripojte k priateľom.</p>
+            <div className="entrance-fade" style={{ animationDelay: '0.1s', textAlign: 'center', maxWidth: '600px', width: '100%' }}>
+                <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: '#f8fafc', textShadow: '0 0 20px rgba(52, 211, 153, 0.4)' }}>Multiplayer Lobby</h1>
+                <p style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '3rem' }}>Založte si novú Lobby izbu alebo sa pripojte k priateľom.</p>
 
                 {errorMsg && (
                     <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '1rem', borderRadius: '12px', marginBottom: '2rem' }}>
