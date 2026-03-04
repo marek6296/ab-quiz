@@ -625,137 +625,153 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     return (
         <div className="modal-overlay">
             <div className="modal-content question-modal-fixed" style={{ position: 'relative' }}>
-
-
-
-                {/* Reveal Phase Animation */}
-                {phase === 'reveal' && (
-                    <div className="reveal-animation">
-                        <div className="reveal-hex">{hexId}</div>
-                        <h2 className="reveal-text">Pripravte sa na otázku...</h2>
-                    </div>
-                )}
-
-                {/* Primary Guess Phase */}
-                {phase === 'currentPlayer' && (
-                    <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
-                            {question.category || 'Všeobecné'}
+                {/* Phase Content Wrapper for Animations */}
+                <div className="phase-content" key={phase}>
+                    {/* Reveal Phase Animation */}
+                    {phase === 'reveal' && (
+                        <div className="reveal-animation">
+                            <div className="reveal-hex">{hexId}</div>
+                            <h2 className="reveal-text" style={{ fontSize: '1.4rem', color: '#38bdf8' }}>Pripravte sa...</h2>
+                            <div style={{ marginTop: '1rem', opacity: 0.5, fontSize: '0.9rem' }}>Otázka sa načítava</div>
                         </div>
-                        <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer)}
-                        {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
+                    )}
 
-                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fff' }}>
-                            Na ťahu je: {currentPlayerName} ({currentPlayerColor})
-                        </h3>
-                        {/* Timer Bar for primary player */}
-                        <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
-                        </div>
-                        <p style={{ marginBottom: '1rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
-
-                        {isBotPrimaryTurn ? (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
-                        ) : isLocalPrimary ? (
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button className="primary" onClick={handleSubmitPrimary}>
-                                    Odoslať odpoveď
-                                </button>
+                    {/* Primary Guess Phase */}
+                    {phase === 'currentPlayer' && (
+                        <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '0.4rem 1rem', borderRadius: '100px', marginBottom: '1.5rem' }}>
+                                {question.category || 'Všeobecné'}
                             </div>
-                        ) : (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {currentPlayerName} odpovie...</p>
-                        )}
-                    </div>
-                )}
+                            <div className="question-text">{question.question_text || question.text}</div>
+                            {renderPlaceholder(question.answer)}
+                            {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
 
-                {/* Feedback Phases for Primary Player */}
-                {phase === 'feedbackPrimaryCorrect' && renderFeedback('Správne!', `${currentPlayerName} získava pole!`, true, true)}
-                {phase === 'feedbackPrimaryIncorrect' && renderFeedback('Nesprávne!', `${currentPlayerName} neodpovedal správne. Šancu dostane súper!`, false, false)}
-                {phase === 'feedbackPrimaryTime' && renderFeedback('Čas Vypršal!', `${currentPlayerName} nestihol odpovedať včas. Šancu získa súper!`, false, false)}
-
-                {/* Secondary Guess Choice Phase */}
-                {phase === 'opponentChoice' && (
-                    <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
-                            {question.category || 'Všeobecné'}
-                        </div>
-                        <div className="question-text">{question.question_text || question.text}</div>
-
-                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
-                            Súper zaváhal! Máš šancu, {opponentName} ({opponentColor})
-                        </h3>
-                        {/* Timer Bar for opponent */}
-                        <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
-                        </div>
-                        <p style={{ marginBottom: '1.5rem' }}>{timeLeft.toFixed(1)} sekúnd na rozhodnutie!</p>
-
-                        {isLocalSecondary ? (
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button className="primary" onClick={() => {
-                                    setPhase('opponent');
-                                    setTimeLeft(15);
-                                    // Fyzický klik vyvolá focus
-                                    setTimeout(() => {
-                                        const globalInput = document.getElementById('global-mobile-input');
-                                        if (globalInput) globalInput.focus();
-                                    }, 50);
-                                    if (onSyncModal) onSyncModal({ phase: 'opponent' });
-                                }}>
-                                    Zobrať otázku
-                                </button>
-                                <button className="neutral" onClick={handleDeclineSecondary}>
-                                    Zahodiť
-                                </button>
+                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                                <h3 style={{ margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '1rem' }}>Na ťahu je</h3>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: currentPlayer === 1 ? '#3b82f6' : '#f97316' }}>
+                                    {currentPlayerName}
+                                </div>
                             </div>
-                        ) : (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým sa {opponentName} rozhodne...</p>
-                        )}
-                    </div>
-                )}
 
-                {/* Secondary Guess Phase (Opponent Chance) */}
-                {phase === 'opponent' && (
-                    <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '12px', marginBottom: '0.5rem', alignSelf: 'center' }}>
-                            {question.category || 'Všeobecné'}
-                        </div>
-                        <div className="question-text">{question.question_text || question.text}</div>
-                        {renderPlaceholder(question.answer)}
-                        {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
-
-                        <h3 style={{ width: '100%', margin: '1rem 0', color: '#fbbf24' }}>
-                            SÚPER MÁ ŠANCU: {opponentName} ({opponentColor})
-                        </h3>
-                        {/* Timer Bar for opponent */}
-                        <div className="timer-bar-container">
-                            <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#fbbf24' }}></div>
-                        </div>
-                        <p style={{ marginBottom: '1.5rem' }}>{timeLeft.toFixed(1)} sekúnd zostáva!</p>
-
-                        {isBotSecondaryTurn ? (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>BOT premýšľa nad odpoveďou...</p>
-                        ) : isLocalSecondary ? (
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button className="primary" onClick={handleSubmitSecondary}>
-                                    Odpovedať
-                                </button>
-                                <button className="neutral" onClick={handleDeclineSecondary}>
-                                    Neviem (Čierny Hex)
-                                </button>
+                            {/* Timer Bar for primary player */}
+                            <div className="timer-bar-container">
+                                <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#3b82f6' }}></div>
                             </div>
-                        ) : (
-                            <p style={{ width: '100%', color: '#94a3b8' }}>Čaká sa kým {opponentName} zareaguje...</p>
-                        )}
-                    </div>
-                )}
 
-                {/* Feedback Secondary - Final States show correct answer for 5s */}
-                {phase === 'feedbackSecondaryCorrect' && renderFeedback('Správne!', `${opponentName} využil šancu a získava pole!`, true, true)}
-                {phase === 'feedbackSecondaryBlack' && renderFeedback('Šanca Nevyužitá!', 'Pole zostáva voľné pre ďalšie ťahy.', false, true)}
-                {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('Nesprávne!', `${opponentName} nevyužil šancu. Pole zostáva voľné.`, false, true)}
-                {phase === 'feedbackSecondaryBlackTime' && renderFeedback('Čas Vypršal!', `${opponentName} nestihol odpovedať. Pole zostáva voľné.`, false, true)}
+                            {isBotPrimaryTurn ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                    <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    <span>Súper premýšľa</span>
+                                </div>
+                            ) : isLocalPrimary ? (
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', width: '100%' }}>
+                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={handleSubmitPrimary}>
+                                        Odoslať odpoveď
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                    <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    <span>Čaká sa na odpoveď</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Feedback Phases for Primary Player */}
+                    {phase === 'feedbackPrimaryCorrect' && renderFeedback('VÝBORNÉ!', `${currentPlayerName} získava toto pole!`, true, true)}
+                    {phase === 'feedbackPrimaryIncorrect' && renderFeedback('VEDĽA!', `Nesprávna odpoveď. Šancu teraz dostáva súper.`, false, false)}
+                    {phase === 'feedbackPrimaryTime' && renderFeedback('NESKORO!', `Čas vypršal. Šancu teraz dostáva súper.`, false, false)}
+
+                    {/* Secondary Guess Choice Phase */}
+                    {phase === 'opponentChoice' && (
+                        <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⚔️</div>
+                            <h2 style={{ fontSize: '2rem', color: '#fbbf24', marginBottom: '1rem' }}>Súper zaváhal!</h2>
+                            <p style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '2rem', maxWidth: '80%' }}>
+                                {opponentName}, máš jedinečnú šancu ukradnúť toto pole pre seba. Riskneš to?
+                            </p>
+
+                            <div className="timer-bar-container" style={{ maxWidth: '300px' }}>
+                                <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
+                            </div>
+
+                            {isLocalSecondary ? (
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', width: '100%' }}>
+                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={() => {
+                                        setPhase('opponent');
+                                        setTimeLeft(15);
+                                        setTimeout(() => {
+                                            const globalInput = document.getElementById('global-mobile-input');
+                                            if (globalInput) globalInput.focus();
+                                        }, 50);
+                                        if (onSyncModal) onSyncModal({ phase: 'opponent' });
+                                    }}>
+                                        Áno, chcem odpovedať
+                                    </button>
+                                    <button className="neutral" style={{ flex: 0.8, padding: '1.2rem' }} onClick={handleDeclineSecondary}>
+                                        Zahodiť
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                    <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    <span>Čaká sa kým sa {opponentName} rozhodne</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Secondary Guess Phase (Opponent Chance) */}
+                    {phase === 'opponent' && (
+                        <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '0.4rem 1rem', borderRadius: '100px', marginBottom: '1.5rem' }}>
+                                SÚBOJ O POLE
+                            </div>
+                            <div className="question-text">{question.question_text || question.text}</div>
+                            {renderPlaceholder(question.answer)}
+                            {errorMsg && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '1rem' }}>{errorMsg}</div>}
+
+                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                                <h3 style={{ margin: '0 0 0.5rem 0', color: '#94a3b8', fontSize: '1rem' }}>Šancu dostáva</h3>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: opponent === 1 ? '#3b82f6' : '#f97316' }}>
+                                    {opponentName}
+                                </div>
+                            </div>
+
+                            <div className="timer-bar-container">
+                                <div className="timer-bar" style={{ width: `${(timeLeft / 15) * 100}%`, backgroundColor: timeLeft <= 3 ? '#ef4444' : '#fbbf24' }}></div>
+                            </div>
+
+                            {isBotSecondaryTurn ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                    <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    <span>Súper premýšľa</span>
+                                </div>
+                            ) : isLocalSecondary ? (
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', width: '100%' }}>
+                                    <button className="primary" style={{ flex: 1, padding: '1.2rem' }} onClick={handleSubmitSecondary}>
+                                        Odpovedať
+                                    </button>
+                                    <button className="neutral" style={{ flex: 1, padding: '1.2rem' }} onClick={handleDeclineSecondary}>
+                                        Neviem (Pustiť)
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' }}>
+                                    <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    <span>Čaká sa na odpoveď</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Feedback Secondary - Final States show correct answer for 5s */}
+                    {phase === 'feedbackSecondaryCorrect' && renderFeedback('SKVELÉ!', `${opponentName} využil šancu a získava pole!`, true, true)}
+                    {phase === 'feedbackSecondaryBlack' && renderFeedback('NEVYUŽITÉ', `Pole zostáva voľné pre ďalšie ťahy.`, false, true)}
+                    {phase === 'feedbackSecondaryBlackIncorrect' && renderFeedback('CHYBA!', `${opponentName} nevyužil šancu. Pole zostáva voľné.`, false, true)}
+                    {phase === 'feedbackSecondaryBlackTime' && renderFeedback('POMALÉ!', `${opponentName} nestihol zareagovať. Pole zostáva voľné.`, false, true)}
+                </div>
 
                 {/* REPORT FLAG - Moved to bottom for Z-index overlay safety */}
                 {!hasReported && (
