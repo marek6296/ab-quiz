@@ -42,7 +42,7 @@ export const GamePortal = ({ onSelectGame }) => {
             }}>
                 {/* KVÍZ DUEL CARD */}
                 <div
-                    className="portal-grid-item portal-card-glass entrance-fade"
+                    className="portal-grid-item portal-card-glass portal-card-blue entrance-fade"
                     onClick={() => onSelectGame('ab_quiz')}
                     style={{
                         animationDelay: '0.5s',
@@ -76,7 +76,7 @@ export const GamePortal = ({ onSelectGame }) => {
 
                 {/* BILIONÁR BATTLE CARD */}
                 <div
-                    className="portal-grid-item portal-card-glass entrance-fade"
+                    className="portal-grid-item portal-card-glass portal-card-yellow entrance-fade"
                     onClick={() => onSelectGame('bilionar_battle')}
                     style={{
                         animationDelay: '0.7s',
