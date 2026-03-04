@@ -235,7 +235,8 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
     board, currentPlayer, winner, claimHexagon, resetGame,
     localPlayerNum, p1Score, p2Score, p1Combo, p2Combo,
     gameData, presenceCount, seenIds, markQuestionAsSeen,
-    disconnectReason, setDisconnectReason
+    disconnectReason, setDisconnectReason,
+    channel
   } = useGameState({
     userId: user?.id,
     gameMode,
@@ -243,6 +244,20 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
     activeGameId,
     manualExitRef
   });
+
+  // Turn Announcement Sync for Online Games
+  useEffect(() => {
+    if (!channel || gameMode !== '1v1_online') return;
+    const tracker = channel.on('broadcast', { event: 'turn_announcement' }, (msg) => {
+      setTurnAnnouncement(msg.payload);
+      if (msg.payload === null) return;
+      // Safety auto-clear
+      setTimeout(() => {
+        setTurnAnnouncement(prev => (prev?.text === msg.payload.text ? null : prev));
+      }, 3000);
+    });
+    return () => { channel.off('broadcast', { event: 'turn_announcement' }); };
+  }, [channel, gameMode]);
 
   const getRandomQuestionForConfig = useCallback(async () => {
     let cats = Array.isArray(localCategory) ? localCategory : [];
@@ -556,6 +571,13 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
     const pColor = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
 
     setTurnAnnouncement({ text: `Odpovedá ${pName}`, color: pColor });
+    if (gameMode === '1v1_online' && channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'turn_announcement',
+        payload: { text: `Odpovedá ${pName}`, color: pColor }
+      });
+    }
     setIsInteractionLocked(true);
 
     // Fetch question in background while animation plays
@@ -563,7 +585,14 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
 
     setTimeout(async () => {
       const q = await qPromise;
-      setActiveModal({ type: 'question', question: q, hexId });
+      // Sync modal to DB immediately so opponent sees it
+      const newModal = { type: 'question', question: q, hexId };
+      setActiveModal(newModal);
+      if (gameMode === '1v1_online' && activeGameId) {
+        supabase.from('games').update({ active_modal: newModal }).eq('id', activeGameId).then();
+        if (channel) channel.send({ type: 'broadcast', event: 'turn_announcement', payload: null });
+      }
+
       setTurnAnnouncement(null);
       setIsInteractionLocked(false);
     }, 1500);
@@ -1020,6 +1049,7 @@ const MainRouter = () => {
 
   return (
     <>
+      <div style={{ position: 'fixed', top: 10, left: 10, background: 'blue', color: 'white', zIndex: 100000 }}>DEBUG: currentApp={currentApp} showLobbyModal={String(showLobbyModal)}</div>
       {currentApp === 'portal' && (
         <GamePortal
           onSelectGame={(gameId) => {

@@ -50,8 +50,9 @@ export const useModalSync = ({
 
     // Sync to DB
     const handleSyncModal = useCallback((updates) => {
-        if (gameMode === '1v1_online' && activeGameId && activeModalRef.current) {
-            const merged = { ...activeModalRef.current, ...updates };
+        if (gameMode === '1v1_online' && activeGameId) {
+            const current = activeModalRef.current || {};
+            const merged = { ...current, ...updates };
             setActiveModal(merged);
             supabase.from('games').update({ active_modal: merged }).eq('id', activeGameId).then();
         }

@@ -63,6 +63,8 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         }
     }, [gameMode, gameRules, board, currentPlayer, winner, p1Score, p2Score, p1Combo, p2Combo]);
 
+    const [channel, setChannel] = useState(null);
+
     // Load initial board or subscribe to realtime if online
     useEffect(() => {
         if (gameMode !== '1v1_online' || !activeGameId) return;
@@ -150,8 +152,11 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 }
             });
 
+        setChannel(subscription);
+
         return () => {
             supabase.removeChannel(subscription);
+            setChannel(null);
         };
     }, [gameMode, activeGameId]);
 
@@ -308,6 +313,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         p2Score,
         p1Combo, p2Combo,
         gameData, presenceCount, seenIds, markQuestionAsSeen,
-        disconnectReason, setDisconnectReason
+        disconnectReason, setDisconnectReason,
+        channel
     };
 };
