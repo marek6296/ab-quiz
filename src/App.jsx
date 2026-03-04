@@ -962,6 +962,13 @@ const MainRouter = () => {
   });
 
   const handleAcceptInvite = async (gameId, rules) => {
+    if (incomingInvite?.gameType === 'platform_lobby') {
+      setActiveLobbyId(gameId);
+      setShowLobbyModal(true);
+      setIncomingInvite(null);
+      return;
+    }
+
     if (incomingInvite?.gameType === 'bilionar') {
       setIncomingInvite(null);
       setPendingGame({ mode: 'bilionar', gameId });
@@ -978,7 +985,9 @@ const MainRouter = () => {
   };
 
   const handleDeclineInvite = async (gameId) => {
-    if (incomingInvite?.gameType === 'bilionar') {
+    if (incomingInvite?.gameType === 'platform_lobby') {
+      await supabase.from('platform_players').delete().eq('lobby_id', gameId).eq('user_id', user.id);
+    } else if (incomingInvite?.gameType === 'bilionar') {
       await supabase.from('bilionar_players').delete().eq('game_id', gameId).eq('user_id', user.id);
     } else {
       await supabase.from('games').delete().eq('id', gameId);
@@ -1023,6 +1032,7 @@ const MainRouter = () => {
 
               <PlatformLobby
                 initialLobbyId={activeLobbyId}
+                onlineUserIds={onlineUserIds}
                 onLeaveLobby={() => {
                   setActiveLobbyId(null);
                   setShowLobbyModal(false);

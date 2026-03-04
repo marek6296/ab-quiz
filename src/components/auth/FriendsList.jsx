@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { generateInitialBoard } from '../../game-engine/board';
 import { useAudio } from '../../hooks/useAudio';
 
-export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), isBilionar = false, existingBilionarGameId = null }) => {
+export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], selectedDifficulty = 1, onlineUserIds = new Set(), isBilionar = false, existingBilionarGameId = null, isHost = true, onInvite = null }) => {
     const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +14,9 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
     const { playSound } = useAudio();
 
     const [outgoingInvite, setOutgoingInvite] = useState(null);
+
+    // Default `FriendsList` parameters for older components vs new PlatformLobby
+    const isPlatformLobby = typeof onInvite === 'function';
 
     // Fetch friends and pending requests
     const fetchFriends = async () => {
@@ -138,6 +141,15 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
 
     const handleChallenge = async (partner) => {
         if (outgoingInvite) return;
+
+        // PLATFORM LOBBY INVITE LOGIC (NEW)
+        if (isPlatformLobby && onInvite) {
+            onInvite(partner);
+            setOutgoingInvite({ partnerName: partner.username });
+            playSound('click');
+            setTimeout(() => setOutgoingInvite(null), 3000); // Clear after 3s
+            return;
+        }
 
         if (isBilionar) {
             // BILIONAR CHALLENGE LOGIC
@@ -346,10 +358,10 @@ export const FriendsList = ({ selectedGameRules = 'hex', selectedCategory = [], 
                                     <div className="actions">
                                         <button
                                             className="primary small"
-                                            disabled={!isOnline || partner.online_status === 'playing'}
+                                            disabled={!isOnline || partner.online_status === 'playing' || !isHost}
                                             onClick={() => handleChallenge(partner)}
                                         >
-                                            Vyzvať
+                                            {partner.online_status === 'playing' ? 'V Hre' : 'Pozvať'}
                                         </button>
                                         <button className="danger small" onClick={() => removeFriend(friend.id)}>X</button>
                                     </div>

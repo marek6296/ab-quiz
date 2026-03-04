@@ -89,6 +89,24 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
                     });
                 }
             })
+            // --- PLATFORM LOBBY SYSTEM ---
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'platform_players',
+                filter: `user_id=eq.${user.id}`
+            }, async (payload) => {
+                const { data: lobby } = await supabase.from('platform_lobbies').select('*').eq('id', payload.new.lobby_id).single();
+                if (lobby && lobby.status === 'waiting' && lobby.host_id !== user.id) {
+                    const { data: host } = await supabase.from('profiles').select('username').eq('id', lobby.host_id).single();
+                    setIncomingInvite({
+                        gameId: lobby.id,
+                        gameRules: 'Lobby',
+                        gameType: 'platform_lobby',
+                        challengerName: host?.username || 'Kamarát'
+                    });
+                }
+            })
             .subscribe();
 
         return () => {

@@ -11,7 +11,7 @@ const GAMES = [
 
 const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
-export const PlatformLobby = ({ initialLobbyId, onLeaveLobby, onStartGameFlow }) => {
+export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onStartGameFlow }) => {
     const { user } = useAuth();
     const [lobbyId, setLobbyId] = useState(initialLobbyId);
     const [lobby, setLobby] = useState(null);
@@ -160,6 +160,26 @@ export const PlatformLobby = ({ initialLobbyId, onLeaveLobby, onStartGameFlow })
             await supabase.from('platform_players').delete().eq('lobby_id', lobbyId).eq('user_id', user.id);
         }
         onLeaveLobby();
+    };
+
+    const handleInvite = async (partner) => {
+        if (!isHost) return;
+        const usedColors = new Set(players.map(p => p.color));
+        const assignedColor = COLOR_PALETTE.find(c => !usedColors.has(c)) || COLOR_PALETTE[players.length % COLOR_PALETTE.length];
+
+        const { error } = await supabase.from('platform_players').insert([{
+            lobby_id: lobbyId,
+            user_id: partner.id,
+            player_name: partner.username,
+            avatar_url: partner.avatar_url,
+            is_bot: false,
+            color: assignedColor
+        }]);
+
+        if (error) {
+            if (error.code === '23505') alert(`${partner.username} už je pozvaný alebo v lobby!`);
+            else alert(`Chyba pri pozývaní: ${error.message}`);
+        }
     };
 
     const handleStartGame = async () => {
@@ -400,7 +420,11 @@ export const PlatformLobby = ({ initialLobbyId, onLeaveLobby, onStartGameFlow })
             {/* FRIENDS COLUMN */}
             <div style={{ flex: '1 1 300px', maxWidth: '450px', background: 'rgba(15, 23, 42, 0.9)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <h3 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '1.5rem' }}>Priatelia</h3>
-                <FriendsList />
+                <FriendsList
+                    isHost={isHost}
+                    onInvite={handleInvite}
+                    onlineUserIds={onlineUserIds}
+                />
             </div>
 
         </div>
