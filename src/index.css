@@ -2103,6 +2103,18 @@ button.small {
   box-shadow: inset 4px 0 0 #38bdf8;
 }
 
+/* Bilionár Battle Theme Overrides */
+.bilionar-theme .nav-item.active {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+  box-shadow: inset 4px 0 0 #facc15;
+}
+
+.bilionar-theme .nav-item:hover {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.05);
+}
+
 .mode-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

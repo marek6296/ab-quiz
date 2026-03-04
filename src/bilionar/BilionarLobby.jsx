@@ -395,7 +395,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     };
 
     return (
-        <div className="dashboard-layout">
+        <div className="dashboard-layout bilionar-theme">
             <aside className="dashboard-sidebar">
                 <div className="sidebar-logo">
                     <h1 className="logo-brutal" style={{ color: '#facc15', textShadow: '0 0 10px rgba(250, 204, 21, 0.3)' }}>
@@ -462,39 +462,39 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                 <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a s kým chcete hrať o milióny.</p>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('quick'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(56, 189, 248, 0.4)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('quick'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(250, 204, 21, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
-                                        <h3 style={{ color: '#38bdf8' }}>Rýchla Hra</h3>
+                                        <h3 style={{ color: '#facc15' }}>Rýchla Hra</h3>
                                         <p>Najrýchlejšia cesta k miliónu. Pripojíme ťa k náhodným hráčom v otvorenej miestnosti.</p>
-                                        <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
+                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
                                     </div>
 
                                     <div className="mode-card primary" onClick={() => { setSetupMode('host'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                                        <h3>Založiť Miestnosť</h3>
+                                        <h3 style={{ color: '#facc15' }}>Založiť Miestnosť</h3>
                                         <p>Vytvor privátnu hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
                                         <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
                                     </div>
 
-                                    <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(250, 204, 21, 0.1)', background: 'rgba(255,255,255,0.02)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
-                                        <h3>Pripojiť sa</h3>
+                                        <h3 style={{ color: '#facc15' }}>Pripojiť sa</h3>
                                         <p>Máš kód od kamaráta? Zadaj ho a prepoj sa priamo do jeho hry.</p>
-                                        <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
+                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
                                     </div>
 
-                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                                        <h3 style={{ color: '#38bdf8' }}>Hrať s priateľmi</h3>
+                                        <h3 style={{ color: '#facc15' }}>Hrať s priateľmi</h3>
                                         <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
-                                        <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
+                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
                                     </div>
 
-                                    <div className="mode-card" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div className="mode-card" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ border: '1px solid rgba(250, 204, 21, 0.1)', background: 'rgba(255,255,255,0.02)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
-                                        <h3>Tréning s BOTom</h3>
+                                        <h3 style={{ color: '#facc15' }}>Tréning s BOTom</h3>
                                         <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
-                                        <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
                                     </div>
                                 </div>
                             </div>
