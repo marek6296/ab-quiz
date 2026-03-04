@@ -224,7 +224,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   // Fetch current user profile
   useEffect(() => {
     if (user?.id) {
-      supabase.from('profiles').select('username, is_admin').eq('id', user.id).single()
+      supabase.from('profiles').select('username, is_admin, avatar_url').eq('id', user.id).single()
         .then(({ data }) => setProfile(data));
 
       // Global Presence Tracking
@@ -414,7 +414,54 @@ const ABQuizApp = ({ onBackToPortal }) => {
     }
   }, [appState, gameMode, activeGameId, presenceCount, activeModal, gameData?.status, reconnectCheckEnabled]);
 
-  // Turn Transition Tracking (Selecting...)
+  const [opponentAvatar, setOpponentAvatar] = useState(null);
+
+  // Fetch opponent's avatar for online games
+  useEffect(() => {
+    if (gameMode === '1v1_online' && gameData) {
+      const opponentId = localPlayerNum === 1 ? gameData.player2_id : gameData.player1_id;
+      if (opponentId) {
+        supabase.from('profiles').select('avatar_url').eq('id', opponentId).single()
+          .then(({ data }) => {
+            if (data) setOpponentAvatar(data.avatar_url);
+          });
+      }
+    } else {
+      setOpponentAvatar(null);
+    }
+  }, [gameMode, gameData, localPlayerNum]);
+
+  const getAvatar = (playerNum) => {
+    if (playerNum === 1) {
+      const url = localPlayerNum === 1 ? profile?.avatar_url : opponentAvatar;
+      return url || null;
+    } else {
+      if (gameMode === '1vbot') return 'https://api.dicebear.com/7.x/bottts/svg?seed=bot';
+      const url = localPlayerNum === 2 ? profile?.avatar_url : opponentAvatar;
+      return url || null;
+    }
+  };
+
+  const renderAvatar = (playerNum, size = '40px', borderColor = 'white') => {
+    const url = getAvatar(playerNum);
+    return (
+      <div style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: `2px solid ${borderColor}`,
+        background: url ? `url(${url}) center/cover` : 'rgba(255,255,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: `calc(${size} * 0.5)`,
+        flexShrink: 0,
+        overflow: 'hidden'
+      }}>
+        {!url && (playerNum === 2 && gameMode === '1vbot' ? '🤖' : '👤')}
+      </div>
+    );
+  };
   useEffect(() => {
     if (appState !== APP_STATES.IN_GAME || winner || activeModal) return;
     const pName = currentPlayer === 1
@@ -619,8 +666,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
           <div className="versus-overlay">
             <div className="versus-content">
               <div className="vs-player">
-                <div className="vs-avatar player1-bg" style={{ color: 'var(--player1-color)' }}>1</div>
-                <span style={{ fontWeight: 700 }}>
+                {renderAvatar(1, '80px', 'var(--player1-color)')}
+                <span style={{ fontWeight: 700, marginTop: '0.5rem' }}>
                   {gameMode === '1v1_online'
                     ? (localPlayerNum === 1 ? profile?.username || 'Vy' : opponentName || 'Súper')
                     : profile?.username || 'Vy'
@@ -629,8 +676,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
               </div>
               <div className="vs-text">VS</div>
               <div className="vs-player">
-                <div className="vs-avatar player2-bg" style={{ color: 'var(--player2-color)' }}>2</div>
-                <span style={{ fontWeight: 700 }}>
+                {renderAvatar(2, '80px', 'var(--player2-color)')}
+                <span style={{ fontWeight: 700, marginTop: '0.5rem' }}>
                   {gameMode === '1vbot'
                     ? 'BOT'
                     : (gameMode === '1v1_online'
@@ -668,10 +715,12 @@ const ABQuizApp = ({ onBackToPortal }) => {
             </div>
           )}
 
-          <h1 className="game-title">
+          <h1 className="game-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+            {renderAvatar(1, '40px', 'var(--player1-color)')}
             <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
             <span className="vs">VS</span>
             <span>{gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}</span>
+            {renderAvatar(2, '40px', 'var(--player2-color)')}
           </h1>
 
           {winner && (
@@ -684,9 +733,9 @@ const ABQuizApp = ({ onBackToPortal }) => {
           )}
 
           <div className="status-board">
-            <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`}>
-              <div className="dot player1-bg" />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, paddingLeft: '4px' }}>
+            <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`} style={{ paddingLeft: '0.5rem' }}>
+              {renderAvatar(1, '38px', 'var(--player1-color)')}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
                 <span className="player1-text" style={{ lineHeight: '1.2' }}>
                   {gameMode === '1v1_online'
                     ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper'))
@@ -708,8 +757,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
               <button className="neutral" onClick={() => setShowExitConfirm(true)}>Opustiť Hru</button>
             </div>
 
-            <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0, paddingRight: '4px' }}>
+            <div className={`player-status ${currentPlayer === 2 ? 'active' : ''}`} style={{ paddingRight: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
                 <span className="player2-text" style={{ lineHeight: '1.2' }}>
                   {gameMode === '1vbot'
                     ? 'BOT'
@@ -724,7 +773,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
                   </span>
                 )}
               </div>
-              <div className="dot player2-bg" />
+              {renderAvatar(2, '38px', 'var(--player2-color)')}
             </div>
           </div>
 

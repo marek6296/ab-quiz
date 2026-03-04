@@ -82,10 +82,17 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                     </button>
                 </div>
 
-                <div className="user-profile" style={{ padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="user-profile" style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                        width: '32px', height: '32px', borderRadius: '50%',
+                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover` : 'var(--primary-gradient)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0
+                    }}>
+                        {!profile?.avatar_url && '👤'}
+                    </div>
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{profile?.username || 'Hráč'}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Online</div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Online</div>
                     </div>
                 </div>
             </aside>
@@ -278,10 +285,78 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
                 {activeTab === 'profile' && (
                     <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
                         <h2 style={{ fontSize: '2.5rem', color: '#f8fafc', marginBottom: '2rem' }}>Môj Profil</h2>
-                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ width: '100px', height: '100px', background: 'var(--primary-gradient)', borderRadius: '50%', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
-                                👤
+                        <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '20px', padding: '3rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+
+                            {/* Avatar Section */}
+                            <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 2rem' }}>
+                                <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover` : 'var(--primary-gradient)',
+                                    border: '4px solid rgba(255,255,255,0.1)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '3.5rem',
+                                    overflow: 'hidden'
+                                }}>
+                                    {!profile?.avatar_url && '👤'}
+                                </div>
+                                <label
+                                    htmlFor="avatar-upload"
+                                    style={{
+                                        position: 'absolute', bottom: '0', right: '0',
+                                        background: '#38bdf8', width: '36px', height: '36px',
+                                        borderRadius: '50%', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', cursor: 'pointer', border: '3px solid #0f172a',
+                                        fontSize: '1.2rem'
+                                    }}
+                                >
+                                    📷
+                                </label>
+                                <input
+                                    id="avatar-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+
+                                        const fileExt = file.name.split('.').pop();
+                                        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+                                        const filePath = `avatars/${fileName}`;
+
+                                        // 1. Upload to Supabase Storage
+                                        const { error: uploadError } = await supabase.storage
+                                            .from('avatars')
+                                            .upload(filePath, file);
+
+                                        if (uploadError) {
+                                            alert("Chyba pri nahrávaní: " + uploadError.message);
+                                            return;
+                                        }
+
+                                        // 2. Get Public URL
+                                        const { data: { publicUrl } } = supabase.storage
+                                            .from('avatars')
+                                            .getPublicUrl(filePath);
+
+                                        // 3. Update Profile
+                                        const { error: updateError } = await supabase.from('profiles')
+                                            .update({ avatar_url: publicUrl })
+                                            .eq('id', user.id);
+
+                                        if (updateError) {
+                                            alert("Chyba pri aktualizácii profilu");
+                                        } else {
+                                            setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+                                        }
+                                    }}
+                                />
                             </div>
+
                             <h3 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '0.5rem' }}>{profile?.username}</h3>
                             <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{user?.email}</p>
 
