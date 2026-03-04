@@ -65,7 +65,8 @@ export const Admin = ({ onBack }) => {
 
     const fetchQuestions = async () => {
         setLoading(true);
-        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(100);
+        // Zvýšený limit na 5000, aby bolo možné kontrolovať celú databázu naraz
+        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(5000);
 
         if (searchTerm) {
             query = query.ilike('question_text', `%${searchTerm}%`);
