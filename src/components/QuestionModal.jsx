@@ -78,7 +78,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             const timer = setTimeout(() => {
                 setPhase('opponent'); // Proceed to answer
                 setTimeLeft(15);
-            }, 1800);
+            }, 2800); // 2.8s for decision
             return () => clearTimeout(timer);
         }
     }, [phase, gameMode, opponent]);
@@ -729,8 +729,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                     {/* Secondary Guess Choice Phase */}
                     {phase === 'opponentChoice' && (
                         <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                            <div className="category-badge opponent-badge">
-                                ROZHODOVANIE
+                            <div className="category-badge" style={{ backgroundColor: 'rgba(217, 70, 239, 0.1)', color: '#d946ef', borderColor: 'rgba(217, 70, 239, 0.2)' }}>
+                                VÁHANIE SÚPERA
                             </div>
                             <div className="question-text" style={(() => {
                                 const text = question.question_text || question.text || '';
@@ -744,14 +744,14 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             {renderPlaceholder(question.answer)}
 
                             <div className="turn-info">
-                                <h3 className="turn-label">Šancu môže dostať</h3>
+                                <h3 className="turn-label">Šancu môže získať</h3>
                                 <div className="turn-player-name" style={{ color: opponent === 1 ? '#3b82f6' : '#f97316' }}>
                                     {opponentName}
                                 </div>
                             </div>
 
                             <div className="timer-bar-container compact-timer">
-                                <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: timeLeft <= 2 ? '#ef4444' : '#fbbf24' }}></div>
+                                <div className="timer-bar" style={{ width: `${(timeLeft / 5) * 100}%`, backgroundColor: '#d946ef' }}></div>
                             </div>
 
                             {isLocalSecondary ? (
@@ -774,8 +774,8 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
                             ) : (
                                 <div className="wait-status" style={{ marginTop: '1rem' }}>
                                     <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
-                                    <span style={{ fontSize: '1rem', fontWeight: '500' }}>
-                                        {opponentName} sa rozhoduje, či zoberie alebo zahodí túto otázku...
+                                    <span style={{ fontSize: '1rem', fontWeight: '500', color: '#d946ef' }}>
+                                        Súper sa rozhoduje (Berie / Zahadzuje)...
                                     </span>
                                 </div>
                             )}
