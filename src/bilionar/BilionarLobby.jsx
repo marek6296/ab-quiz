@@ -14,11 +14,18 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
 
     // UI State for modes
-    const [view, setView] = useState('menu'); // 'menu', 'join', 'room', 'matchmaking'
+    const [view, setView] = useState('menu'); // 'menu', 'join', 'room', 'matchmaking', 'setup'
+    const [setupMode, setSetupMode] = useState(null); // 'quick', 'host', 'invite', 'bot'
     const [joinCodeInput, setJoinCodeInput] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+    // Game Setup State
+    const [availableCategories, setAvailableCategories] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [difficulty, setDifficulty] = useState([2]); // Default to Stredné
+    const [botDifficulty, setBotDifficulty] = useState(2);
 
     // Room State
     const [activeGame, setActiveGame] = useState(null);
@@ -30,6 +37,17 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                 .then(({ data }) => setProfile(data));
         }
     }, [user]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data } = await supabase.from('bilionar_questions').select('category');
+            if (data) {
+                const unique = [...new Set(data.map(q => q.category))].sort();
+                setAvailableCategories(unique);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     // Supabase Realtime Subscription for the active game
     useEffect(() => {
@@ -57,27 +75,33 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         if (data) setPlayers(data);
     };
 
-    const handleHostGame = async () => {
+    const handleHostGame = async (config = {}) => {
         if (!profile) return;
         setLoading(true);
         setErrorMsg('');
 
         const joinCode = generateJoinCode();
+        const { cats = [], diffs = [2], isPublic = false } = config;
 
         // Create Game (Private by default)
         const { data: game, error: gameError } = await supabase.from('bilionar_games').insert([{
             host_id: user.id,
             join_code: joinCode,
             status: 'waiting',
-            is_public: false,
-            settings: { questions_count: 10, difficulty: 2 },
+            is_public: isPublic,
+            settings: {
+                questions_count: 10,
+                difficulty: diffs[0] || 2,
+                categories: cats,
+                difficulty_levels: diffs
+            },
             state: { phase: 'init' }
         }]).select().single();
 
         if (gameError) {
             setErrorMsg('Nepodarilo sa vytvoriť hru: ' + gameError.message);
             setLoading(false);
-            return;
+            return gameError;
         }
 
         // Add Host as Player
@@ -92,7 +116,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         if (playerError) {
             setErrorMsg('Chyba pri priájaní: ' + playerError.message);
             setLoading(false);
-            return;
+            return playerError;
         }
 
         setActiveGame(game);
@@ -100,16 +124,17 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         setView('room');
         setActiveTab('play');
         setLoading(false);
+        return game;
     };
 
-    const handleQuickGame = async () => {
+    const handleQuickGame = async (config = {}) => {
         if (!profile) return;
         setLoading(true);
         setErrorMsg('');
         setView('matchmaking');
+        const { cats = [], diffs = [2] } = config;
 
-        // Search for public lobbies that are waiting and not full
-        // First, let's look for any public waiting room
+        // Search for public lobbies with similar settings (if possible, otherwise any)
         const { data: lobbies } = await supabase.from('bilionar_games')
             .select('*, bilionar_players(count)')
             .eq('status', 'waiting')
@@ -117,7 +142,6 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             .neq('host_id', user.id)
             .order('created_at', { ascending: false });
 
-        // Filter out full rooms (if any, although unlikely to have 100% full waiting rooms)
         const availableLobby = lobbies?.find(l => (l.bilionar_players?.[0]?.count || 0) < 8);
 
         if (availableLobby) {
@@ -146,7 +170,12 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                 join_code: joinCode,
                 status: 'waiting',
                 is_public: true,
-                settings: { questions_count: 10, difficulty: 2 },
+                settings: {
+                    questions_count: 10,
+                    difficulty: diffs[0] || 2,
+                    categories: cats,
+                    difficulty_levels: diffs
+                },
                 state: { phase: 'init' }
             }]).select().single();
 
@@ -167,6 +196,62 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             }
             setLoading(false);
         }, 1500);
+    };
+
+    const handleStartFromSetup = async () => {
+        const config = { cats: selectedCategories, diffs: difficulty };
+
+        if (setupMode === 'quick') {
+            handleQuickGame(config);
+        } else if (setupMode === 'host') {
+            handleHostGame({ ...config, isPublic: false });
+        } else if (setupMode === 'invite') {
+            const game = await handleHostGame({ ...config, isPublic: false });
+            if (game && !game.message) {
+                setIsInviteModalOpen(true);
+            }
+        } else if (setupMode === 'bot') {
+            // Create game, add host, add bot, and start immediately
+            setLoading(true);
+            const joinCode = generateJoinCode();
+            const { data: game, error } = await supabase.from('bilionar_games').insert([{
+                host_id: user.id,
+                join_code: joinCode,
+                status: 'playing', // Start playing immediately for bot game
+                is_public: false,
+                settings: {
+                    questions_count: 10,
+                    difficulty: difficulty[0] || 2,
+                    categories: selectedCategories,
+                    difficulty_levels: difficulty,
+                    bot_difficulty: botDifficulty
+                },
+                state: { phase: 'init' }
+            }]).select().single();
+
+            if (game) {
+                // Add Host
+                await supabase.from('bilionar_players').insert([{
+                    game_id: game.id, user_id: user.id, player_name: profile.username, avatar_url: profile.avatar_url, is_bot: false
+                }]);
+                // Add Bot
+                const botAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random()}`;
+                await supabase.from('bilionar_players').insert([{
+                    game_id: game.id, is_bot: true, player_name: 'Bot Inteligent', avatar_url: botAvatar, score: 0
+                }]);
+
+                onStartGame(game);
+            } else {
+                setErrorMsg('Chyba: ' + (error?.message || 'Unknown error'));
+            }
+            setLoading(false);
+        }
+    };
+
+    const toggleCategory = (cat) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
     };
 
     const handleJoinGame = async (e) => {
@@ -357,14 +442,14 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                 <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a s kým chcete hrať o milióny.</p>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-                                    <div className="mode-card primary" onClick={handleQuickGame} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(56, 189, 248, 0.4)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('quick'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(0,0,0,0.4) 100%)', border: '2px solid rgba(56, 189, 248, 0.4)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
                                         <h3 style={{ color: '#38bdf8' }}>Rýchla Hra</h3>
                                         <p>Najrýchlejšia cesta k miliónu. Pripojíme ťa k náhodným hráčom v otvorenej miestnosti.</p>
                                         <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Hrať okamžite →</span>
                                     </div>
 
-                                    <div className="mode-card primary" onClick={handleHostGame} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('host'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
                                         <h3>Založiť Miestnosť</h3>
                                         <p>Vytvor privátnu hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
@@ -378,22 +463,138 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                         <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
                                     </div>
 
-                                    <div className="mode-card primary" onClick={async () => {
-                                        await handleHostGame();
-                                        setIsInviteModalOpen(true);
-                                    }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                                    <div className="mode-card primary" onClick={() => { setSetupMode('invite'); setView('setup'); }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
                                         <h3 style={{ color: '#38bdf8' }}>Hrať s priateľmi</h3>
                                         <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
                                         <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
                                     </div>
 
-                                    <div className="mode-card" onClick={handleAddBot} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div className="mode-card" onClick={() => { setSetupMode('bot'); setView('setup'); }} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
                                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                                         <h3>Tréning s BOTom</h3>
                                         <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
                                         <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'setup' && (
+                            <div className="setup-panel" style={{ maxWidth: '800px', margin: '0 auto', background: 'rgba(0,0,0,0.4)', borderRadius: '24px', padding: '2.5rem', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
+                                <button onClick={() => setView('menu')} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1rem', cursor: 'pointer', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>←</span> Späť na výber
+                                </button>
+
+                                <h2 style={{ fontSize: '2.5rem', color: '#facc15', marginBottom: '2rem', textShadow: '0 0 10px rgba(250, 204, 21, 0.3)' }}>Nastavenia Hry</h2>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                    {/* Categories */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
+                                            <label style={{ color: '#94a3b8', fontWeight: 'bold' }}>Kategórie otázok</label>
+                                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Označených: {selectedCategories.length || 'Všetky'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => setSelectedCategories([])}
+                                                style={{
+                                                    padding: '0.75rem 1.25rem', borderRadius: '12px', fontSize: '0.9rem', border: 'none',
+                                                    background: selectedCategories.length === 0 ? '#facc15' : 'rgba(255,255,255,0.05)',
+                                                    color: selectedCategories.length === 0 ? '#0f172a' : '#f8fafc',
+                                                    fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                🌈 Všetky
+                                            </button>
+                                            {availableCategories.map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => toggleCategory(cat)}
+                                                    style={{
+                                                        padding: '0.75rem 1.25rem', borderRadius: '12px', fontSize: '0.9rem',
+                                                        border: selectedCategories.includes(cat) ? '1px solid #facc15' : '1px solid rgba(255,255,255,0.1)',
+                                                        background: selectedCategories.includes(cat) ? 'rgba(250, 204, 21, 0.1)' : 'rgba(255,255,255,0.05)',
+                                                        color: selectedCategories.includes(cat) ? '#facc15' : '#cbd5e1',
+                                                        cursor: 'pointer', transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Difficulty */}
+                                    <div>
+                                        <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Náročnosť otázok</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {[
+                                                { level: 1, label: 'Ľahké', color: '#4ade80' },
+                                                { level: 2, label: 'Stredné', color: '#fbbf24' },
+                                                { level: 3, label: 'Ťažké', color: '#ef4444' }
+                                            ].map(diff => (
+                                                <button
+                                                    key={diff.level}
+                                                    onClick={() => setDifficulty(prev => {
+                                                        if (prev.includes(diff.level)) {
+                                                            if (prev.length === 1) return prev;
+                                                            return prev.filter(d => d !== diff.level);
+                                                        } else return [...prev, diff.level];
+                                                    })}
+                                                    style={{
+                                                        flex: 1, padding: '1rem', borderRadius: '12px', border: difficulty.includes(diff.level) ? `2px solid ${diff.color}` : '1px solid rgba(255,255,255,0.1)',
+                                                        background: difficulty.includes(diff.level) ? `${diff.color}15` : 'transparent',
+                                                        color: difficulty.includes(diff.level) ? diff.color : '#94a3b8',
+                                                        fontWeight: 'bold', cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {diff.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Bot Difficulty */}
+                                    {setupMode === 'bot' && (
+                                        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                                            <label style={{ display: 'block', color: '#94a3b8', fontWeight: 'bold', marginBottom: '1rem' }}>Inteligencia Bota</label>
+                                            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '16px' }}>
+                                                {[
+                                                    { level: 1, label: 'Nováčik', icon: '🐣' },
+                                                    { level: 2, label: 'Stredný', icon: '🧠' },
+                                                    { level: 3, label: 'Génius', icon: '⚡' }
+                                                ].map(botD => (
+                                                    <button
+                                                        key={botD.level}
+                                                        onClick={() => setBotDifficulty(botD.level)}
+                                                        style={{
+                                                            flex: 1, padding: '1rem', borderRadius: '10px',
+                                                            background: botDifficulty === botD.level ? '#facc15' : 'transparent',
+                                                            color: botDifficulty === botD.level ? '#0f172a' : '#94a3b8',
+                                                            border: 'none', fontWeight: 'bold', cursor: 'pointer',
+                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem'
+                                                        }}
+                                                    >
+                                                        <span style={{ fontSize: '1.5rem' }}>{botD.icon}</span>
+                                                        <span>{botD.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={handleStartFromSetup}
+                                        disabled={loading}
+                                        style={{
+                                            marginTop: '1rem', padding: '1.5rem', borderRadius: '16px', background: '#facc15', color: '#0f172a',
+                                            fontWeight: '900', fontSize: '1.25rem', border: 'none', cursor: 'pointer',
+                                            boxShadow: '0 8px 20px rgba(250, 204, 21, 0.3)', transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {loading ? 'Pripravujem hru...' : 'SPUSTIŤ HRU →'}
+                                    </button>
                                 </div>
                             </div>
                         )}

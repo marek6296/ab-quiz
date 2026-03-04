@@ -47,19 +47,38 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
         if (gameState.phase === 'init') {
             const initGame = async () => {
-                // Fetch 10 random questions
-                const { data, error } = await supabase.rpc('get_random_bilionar_questions', { limit_num: 10 });
-                // Fallback to basic fetch if RPC doesn't exist
-                let questions = data;
-                if (error || !questions || questions.length === 0) {
-                    const { data: rawQ } = await supabase.from('bilionar_questions').select('*').limit(10);
-                    questions = rawQ;
-                }
+                const sett = activeGame.settings || {};
+                const limitCount = sett.questions_count || 10;
+                const cats = sett.categories && sett.categories.length > 0 ? sett.categories : null;
+                const diffs = sett.difficulty_levels && sett.difficulty_levels.length > 0 ? sett.difficulty_levels : null;
+
+                // Fetch random questions with filters
+                const { data: questions, error } = await supabase.rpc('get_random_bilionar_questions', {
+                    limit_num: limitCount,
+                    categories_filter: cats,
+                    difficulty_filter: diffs
+                });
 
                 if (!active) return;
 
-                if (!questions || questions.length === 0) {
-                    const newState = { phase: 'no_questions' };
+                if (error || !questions || questions.length === 0) {
+                    console.log("No questions found with filters, falling back to all:", error);
+                    // Fallback to basic fetch if RPC doesn't yield results
+                    const { data: fallbackQ } = await supabase.from('bilionar_questions').select('*').limit(limitCount);
+
+                    if (!fallbackQ || fallbackQ.length === 0) {
+                        const newState = { phase: 'no_questions' };
+                        setGameState(newState);
+                        await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
+                        return;
+                    }
+
+                    const newState = {
+                        questions: fallbackQ,
+                        current_index: 0,
+                        phase: 'intermission',
+                        phase_end: Date.now() + 4000
+                    };
                     setGameState(newState);
                     await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
                     return;
@@ -135,17 +154,27 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                 awardedIndex.current = gameState.current_index;
                 const currentQ = gameState.questions?.[gameState.current_index];
 
-                // If they answered correctly
+                // 1. AWARD HUMAN SCORE
                 if (selectedAnswer === currentQ?.correct_answer) {
                     const myPlayer = players.find(p => p.user_id === user.id);
                     if (myPlayer) {
-                        // Calculate score: Max 1000 - basic 100 per sec remaining
                         const pts = Math.max(100, Math.floor(visualTime * 66));
                         setScoreGained(pts);
-
-                        // Push to DB
                         supabase.from('bilionar_players').update({ score: myPlayer.score + pts }).eq('id', myPlayer.id).then();
                     }
+                }
+
+                // 2. AWARD BOT SCORE (Host only)
+                if (isHost && players.some(p => p.is_bot)) {
+                    players.filter(p => p.is_bot).forEach(bot => {
+                        const botLvl = activeGame.settings?.bot_difficulty || 2;
+                        const prob = botLvl === 1 ? 35 : (botLvl === 2 ? 65 : 92);
+                        if (Math.random() * 100 < prob) {
+                            const botTime = botLvl === 1 ? (Math.random() * 10 + 3) : (botLvl === 2 ? (Math.random() * 6 + 1.5) : (Math.random() * 3 + 0.5));
+                            const botPts = Math.max(100, Math.floor((15 - botTime) * 66));
+                            supabase.from('bilionar_players').update({ score: bot.score + botPts }).eq('id', bot.id).then();
+                        }
+                    });
                 }
             }
         }
