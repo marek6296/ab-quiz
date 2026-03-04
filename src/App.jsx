@@ -155,7 +155,7 @@ const TurnAnnouncement = ({ announcement }) => {
 };
 
 // Wrapper component to use the Auth context
-const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineUserIds }) => {
+const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onClearPending, onlineUserIds }) => {
   const { user } = useAuth();
   const {
     appState, setAppState,
@@ -640,6 +640,12 @@ const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending, onlineU
       await supabase.from('games').delete().eq('id', activeGameId);
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
+
+    // Explicitly terminate platform lobby if we were in one
+    if (onTerminateLobby) {
+      await onTerminateLobby();
+    }
+
     resetToLobby();
     setShowExitConfirm(false);
     setActiveModal(null); // Extrémne dôležité: Vyčistiť starý modal
@@ -920,6 +926,12 @@ const MainRouter = () => {
   const [pendingGame, setPendingGame] = useState(null);
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
 
+  useEffect(() => {
+    if (currentApp !== 'portal' && showLobbyModal) {
+      setShowLobbyModal(false);
+    }
+  }, [currentApp, showLobbyModal]);
+
   // Global Presence Tracking across the whole application
   useEffect(() => {
     if (user?.id) {
@@ -1025,6 +1037,19 @@ const MainRouter = () => {
     }
   };
 
+  const handleTerminateLobby = async () => {
+    if (!activeLobbyId) return;
+
+    // Delete the lobby from DB (this will trigger onLeaveLobby for everyone else)
+    await supabase.from('platform_lobbies').delete().eq('id', activeLobbyId);
+
+    // Clean up local state
+    setActiveLobbyId(null);
+    setShowLobbyModal(false);
+    sessionStorage.removeItem('ab_quiz_active_lobby');
+    console.log("Lobby terminated.");
+  };
+
   const handleDeclineInvite = async (gameId) => {
     if (incomingInvite?.gameType === 'platform_lobby') {
       await supabase.from('platform_players').delete().eq('lobby_id', gameId).eq('user_id', user.id);
@@ -1049,7 +1074,6 @@ const MainRouter = () => {
 
   return (
     <>
-      <div style={{ position: 'fixed', top: 10, left: 10, background: 'blue', color: 'white', zIndex: 100000 }}>DEBUG: currentApp={currentApp} showLobbyModal={String(showLobbyModal)}</div>
       {currentApp === 'portal' && (
         <GamePortal
           onSelectGame={(gameId) => {
@@ -1116,6 +1140,7 @@ const MainRouter = () => {
         currentApp === 'ab_quiz' && (
           <ABQuizApp
             onBackToPortal={() => { handleSetApp('portal'); }}
+            onTerminateLobby={handleTerminateLobby}
             initialPendingGame={pendingGame?.mode !== 'bilionar' ? pendingGame : null}
             onClearPending={() => setPendingGame(null)}
             onlineUserIds={onlineUserIds}
@@ -1128,6 +1153,7 @@ const MainRouter = () => {
           <BilionarApp
             activePlatformLobbyId={activeLobbyId}
             onBackToPortal={() => { handleSetApp('portal'); }}
+            onTerminateLobby={handleTerminateLobby}
             onlineUserIds={onlineUserIds}
             pendingGameId={pendingGame?.mode === 'bilionar' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
@@ -1139,6 +1165,7 @@ const MainRouter = () => {
         currentApp === 'higher_lower' && (
           <HigherLowerApp
             onBackToPortal={() => { handleSetApp('portal'); }}
+            onTerminateLobby={handleTerminateLobby}
             onlineUserIds={onlineUserIds}
             pendingGameId={pendingGame?.mode === 'higher_lower' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}

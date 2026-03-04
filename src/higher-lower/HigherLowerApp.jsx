@@ -4,11 +4,9 @@ import { supabase } from '../lib/supabase';
 import { HigherLowerGame } from './HigherLowerGame';
 import { HigherLowerLobby } from './HigherLowerLobby';
 
-export const HigherLowerApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onClearPending }) => {
+export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
-    const [profile, setProfile] = useState(null);
-    const [view, setView] = useState('lobby'); // Used to just say we are loading, or directly 'game'
-    console.log("HigherLowerApp: Rendering with current view:", view, "user:", user?.id);
+    const [view, setView] = useState('lobby');
     const viewRef = useRef(view);
 
     useEffect(() => { viewRef.current = view; }, [view]);
@@ -26,33 +24,9 @@ export const HigherLowerApp = ({ onBackToPortal, onlineUserIds, pendingGameId, o
         if (data) setPlayers(data);
     };
 
-    const syncGame = async (gameId) => {
-        if (!gameId) return;
-        const { data, error } = await supabase.from('higher_lower_games')
-            .select('*')
-            .eq('id', gameId)
-            .single();
+    // Game sync logic
 
-        if (data) {
-            setActiveGame(data);
-            if (data.status === 'playing' && viewRef.current === 'lobby') {
-                setView('game');
-            }
-        } else if (error && error.code === 'PGRST116') {
-            setActiveGame(null);
-            setView('lobby');
-            onBackToPortal();
-            return;
-        }
-        fetchPlayers(gameId);
-    };
-
-    useEffect(() => {
-        if (user?.id) {
-            supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
-                .then(({ data }) => setProfile(data));
-        }
-    }, [user]);
+    // HigherLowerApp main logic
 
     // Autoboot
     useEffect(() => {
@@ -114,7 +88,7 @@ export const HigherLowerApp = ({ onBackToPortal, onlineUserIds, pendingGameId, o
     }, [activeGame?.status, view]);
 
     return (
-        <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
             {view === 'lobby' ? (
                 <HigherLowerLobby
                     activeGame={activeGame}
@@ -138,6 +112,9 @@ export const HigherLowerApp = ({ onBackToPortal, onlineUserIds, pendingGameId, o
                     onLeave={async () => {
                         if (user?.id) {
                             await supabase.from('higher_lower_players').delete().eq('user_id', user.id);
+                        }
+                        if (onTerminateLobby) {
+                            await onTerminateLobby();
                         }
                         setActiveGame(null);
                         setPlayers([]);

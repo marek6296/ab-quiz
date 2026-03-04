@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { getRandomGameSequence } from './hlDataset';
 import { useAudio } from '../hooks/useAudio';
-import { AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 
 const CountUp = ({ value, isRevealing }) => {
     const count = useMotionValue(0);
@@ -47,10 +47,14 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
     const myRecord = players.find(p => p.user_id === user?.id);
 
     // Host loop
+    // Host loop
     useEffect(() => {
         if (!isHost) return;
 
+        let active = true;
         const loop = async () => {
+            if (!active) return;
+
             const currentGame = activeGameRef.current;
             const state = gameStateRef.current;
             const currentPlayers = playersRef.current;
@@ -62,21 +66,18 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
             async function broadcastState(updates) {
                 const newState = { ...state, ...updates };
-                // Broadcast for instant UI sync
                 await gameChannel?.send({
                     type: 'broadcast',
                     event: 'phase_change',
                     payload: { state: newState }
                 });
-                // Persist
                 await supabase.from('higher_lower_games').update({ state: newState }).eq('id', currentGame.id);
             }
 
             async function evaluatePlayer(player, guess, firstItem, secondItem) {
                 const isHigher = secondItem.value >= firstItem.value;
                 const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
-
-                const newScore = isCorrect ? player.score + 1 : player.score;
+                const newScore = isCorrect ? (player.score || 0) + 1 : (player.score || 0);
                 const eliminated = player.eliminated ? true : !isCorrect;
 
                 await supabase.from('higher_lower_players').update({
@@ -97,95 +98,65 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         answers: {}
                     });
                 }
-            }
-            else if (phase === 'question') {
+            } else if (phase === 'question') {
                 const activePlayers = currentPlayers.filter(p => !p.eliminated);
-                // 8 seconds question time
-                const elapsed = now - state.phase_start_time;
+                const elapsed = now - (state.phase_start_time || now);
 
                 // Bot logic
                 const currentAnswers = { ...(state.answers || {}) };
                 let answersChanged = false;
-
                 currentPlayers.forEach(p => {
                     if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
-                        // Delay 1-3 seconds
                         if (elapsed > 1000 + Math.random() * 2000) {
-                            // Easy: 50%, Med: 65%, Hard: 80%
                             const botD = currentGame.settings?.bot_difficulty || 2;
                             const accuracy = botD === 1 ? 0.5 : botD === 2 ? 0.65 : 0.8;
-
                             const firstItem = state.sequence[state.round_index];
                             const secondItem = state.sequence[state.round_index + 1];
                             const isHigher = secondItem.value >= firstItem.value;
-
                             const isCorrectGuess = Math.random() < accuracy;
                             const botGuess = isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher');
-
                             currentAnswers[p.id] = botGuess;
                             answersChanged = true;
                         }
                     }
                 });
 
-                if (answersChanged) {
-                    await broadcastState({ answers: currentAnswers });
-                }
+                if (answersChanged) await broadcastState({ answers: currentAnswers });
 
-                // Check if everyone answered or timeout
                 const allAnswered = activePlayers.every(p => currentAnswers[p.id]);
                 if (elapsed > 8000 || allAnswered) {
-                    // Evaluate
                     const firstItem = state.sequence[state.round_index];
                     const secondItem = state.sequence[state.round_index + 1];
                     for (const p of activePlayers) {
                         const guess = currentAnswers[p.id];
-                        if (!guess) {
-                            // Timeout = wrong
-                            currentAnswers[p.id] = 'timeout';
-                            await evaluatePlayer(p, 'timeout', firstItem, secondItem);
-                        } else {
-                            await evaluatePlayer(p, guess, firstItem, secondItem);
-                        }
+                        await evaluatePlayer(p, guess || 'timeout', firstItem, secondItem);
                     }
                     await broadcastState({ phase: 'evaluating', phase_start_time: now, answers: currentAnswers });
                 }
-            }
-            else if (phase === 'evaluating') {
-                // Wait 2 seconds showing the user's choice before revealing
-                if (now - state.phase_start_time > 2000) {
+            } else if (phase === 'evaluating') {
+                if (now - (state.phase_start_time || now) > 2000) {
                     await broadcastState({ phase: 'reveal', phase_start_time: now });
                 }
-            }
-            else if (phase === 'reveal') {
-                // Wait 4 seconds for reveal & animations
-                if (now - state.phase_start_time > 4000) {
-                    // Locally evaluate surviving players to avoid DB sync latency
+            } else if (phase === 'reveal') {
+                if (now - (state.phase_start_time || now) > 4000) {
                     const firstItem = state.sequence[state.round_index];
                     const secondItem = state.sequence[state.round_index + 1];
                     const isHigher = secondItem.value >= firstItem.value;
-
                     const survivingPlayers = currentPlayers.filter(p => {
-                        // For evaluation in the reveal phase, check if their guess was correct
                         const guess = state.answers?.[p.id];
-                        // If they were already eliminated prior to this round, they aren't surviving
                         if (p.eliminated && guess === undefined) return false;
-
-                        const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
-                        return isCorrect;
+                        return (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
                     });
 
-                    if (survivingPlayers.length === 0 || state.round_index >= state.sequence.length - 2) {
+                    if (survivingPlayers.length === 0 || state.round_index >= (state.sequence?.length || 0) - 2) {
                         await broadcastState({ phase: 'finished', phase_start_time: now });
                         await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', currentGame.id);
                     } else {
                         await broadcastState({ phase: 'shifting', phase_start_time: now });
                     }
                 }
-            }
-            else if (phase === 'shifting') {
-                // Wait 1.5 seconds for card shift animation
-                if (now - state.phase_start_time > 1500) {
+            } else if (phase === 'shifting') {
+                if (now - (state.phase_start_time || now) > 1500) {
                     await broadcastState({
                         phase: 'question',
                         round_index: state.round_index + 1,
@@ -194,15 +165,20 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     });
                 }
             }
+
+            if (active) {
+                tickerRef.current = setTimeout(loop, 1000);
+            }
         };
 
-        if (tickerRef.current) clearInterval(tickerRef.current);
-        tickerRef.current = setInterval(loop, 200);
+        loop();
 
         return () => {
-            if (tickerRef.current) clearInterval(tickerRef.current);
+            active = false;
+            if (tickerRef.current) clearTimeout(tickerRef.current);
         };
     }, [isHost, gameChannel]);
+
 
     // Timer logic and guess cleanup
     useEffect(() => {
@@ -345,7 +321,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
                 {gameState.phase === 'init' && <h2 style={{ fontSize: '2rem' }}>Generujem dáta...</h2>}
 
-                {(gameState.phase === 'question' || gameState.phase === 'reveal' || gameState.phase === 'shifting') && firstItem && secondItem && (
+                {(gameState.phase === 'question' || gameState.phase === 'evaluating' || gameState.phase === 'reveal' || gameState.phase === 'shifting') && firstItem && secondItem && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '900px', flexWrap: 'wrap' }}>
 
                         {/* FIRST ITEM */}
@@ -394,11 +370,16 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
                                     {gameState.phase === 'reveal' || gameState.phase === 'evaluating' ? (
                                         <>
-                                            <div style={{ fontSize: '3.5rem', fontWeight: '900', color: gameState.phase === 'reveal' ? (isCorrect === true ? '#10b981' : '#ef4444') : 'white' }}>
+                                            <div style={{ fontSize: '3.5rem', fontWeight: '900', color: gameState.phase === 'reveal' ? (isCorrect === true ? '#10b981' : '#ef4444') : '#facc15' }}>
                                                 {visualGuess !== 'timeout' ? (
-                                                    gameState.phase === 'reveal' ? <CountUp value={secondItem.value} isRevealing={true} /> : "???"
+                                                    gameState.phase === 'reveal' ? <CountUp value={secondItem.value} isRevealing={true} /> : "NAČÍTAM..."
                                                 ) : "ČAS VYPRŠAL!"}
                                             </div>
+                                            {gameState.phase === 'evaluating' && (
+                                                <div style={{ color: '#facc15', fontSize: '1.2rem', marginTop: '1rem', fontWeight: 'bold', animation: 'pulse 1s infinite' }}>
+                                                    VYHODNOCUJEM...
+                                                </div>
+                                            )}
                                             <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
                                         </>
                                     ) : (

@@ -201,7 +201,11 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
     };
 
     const handleLeave = async () => {
-        if (!isHost) {
+        if (isHost) {
+            // Host cleans up the entire lobby
+            await supabase.from('platform_lobbies').delete().eq('id', lobbyId);
+        } else {
+            // Guest just leaves the player list
             await supabase.from('platform_players').delete().eq('lobby_id', lobbyId).eq('user_id', user.id);
         }
         onLeaveLobby();

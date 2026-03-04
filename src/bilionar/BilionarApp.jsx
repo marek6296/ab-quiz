@@ -5,7 +5,7 @@ import { BilionarAdmin } from './BilionarAdmin';
 import { BilionarLobby } from './BilionarLobby';
 import { BilionarGame } from './BilionarGame';
 
-export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onClearPending }) => {
+export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [showAdmin, setShowAdmin] = useState(false);
@@ -176,6 +176,9 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
                         if (user?.id) {
                             // Remove player from all games to completely leave and prevent ghost reconnects
                             await supabase.from('bilionar_players').delete().eq('user_id', user.id);
+                        }
+                        if (onTerminateLobby) {
+                            await onTerminateLobby();
                         }
                         setActiveGame(null);
                         setPlayers([]);
