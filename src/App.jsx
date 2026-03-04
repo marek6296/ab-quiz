@@ -618,6 +618,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
               currentPlayer={currentPlayer}
               gameMode={gameMode}
               gameRules={gameRules}
+              botDifficulty={localDifficulty}
               p1Combo={p1Combo}
               p2Combo={p2Combo}
               onResolve={handleResolveQuestion}

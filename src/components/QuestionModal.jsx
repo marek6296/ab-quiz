@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { isAnswerCorrect } from '../utils/stringUtils';
 import { useAudio } from '../hooks/useAudio';
 
-export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount }) => {
+export const QuestionModal = ({ modalData, onSyncModal, question, hexId, currentPlayer, gameMode, gameRules = 'hex', botDifficulty = 1, p1Combo = 0, p2Combo = 0, onClose, onResolve, localPlayerNum, playerNames, presenceCount }) => {
     const [phase, setPhase] = useState('reveal');
     const [inputValue, setInputValue] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
@@ -423,10 +423,30 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
     useEffect(() => {
         let timeout;
 
-        // Zabezpečíme, že bot bude odpovedať maximálne do cca 6 sekúnd
-        const thinkTimeBase = 1500;
-        const thinkTimeVar = 4500; // max dokopy 6000ms
-        const thinkTime = Math.floor(Math.random() * thinkTimeVar) + thinkTimeBase;
+        // Nastavenia podľa náročnosti bota (1=Ľahký, 2=Stredný, 3=Ťažký)
+        let primaryWinChance = 0.65;
+        let secondaryWinChance = 0.4;
+        let baseTime = 1500;
+        let varTime = 4500;
+
+        if (botDifficulty === 1) { // ĽAHKÝ (Pomalý, často sa mýli)
+            primaryWinChance = 0.4;
+            secondaryWinChance = 0.2;
+            baseTime = 2500;
+            varTime = 6000;
+        } else if (botDifficulty === 2) { // STREDNÝ (Vyvážený)
+            primaryWinChance = 0.65;
+            secondaryWinChance = 0.4;
+            baseTime = 1500;
+            varTime = 4000;
+        } else if (botDifficulty === 3) { // ŤAŽKÝ (Rýchly terminátor)
+            primaryWinChance = 0.90;
+            secondaryWinChance = 0.75;
+            baseTime = 500;
+            varTime = 2000;
+        }
+
+        const thinkTime = Math.floor(Math.random() * varTime) + baseTime;
 
         // Pomocná funkcia na vygenerovanie náhodnej zlej odpovede ("hlúposti")
         const generateNonsense = (length) => {
@@ -444,7 +464,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
 
         if (isBotPrimaryTurn) {
             timeout = setTimeout(() => {
-                const isCorrect = Math.random() > 0.3; // 70% chance to know
+                const isCorrect = Math.random() < primaryWinChance;
                 if (isCorrect) {
                     const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
                     const computedTimeLeft = Math.max(0, 15 - elapsedSeconds);
@@ -468,7 +488,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }, thinkTime);
         } else if (isBotSecondaryTurn) {
             timeout = setTimeout(() => {
-                const isCorrect = Math.random() > 0.5; // 50% chance to steal
+                const isCorrect = Math.random() < secondaryWinChance;
                 if (isCorrect) {
                     const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
                     const computedTimeLeft = Math.max(0, 15 - elapsedSeconds);
@@ -492,7 +512,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }, thinkTime);
         }
         return () => clearTimeout(timeout);
-    }, [isBotPrimaryTurn, isBotSecondaryTurn, question.answer, gameRules]); // 🔴 Odstránený `timeLeft` z dependencies, inak sa Bot timeout neustále vymazával a reštartoval každú sekundu!
+    }, [isBotPrimaryTurn, isBotSecondaryTurn, question.answer, gameRules, botDifficulty]); // Zmenili sme dependencies
 
     // Timer Logic - Strictly based on absolute time elapsed to prevent browser background throttling issues
     useEffect(() => {
