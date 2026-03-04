@@ -13,8 +13,8 @@ export const GamePortal = ({ onSelectGame }) => {
                 <h1 className="hero-logo">Quizovník</h1>
             </div>
 
-            <h2 style={{ fontSize: '2.2rem', marginBottom: '0.5rem', color: '#f8fafc', textAlign: 'center' }}>Vyberte si hru</h2>
-            <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '1.5rem', textAlign: 'center' }}>Vitajte na našom hernom portáli. Ďalšie hry pribudnú čoskoro!</p>
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '0.25rem', color: '#f8fafc', textAlign: 'center' }}>Vyberte si hru</h2>
+            <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '1rem', textAlign: 'center' }}>Vitajte na našom hernom portáli. Ďalšie hry pribudnú čoskoro!</p>
 
             <div className="portal-grid" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
                 <div

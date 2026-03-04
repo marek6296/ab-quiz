@@ -105,7 +105,7 @@ h1 {
 
 .hero-logo {
   font-family: 'Inter', sans-serif;
-  font-size: 4.5rem;
+  font-size: 6rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: -0.05em;
@@ -131,10 +131,10 @@ h1 {
 }
 
 .logout-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: fixed;
+  right: 2rem;
+  top: 2rem;
+  transform: none;
   padding: 0.8rem 1.5rem;
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -2427,7 +2427,7 @@ button.small {
 
   .game-portal .hero-logo {
     margin-top: 1.5rem !important;
-    font-size: 3rem !important;
+    font-size: 4rem !important;
   }
 
   .game-portal h2 {
