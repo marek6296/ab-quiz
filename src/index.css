@@ -108,6 +108,26 @@ h1 {
   animation: heroPulse 3s ease-in-out infinite;
 }
 
+.portal-header {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 6rem;
+  position: relative;
+}
+
+.logout-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.8rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
 @keyframes heroPulse {
 
   0%,
@@ -1910,6 +1930,30 @@ button.small {
   /* Game Portal Mobile Fixes */
   .game-portal {
     padding: 1rem !important;
+    padding-top: 3.5rem !important;
+    /* Odsadenie obsahu od horného rohu pre odhlásiť button */
+  }
+
+  .portal-header {
+    margin-bottom: 2rem !important;
+    width: 100% !important;
+  }
+
+  .logout-btn {
+    position: fixed !important;
+    /* Fixné v pravom hornom rohu */
+    top: 1rem !important;
+    right: 1rem !important;
+    transform: none !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.8rem !important;
+    z-index: 10;
+    margin: 0 !important;
+  }
+
+  .game-portal .hero-logo {
+    margin-top: 1.5rem !important;
+    font-size: 3rem !important;
   }
 
   .game-portal h2 {
