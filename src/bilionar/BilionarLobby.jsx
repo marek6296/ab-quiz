@@ -398,7 +398,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         <div className="dashboard-layout">
             <aside className="dashboard-sidebar">
                 <div className="sidebar-logo">
-                    <h1 className="logo-brutal" style={{ color: '#facc15', textShadow: '0 0 10px rgba(250, 204, 21, 0.3)' }}>
+                    <h1 className="logo-brutal">
                         Bilionár Battle
                     </h1>
                 </div>

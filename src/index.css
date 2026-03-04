@@ -2115,6 +2115,30 @@ button.small {
   background: rgba(250, 204, 21, 0.05);
 }
 
+.bilionar-theme .logo-brutal {
+  background: linear-gradient(to right,
+      #facc15 10%,
+      #fff 30%,
+      #eab308 50%,
+      #fff 70%,
+      #facc15 90%);
+  background-size: 200% auto;
+  filter: drop-shadow(0 0 15px rgba(250, 204, 21, 0.4));
+  animation: logoShimmer 4s linear infinite, bilionarLogoPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes bilionarLogoPulse {
+  from {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.3));
+  }
+
+  to {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.6));
+  }
+}
+
 .bilionar-theme {
   background-color: #050505 !important;
   background-image:
