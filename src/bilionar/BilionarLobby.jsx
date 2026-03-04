@@ -8,7 +8,7 @@ const generateJoinCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
-export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, onlineUserIds = new Set() }) => {
+export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, onlineUserIds = new Set(), pendingGameId = null, onClearPending = () => { } }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = useState(null);
     const [activeTab, setActiveTab] = useState('play'); // play, friends, profile
@@ -74,6 +74,26 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         checkExistingLobby();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
+
+    // Handle incoming pending game (invited directly while active)
+    useEffect(() => {
+        if (pendingGameId) {
+            const joinPending = async () => {
+                setLoading(true);
+                const { data } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+                if (data) {
+                    setActiveGame(data);
+                    await fetchPlayers(data.id);
+                    setView('room');
+                    setActiveTab('play');
+                }
+                setLoading(false);
+                if (onClearPending) onClearPending();
+            };
+            joinPending();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingGameId]);
 
     // Supabase Realtime Subscription for the active game
     useEffect(() => {

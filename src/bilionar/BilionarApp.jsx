@@ -5,7 +5,7 @@ import { BilionarAdmin } from './BilionarAdmin';
 import { BilionarLobby } from './BilionarLobby';
 import { BilionarGame } from './BilionarGame';
 
-export const BilionarApp = ({ onBackToPortal, onlineUserIds }) => {
+export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [showAdmin, setShowAdmin] = useState(false);
@@ -44,6 +44,8 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds }) => {
                     onBackToPortal={onBackToPortal}
                     onShowAdmin={() => setShowAdmin(true)}
                     onlineUserIds={onlineUserIds}
+                    pendingGameId={pendingGameId}
+                    onClearPending={onClearPending}
                 />
             )}
         </div>

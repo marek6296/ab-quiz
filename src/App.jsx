@@ -930,8 +930,9 @@ const MainRouter = () => {
   const handleAcceptInvite = async (gameId, rules) => {
     if (incomingInvite?.gameType === 'bilionar') {
       setIncomingInvite(null);
+      setPendingGame({ mode: 'bilionar', gameId });
       handleSetApp('bilionar_battle');
-      // BilionarApp will pick up the active game from bilionar_players automatically or via prop
+      // BilionarApp will pick up the pending game
     } else {
       const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
       if (!error) {
@@ -966,12 +967,19 @@ const MainRouter = () => {
       {currentApp === 'ab_quiz' && (
         <ABQuizApp
           onBackToPortal={() => handleSetApp('portal')}
-          initialPendingGame={pendingGame}
+          initialPendingGame={pendingGame?.mode !== 'bilionar' ? pendingGame : null}
           onClearPending={() => setPendingGame(null)}
           onlineUserIds={onlineUserIds}
         />
       )}
-      {currentApp === 'bilionar_battle' && <BilionarApp onBackToPortal={() => handleSetApp('portal')} onlineUserIds={onlineUserIds} />}
+      {currentApp === 'bilionar_battle' && (
+        <BilionarApp
+          onBackToPortal={() => handleSetApp('portal')}
+          onlineUserIds={onlineUserIds}
+          pendingGameId={pendingGame?.mode === 'bilionar' ? pendingGame.gameId : null}
+          onClearPending={() => setPendingGame(null)}
+        />
+      )}
 
       <GameInviteModal
         invite={incomingInvite}
