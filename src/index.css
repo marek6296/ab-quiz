@@ -2516,7 +2516,7 @@ button.small {
   }
 
   .portal-header {
-    margin-bottom: 2rem !important;
+    margin-bottom: 1rem !important;
     width: 100% !important;
   }
 
@@ -2533,26 +2533,50 @@ button.small {
   }
 
   .game-portal .hero-logo {
-    margin-top: 1.5rem !important;
-    font-size: 4rem !important;
+    margin-top: 0.5rem !important;
+    font-size: 3rem !important;
+    padding: 0.5rem 0 !important;
   }
 
   .game-portal h2 {
-    font-size: 1.8rem !important;
-    margin-bottom: 0.5rem !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 0.25rem !important;
   }
 
   .game-portal p {
-    font-size: 1rem !important;
-    margin-bottom: 2rem !important;
-  }
-
-  .game-portal>div:first-child {
-    margin-bottom: 2rem !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 1rem !important;
   }
 
   .portal-grid {
-    gap: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .portal-grid-item {
+    padding: 1rem !important;
+    min-width: 200px !important;
+    flex: 1 1 40% !important;
+  }
+
+  .portal-icon-floating {
+    font-size: 2.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .portal-grid-item h3 {
+    font-size: 1.4rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .portal-grid-item p {
+    display: none;
+    /* Hide descriptions on mobile to save space */
+  }
+
+  .glow-btn {
+    padding: 0.6rem 1.5rem !important;
+    font-size: 0.9rem !important;
+    margin-top: 0.5rem !important;
   }
 
   .nav-item {
