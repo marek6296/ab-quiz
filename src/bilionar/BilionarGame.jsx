@@ -108,6 +108,8 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     // Go to question
                     newState.phase = 'question';
                     newState.phase_end = now + 15000; // 15s to answer
+                    // Host resets answers in DB for all players
+                    supabase.from('bilionar_players').update({ has_answered: false }).eq('game_id', activeGame.id).then();
                 }
                 else if (gameState.phase === 'question') {
                     // Go to reveal
@@ -180,6 +182,30 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         }
     }, [gameState.phase, gameState.current_index, selectedAnswer, players, user.id, visualTime, gameState.questions]);
 
+    // Simulated Bot Interactive Answering (Host only)
+    const botTimersRef = useRef(new Set());
+    useEffect(() => {
+        if (gameState.phase !== 'question') {
+            botTimersRef.current.clear();
+            return;
+        }
+        if (!isHost) return;
+
+        const unansweredBots = players.filter(p => p.is_bot && !p.has_answered && !botTimersRef.current.has(p.id));
+
+        unansweredBots.forEach(bot => {
+            botTimersRef.current.add(bot.id);
+            const botLvl = activeGame.settings?.bot_difficulty || 2;
+            const delay = botLvl === 1 ? (Math.random() * 8000 + 5000) : (botLvl === 2 ? (Math.random() * 5000 + 2000) : (Math.random() * 2000 + 500));
+
+            setTimeout(() => {
+                if (activeGame?.id) {
+                    supabase.from('bilionar_players').update({ has_answered: true }).eq('id', bot.id).then();
+                }
+            }, delay);
+        });
+    }, [gameState.phase, gameState.current_index, isHost, players, activeGame.id]);
+
     // Fast visual timer update loop
     useEffect(() => {
         if (gameState.phase !== 'question') return;
@@ -197,16 +223,34 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         if (gameState.phase !== 'question') return;
         if (selectedAnswer !== null) return;
         setSelectedAnswer(key);
+
+        // Update DB so others see you have answered
+        const myPlayer = players.find(p => p.user_id === user.id);
+        if (myPlayer) {
+            supabase.from('bilionar_players').update({ has_answered: true }).eq('id', myPlayer.id).then();
+        }
     };
 
     // UI Renders
     const renderPlayerAvatar = (p) => {
         const isMe = p.user_id === user.id;
+        const showAnswered = p.has_answered && gameState.phase === 'question';
+
         return (
             <div key={p.id} className={`bilionar-player-avatar ${isMe ? 'is-me' : ''}`} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                width: '60px'
+                width: '60px', position: 'relative'
             }}>
+                {showAnswered && (
+                    <div style={{
+                        position: 'absolute', top: '-5px', right: '5px', background: '#22c55e',
+                        color: 'white', borderRadius: '50%', width: '18px', height: '18px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px',
+                        zIndex: 10, border: '2px solid #0f172a', fontWeight: 'bold'
+                    }}>
+                        ✓
+                    </div>
+                )}
                 <div style={{
                     position: 'relative', width: '45px', height: '45px', borderRadius: '50%',
                     background: 'rgba(255, 255, 255, 0.1)', border: `2px solid ${isMe ? '#facc15' : 'rgba(250, 204, 21, 0.4)'}`,

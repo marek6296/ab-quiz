@@ -20,6 +20,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const matchmakingTimer = useRef(null);
 
     // Game Setup State
     const [availableCategories, setAvailableCategories] = useState([]);
@@ -142,7 +143,25 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
             .neq('host_id', user.id)
             .order('created_at', { ascending: false });
 
-        const availableLobby = lobbies?.find(l => (l.bilionar_players?.[0]?.count || 0) < 8);
+        const availableLobby = lobbies?.find(l => {
+            const count = l.bilionar_players?.[0]?.count || 0;
+            if (count >= 8) return false;
+
+            const lSettings = l.settings || {};
+            const lCats = lSettings.categories || [];
+            const lDiffs = lSettings.difficulty_levels || [2];
+
+            // If user has specific categories, try to match
+            if (cats.length > 0) {
+                // If the lobby has cats, they must overlap. If the lobby is 'All', it's okay.
+                if (lCats.length > 0 && !cats.some(c => lCats.includes(c))) return false;
+            }
+
+            // Simple difficulty check: must have at least one common difficulty
+            if (!diffs.some(d => lDiffs.includes(d))) return false;
+
+            return true;
+        });
 
         if (availableLobby) {
             const { error: joinError } = await supabase.from('bilionar_players').upsert([{
@@ -163,7 +182,8 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
         }
 
         // No suitable lobby found after a short wait (simulated)
-        setTimeout(async () => {
+        if (matchmakingTimer.current) clearTimeout(matchmakingTimer.current);
+        matchmakingTimer.current = setTimeout(async () => {
             const joinCode = generateJoinCode();
             const { data: newGame, error: createError } = await supabase.from('bilionar_games').insert([{
                 host_id: user.id,
@@ -628,7 +648,10 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                                 <div className="loader" style={{ margin: '0 auto 2rem', width: '60px', height: '60px', border: '5px solid rgba(250, 204, 21, 0.1)', borderTop: '5px solid #facc15', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                                 <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: 'white' }}>Hľadám súperov...</h2>
                                 <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Pripravujeme tvoj vstup do sveta veľkých peňazí.</p>
-                                <button className="neutral" onClick={() => setView('menu')} style={{ padding: '1rem 2rem' }}>Zrušiť</button>
+                                <button className="neutral" onClick={() => {
+                                    if (matchmakingTimer.current) clearTimeout(matchmakingTimer.current);
+                                    setView('menu');
+                                }} style={{ padding: '1rem 2rem' }}>Zrušiť</button>
                                 <style>{`
                                     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                                 `}</style>
