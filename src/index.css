@@ -3010,3 +3010,93 @@ button.small {
   100% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.8); }
 }
 
+
+/* =========================================================
+   BILIONÁR BATTLE AUTOMATED GAME LOOP ANIMATIONS
+   ========================================================= */
+
+/* Question Transition Screens */
+.bilionar-intermission {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.95);
+  z-index: 50;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: scale(0.9); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+.bilionar-intermission-text {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #facc15;
+  text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
+  animation: slideUpFade 0.5s ease-out;
+}
+
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Time's Up Alert */
+.bilionar-times-up {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(239, 68, 68, 0.9);
+  padding: 1rem 3rem;
+  border-radius: 50px;
+  font-size: 2rem;
+  font-weight: 900;
+  color: white;
+  border: 4px solid #f87171;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+  z-index: 40;
+  animation: popInAlert 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popInAlert {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Specific state animations */
+.bilionar-option-btn.locked {
+  background: linear-gradient(90deg, #ca8a04 0%, #a16207 100%);
+  border-color: #facc15;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  opacity: 0.9;
+}
+
+.bilionar-option-btn.locked .option-text {
+  color: #fef08a; /* Slightly muted yellow text for locked state */
+}
+
+/* Score popup animation */
+.score-popup {
+  position: absolute;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #4ade80;
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+  pointer-events: none;
+  z-index: 100;
+  animation: floatUpFade 1.5s ease-out forwards;
+}
+
+@keyframes floatUpFade {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+}
+
