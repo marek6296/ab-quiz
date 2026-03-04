@@ -2041,7 +2041,7 @@ button.small {
 
 .dashboard-sidebar {
   width: 280px;
-  background: rgba(15, 23, 42, 0.7);
+  background: #000 !important;
   backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
@@ -2338,7 +2338,7 @@ button.small {
     padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
     border-right: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.98);
+    background: #000 !important;
     backdrop-filter: blur(25px);
     justify-content: space-around;
     align-items: center;
