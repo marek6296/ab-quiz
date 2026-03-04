@@ -183,7 +183,7 @@ export const Admin = ({ onBack }) => {
     };
 
     const handleReviewQuestions = async () => {
-        if (!window.confirm(`Chystáte sa spustiť AI kontrolu pre ${questions.length} aktuálne zobrazených otázok v tabuľke. AI opraví chyby, zlepší formátovanie a upraví náročnosť. Môže to trvať dlhšie. Pokračovať?`)) return;
+        if (!window.confirm(`Chystáte sa spustiť AI kontrolu pre ${questions.length} aktuálne zobrazených otázok v tabuľke. AI opraví chyby, zlepší formátovanie, upraví náročnosť, automaticky zmaže duplikáty a nevhodné otázky. Pokračovať?`)) return;
 
         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
         if (!apiKey) return alert('Chýba VITE_OPENAI_API_KEY v premenných Vercelu!');
@@ -196,6 +196,7 @@ export const Admin = ({ onBack }) => {
             }
 
             let totalUpdated = 0;
+            let totalDeleted = 0;
 
             for (let i = 0; i < batches.length; i++) {
                 setLoadingStatus(`Kontrolujem várku ${i + 1} z ${batches.length}...`);
@@ -213,16 +214,17 @@ export const Admin = ({ onBack }) => {
                         messages: [
                             {
                                 role: "system",
-                                content: `Si ODBORNÝ EDITOR kvízových otázok pre profesionálnu TV reláciu. Dostaneš JSON otázok.
+                                content: `Si ODBORNÝ EDITOR kvízových otázok pre profesionálnu TV reláciu. Dostaneš JSON otázok (max 15 kusov).
 Tvojou úlohou je každú jednu otázku opraviť a vrátiť kompletný upravený zoznam v kľúči "questions".
 AKCIA:
 1. Over faktickú správnosť odpovede na otázku.
-2. Odpoveď MAXIMÁLNE stručná (ideálne 1-2 slová, nie celé vety).
-3. Oprav štylistiku otázky, aby nebola robotická, ale znela ako z úst moderátora (t.j. jasná, jednoznačná).
-4. Priraď/Oprav náročnosť (difficulty): 1=ľahké/odpoveď pre masy(95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké/veľké detaily.
-4b. Ak ide o kategóriu "Hry", vágne a nejednoznačné otázky (typu "V ktorej hre ste lovcom príšer a zabíjate ich?") okamžite zmaž a OD ZÁKLADU preformuluj na vysoko špecifický fakt s jedinečným identifikátorom z hry (konkrétne meno postavy, unikátna frakcia, konkrétne mesto), aby bola vždy možná len JEDNA jediná odpoveď!
-5. Vráť SPÄŤ rovnaké "id", aby sme otázku aktualizovali.
-6. STRIKTNÝ ZÁKAZ (KRITICKÉ): Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej koreň slova, jej preklad, ani jej synonymum! Napríklad ak je odpoveď "Monster Hunter", v otázke nesmie byť napísané ohľadom "lovu monštier/príšer". Ak je odpoveď "Mario", otázka nesmie znieť "Ako sa volá inštalatér Mário?". Ak zbadáš takúto otázku, OKAMŽITE ju preformuluj s použitím iného, tajnejšieho faktu. Písanie odpovede do samotnej otázky je fatálna chyba!
+2. Odpoveď MAXIMÁLNE stručná (ideálne 1-2 slová, nezmyselne dlhé vety skráť).
+3. Oprav štylistiku otázky, aby nebola robotická, ale znela pre diváka jasne a JEDNOZNAČNE (len jedna možná správna odpoveď).
+4. Priraď/Oprav náročnosť (difficulty): 1=ľahké(odpoveď pre masy, 95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké(veľké detaily). OPRAV aj "category" (kategóriu), ak je otázka zjavne odveci zaradená v zlej kategórii.
+5. ČÍSLA: Ak je logickou odpoveďou akékoľvek číslo (napríklad "osem", "tri", "1994", "tisíc"), VŽDY MUSÍŠ odpoveď prepísať na matematickú arabskú číslicu ("8", "3", "1994", "1000")! NESMIEŠ nechať odpoveď slovom! Zároveň na koniec TEXTU otázky povinne dopíš inštrukciu: "(Napíšte číslom)".
+6. STRIKTNÝ ZÁKAZ ODPOVEDE V OTÁZKE: Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej koreň slova, preklad ani synonymum! (Zle: "Ako sa volá inštalatér Mário?"). Ak zbadáš takúto otázku, OKAMŽITE ju preformuluj s použitím iného, tajnejšieho faktu!
+7. DELETOVANIE A DUPLIKÁTY: Ak v tejto várke nájdeš 2 obsahovo veľmi podobné/totožné otázky, JEDNU Z NICH ÚPLNE VYMAŽ (nevracaj ju späť v JSONe). Takisto ak je otázka nezmyselná, nedá sa opraviť, alebo je to plný nezmysel, normálne ju VYNECHAJ zo zoznamu. Každá otázka, ktorú nevrátiš, bude u nás navždy ZMAZANÁ.
+8. ID: Tým otázkam, ktoré si sa rozhodol ponechať a opraviť, VŽDY vráť späť nezmenené ich pôvodné "id", aby sme otázku aktualizovali.
 Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_text, answer, difficulty, category.`
                             },
                             {
@@ -244,6 +246,10 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                 const result = JSON.parse(rawData.choices[0].message.content);
                 const updatedList = result.questions || result.otazky || result.items || (Array.isArray(result) ? result : Object.values(result).find(val => Array.isArray(val)) || []);
 
+                const batchIds = batch.map(q => q.id);
+                const returnedIds = updatedList.map(q => q.id).filter(id => id);
+                const droppedIds = batchIds.filter(id => !returnedIds.includes(id));
+
                 if (updatedList.length > 0) {
                     const toUpsert = updatedList.map(q => ({
                         id: q.id,
@@ -259,9 +265,16 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                         else totalUpdated += toUpsert.length;
                     }
                 }
+
+                // Delete items that AI explicitly decided to omit (duplicates, unfixable nonsense)
+                if (droppedIds.length > 0) {
+                    const { error } = await supabase.from('questions').delete().in('id', droppedIds);
+                    if (error) console.error("Delete error for dropped IDs:", error);
+                    else totalDeleted += droppedIds.length;
+                }
             }
 
-            alert(`🎉 Kontrola dokončená! Upravených bolo ${totalUpdated} otázok.`);
+            alert(`🎉 Kontrola dokončená!\n✅ Upravených: ${totalUpdated} otázok.\n🗑️ Automaticky zmazaných (duplikáty/zlé): ${totalDeleted} otázok.`);
             fetchStats();
             fetchQuestions();
         } catch (err) {
