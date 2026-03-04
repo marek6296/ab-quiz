@@ -93,23 +93,44 @@ export const Admin = ({ onBack }) => {
 
     const fetchQuestions = async () => {
         setLoading(true);
-        // Zvýšený limit na 5000, aby bolo možné kontrolovať celú databázu naraz
-        let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(5000);
+        let allQuestions = [];
+        let r_from = 0;
+        let r_to = 999;
+        let fetchMore = true;
 
-        if (searchTerm) {
-            query = query.ilike('question_text', `%${searchTerm}%`);
+        while (fetchMore) {
+            let query = supabase.from('questions').select('*').order('created_at', { ascending: false }).range(r_from, r_to);
+
+            if (searchTerm) {
+                query = query.ilike('question_text', `%${searchTerm}%`);
+            }
+            if (filterCategory) {
+                query = query.eq('category', filterCategory);
+            }
+            if (filterDifficulty) {
+                query = query.eq('difficulty', parseInt(filterDifficulty));
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                console.error("Questions fetch error:", error);
+                break;
+            }
+
+            if (data && data.length > 0) {
+                allQuestions = [...allQuestions, ...data];
+                if (data.length < 1000) {
+                    fetchMore = false;
+                } else {
+                    r_from += 1000;
+                    r_to += 1000;
+                }
+            } else {
+                fetchMore = false;
+            }
         }
 
-        if (filterCategory) {
-            query = query.eq('category', filterCategory);
-        }
-
-        if (filterDifficulty) {
-            query = query.eq('difficulty', parseInt(filterDifficulty));
-        }
-
-        const { data, error } = await query;
-        if (data) setQuestions(data);
+        setQuestions(allQuestions);
         setLoading(false);
     };
 
