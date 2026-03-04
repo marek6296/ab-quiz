@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { getRandomGameSequence } from './hlDataset';
 import { useAudio } from '../hooks/useAudio';
-import { useAudio } from '../hooks/useAudio';
 import { AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 
 const CountUp = ({ value, isRevealing }) => {
