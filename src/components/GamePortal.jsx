@@ -35,14 +35,13 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
             </div>
 
             <div className="portal-grid" style={{
-                display: 'flex',
-                gap: '2.5rem',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                maxWidth: '1200px',
+                display: 'grid',
+                gap: '1.5rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                 width: '100%',
-                padding: '1rem',
-                paddingBottom: '3rem'
+                maxWidth: '1200px',
+                padding: '0 1rem',
+                paddingBottom: '2rem'
             }}>
                 {/* LOBBY CARD */}
                 <div
@@ -57,7 +56,7 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         textAlign: 'center',
-                        padding: '2.5rem 1.5rem',
+                        padding: '1.5rem 1rem',
                         background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.6) 100%)',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
                         border: '1px solid rgba(16, 185, 129, 0.3)'
@@ -92,7 +91,7 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         textAlign: 'center',
-                        padding: '2.5rem 1.5rem',
+                        padding: '1.5rem 1rem',
                         background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}
@@ -126,7 +125,7 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         textAlign: 'center',
-                        padding: '2.5rem 1.5rem',
+                        padding: '1.5rem 1rem',
                         background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.08) 0%, rgba(15, 23, 42, 0.4) 100%)',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}
@@ -160,13 +159,13 @@ export const GamePortal = ({ onSelectGame, onOpenLobby }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         textAlign: 'center',
-                        padding: '2.5rem 1.5rem',
+                        padding: '1.5rem 1rem',
                         background: 'linear-gradient(180deg, rgba(236, 72, 153, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}
                 >
                     <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 30px rgba(236, 72, 153, 0.4)', animationDelay: '-2s' }}>⚖️</div>
-                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#f472b6', fontWeight: '800' }}>Vyššie Nižšie</h3>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#f472b6', fontWeight: '800' }}>Higher or Lower</h3>
                     <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
                         Rýchla postrehová hra s porovnávaním čísel v tónoch adrenalínu. Kto prežije dlhšie?
                     </p>
