@@ -727,12 +727,20 @@ const ABQuizApp = ({ onBackToPortal }) => {
             </div>
           )}
 
-          <h1 className="game-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
-            {renderAvatar(1, '40px', 'var(--player1-color)')}
-            <span>{profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}</span>
+          <h1 className="game-title">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', overflow: 'hidden' }}>
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}
+              </span>
+              {renderAvatar(1, '42px', 'var(--player1-color)')}
+            </div>
             <span className="vs">VS</span>
-            <span>{gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}</span>
-            {renderAvatar(2, '40px', 'var(--player2-color)')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem', overflow: 'hidden' }}>
+              {renderAvatar(2, '42px', 'var(--player2-color)')}
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}
+              </span>
+            </div>
           </h1>
 
           {winner && (
@@ -745,8 +753,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
           )}
 
           <div className="status-board">
-            <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`} style={{ paddingLeft: '0.5rem' }}>
-              {renderAvatar(1, '38px', 'var(--player1-color)')}
+            <div className={`player-status ${currentPlayer === 1 ? 'active' : ''}`} style={{ paddingLeft: '0.8rem' }}>
+              <div className="dot player1-bg"></div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
                 <span className="player1-text" style={{ lineHeight: '1.2' }}>
                   {gameMode === '1v1_online'
@@ -785,7 +793,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
                   </span>
                 )}
               </div>
-              {renderAvatar(2, '38px', 'var(--player2-color)')}
+              <div className="dot player2-bg"></div>
             </div>
           </div>
 
