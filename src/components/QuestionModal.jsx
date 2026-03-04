@@ -410,86 +410,73 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
         );
     };
 
-    const renderFeedback = (title, message, isSuccess, showAnswer = false) => (
-        <div className={`feedback-overlay-content ${isSuccess ? 'success-pulse' : 'error-pulse'}`} style={{
-            animation: 'feedbackPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            width: '100%',
-            textAlign: 'center',
-            minHeight: '300px'
-        }}>
-            <h2 className="feedback-result-title" style={{
-                color: isSuccess ? '#4ade80' : '#ef4444',
-                fontSize: window.innerWidth <= 768 ? '2.5rem' : '4rem',
-                margin: '0 0 1rem 0',
-                textShadow: isSuccess ? '0 0 20px rgba(74, 222, 128, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
-                fontWeight: '900',
-                letterSpacing: '0.05em'
-            }}>
-                {title}
-            </h2>
-            <p className="feedback-result-message" style={{
-                fontSize: window.innerWidth <= 768 ? '1rem' : '1.3rem',
-                color: 'rgba(255, 255, 255, 0.9)',
-                margin: '0 0 2rem 0',
-                maxWidth: '80%',
-                lineHeight: '1.4'
-            }}>
-                {message}
-            </p>
+    const renderFeedback = (title, message, isSuccess, showAnswer = false) => {
+        const isUnused = title.includes('NEVYUŽIL');
+        const color = isSuccess ? '#4ade80' : (isUnused ? '#94a3b8' : '#ef4444');
+        const icon = isSuccess ? '✅' : (isUnused ? '🛡️' : '❌');
+        const isMobile = window.innerWidth <= 768;
 
-            {isSuccess && gameRules === 'points' && earnedPoints > 0 && (
-                <div className="feedback-points-tag" style={{
-                    background: 'rgba(74, 222, 128, 0.2)',
-                    color: '#4ade80',
-                    padding: '0.5rem 1.5rem',
-                    borderRadius: '2rem',
-                    fontWeight: 'bold',
-                    marginBottom: '1.5rem',
-                    border: '1px solid rgba(74, 222, 128, 0.3)'
+        return (
+            <div className="feedback-result-wrapper" style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                width: '100%', minHeight: isMobile ? '350px' : '480px', animation: 'feedbackEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}>
+                <div style={{
+                    color: color, background: `${color}10`, padding: '0.4rem 1.2rem', borderRadius: '20px',
+                    fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em',
+                    border: `1px solid ${color}20`, marginBottom: '1.5rem'
                 }}>
-                    +{earnedPoints} bodov!
+                    {isSuccess ? 'Gratulujeme' : 'Výsledok'}
                 </div>
-            )}
 
-            {(showAnswer || lastAnswer) && (
-                <div className="feedback-result-answer-card" style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '1rem',
-                    padding: '1.5rem',
-                    width: '100%',
-                    maxWidth: '400px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem'
+                <div style={{
+                    fontSize: isMobile ? '4rem' : '6rem', margin: '0 0 1rem 0',
+                    filter: `drop-shadow(0 0 25px ${color}50)`, animation: 'iconPulse 2s infinite ease-in-out'
                 }}>
-                    {lastAnswer && (
-                        <div className="answer-entry" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                            <span className="answer-label" style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tvoja odpoveď</span>
-                            <span className="answer-value" style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>{lastAnswer}</span>
-                        </div>
-                    )}
-                    {showAnswer && (
-                        <div className="answer-entry correct" style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.2rem',
-                            paddingTop: lastAnswer ? '1rem' : 0,
-                            borderTop: lastAnswer ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
-                        }}>
-                            <span className="answer-label" style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Správne bolo</span>
-                            <span className="answer-value" style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: 'bold' }}>{question.answer}</span>
-                        </div>
-                    )}
+                    {icon}
                 </div>
-            )}
-        </div>
-    );
+
+                <h2 style={{
+                    fontSize: isMobile ? '2rem' : '3.8rem', fontWeight: '950', color: '#fff', margin: '0 0 0.5rem 0',
+                    textAlign: 'center', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: '1'
+                }}>
+                    {title}
+                </h2>
+
+                <p style={{
+                    fontSize: isMobile ? '1rem' : '1.3rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 2.5rem 0',
+                    maxWidth: '400px', fontWeight: '500', lineHeight: '1.4'
+                }}>
+                    {message}
+                </p>
+
+                {(showAnswer || (lastAnswer && lastAnswer !== '')) && (
+                    <div style={{
+                        display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: '480px'
+                    }}>
+                        {lastAnswer && lastAnswer !== '' && (
+                            <div style={{
+                                background: 'rgba(15, 23, 42, 0.5)', padding: '1.25rem', borderRadius: '1.25rem',
+                                border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Tvoja odpoveď</span>
+                                <span style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 'bold' }}>{lastAnswer}</span>
+                            </div>
+                        )}
+                        {showAnswer && (
+                            <div style={{
+                                background: 'rgba(74, 222, 128, 0.05)', padding: '1.25rem', borderRadius: '1.25rem',
+                                border: '1px solid rgba(74, 222, 128, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '0.8rem', color: '#4ade80', textTransform: 'uppercase', fontWeight: 'bold' }}>Správne bolo</span>
+                                <span style={{ fontSize: '1.4rem', color: '#4ade80', fontWeight: '900' }}>{question.answer}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     // Reset state on new question
     useEffect(() => {
