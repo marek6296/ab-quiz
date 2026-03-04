@@ -54,7 +54,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
             <aside className="dashboard-sidebar">
                 <div className="sidebar-logo">
                     <h1 className="logo-brutal">
-                        Quizovník
+                        Kvíz duel
                     </h1>
                 </div>
 
@@ -91,7 +91,7 @@ export const Lobby = ({ onStart1vBot, onStartMatchmaking, onShowAdmin, onBackToP
 
             <main className="dashboard-content">
                 <div className="mobile-only-logo">
-                    <h1 className="logo-brutal">Quizovník</h1>
+                    <h1 className="logo-brutal">Kvíz duel</h1>
                 </div>
 
                 {activeTab === 'play' && !setupMode && (
