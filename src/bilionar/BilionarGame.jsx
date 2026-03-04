@@ -63,7 +63,6 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
 
                 if (error || !questions || questions.length === 0) {
                     console.log("No questions found with filters, falling back to all:", error);
-                    // Fallback to basic fetch if RPC doesn't yield results
                     const { data: fallbackQ } = await supabase.from('bilionar_questions').select('*').limit(limitCount);
 
                     if (!fallbackQ || fallbackQ.length === 0) {
@@ -76,19 +75,27 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     const newState = {
                         questions: fallbackQ,
                         current_index: 0,
-                        phase: 'intermission',
-                        phase_end: Date.now() + 4000
+                        phase: 'big_intro', // Changed from intermission
+                        phase_end: Date.now() + 3000 // 3s for big logo
                     };
                     setGameState(newState);
                     await supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
                     return;
                 }
 
+                // ASSIGN COLORS TO PLAYERS
+                const colorPalette = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
+                // Only host assigns colors. We'll update the bilionar_players table
+                for (let i = 0; i < players.length; i++) {
+                    const assignedColor = colorPalette[i % colorPalette.length];
+                    await supabase.from('bilionar_players').update({ color: assignedColor }).eq('id', players[i].id);
+                }
+
                 const newState = {
                     questions,
                     current_index: 0,
-                    phase: 'intermission',
-                    phase_end: Date.now() + 4000 // 4 seconds intro
+                    phase: 'big_intro', // 1. Giant Logo
+                    phase_end: Date.now() + 3000
                 };
 
                 // Optimistic local update
@@ -104,28 +111,59 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
             if (gameState.phase_end && now >= gameState.phase_end) {
                 let newState = { ...gameState };
 
-                if (gameState.phase === 'intermission') {
-                    // Go to question
-                    newState.phase = 'question';
-                    newState.phase_end = now + 15000; // 15s to answer
-                    // Host resets answers in DB for all players
-                    supabase.from('bilionar_players').update({ has_answered: false }).eq('game_id', activeGame.id).then();
+                switch (gameState.phase) {
+                    case 'big_intro':
+                        newState.phase = 'welcome';
+                        newState.phase_end = now + 6000; // 4s visible + 2s pause
+                        break;
+                    case 'welcome':
+                        newState.phase = 'prepare_first';
+                        newState.phase_end = now + 6000; // 4s visible + 2s pause
+                        break;
+                    case 'prepare_first':
+                    case 'prepare_next':
+                    case 'post_question_pause':
+                        // Go to question reading
+                        newState.phase = 'showing_question_only';
+                        newState.phase_end = now + 2000; // 2s to read question
+                        // Host resets answers
+                        supabase.from('bilionar_players').update({ has_answered: false }).eq('game_id', activeGame.id).then();
+                        break;
+                    case 'showing_question_only':
+                        newState.phase = 'answering';
+                        newState.phase_end = now + 10000; // 10s to answer
+                        break;
+                    case 'answering':
+                        newState.phase = 'time_up';
+                        newState.phase_end = now + 2000; // 2s "Time's Up" message
+                        break;
+                    case 'time_up':
+                        newState.phase = 'reveal_pause';
+                        newState.phase_end = now + 2000; // 2s dramatic pause
+                        break;
+                    case 'reveal_pause':
+                        newState.phase = 'reveal_results';
+                        newState.phase_end = now + 4000; // 4s showing correct answer & colors
+                        break;
+                    case 'reveal_results':
+                        if (gameState.current_index < (gameState.questions?.length - 1)) {
+                            // Clear screen pause before next message
+                            newState.phase = 'post_question_pause';
+                            newState.phase_end = now + 2000; // 2s empty screen
+                            newState.current_index += 1;
+                        } else {
+                            newState.phase = 'finished';
+                            newState.phase_end = now + 9999999;
+                        }
+                        break;
+                    default:
+                        break;
                 }
-                else if (gameState.phase === 'question') {
-                    // Go to reveal
-                    newState.phase = 'reveal';
-                    newState.phase_end = now + 5000; // 5s reveal blinks
-                }
-                else if (gameState.phase === 'reveal') {
-                    // Next question or finish
-                    if (gameState.current_index < (gameState.questions?.length - 1)) {
-                        newState.phase = 'intermission';
-                        newState.phase_end = now + 4000;
-                        newState.current_index += 1;
-                    } else {
-                        newState.phase = 'finished';
-                        newState.phase_end = now + 9999999;
-                    }
+
+                // If jumping from post_question_pause to prepare_next setup (handled above)
+                if (gameState.phase === 'post_question_pause' && gameState.current_index > 0) {
+                    newState.phase = 'prepare_next';
+                    newState.phase_end = now + 6000;
                 }
 
                 if (newState.phase !== gameState.phase) {
@@ -133,25 +171,25 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     supabase.from('bilionar_games').update({ state: newState }).eq('id', activeGame.id);
                 }
             }
-        }, 500); // Check every 500ms
+        }, 200); // Check faster for tighter animation sync
 
         return () => {
             active = false;
             clearInterval(ticker);
         };
-    }, [gameState, isHost, activeGame.id]);
+    }, [gameState, isHost, activeGame.id, players]);
 
     // 3. Client Local State Handlers (Timer and Score)
     useEffect(() => {
-        // Reset selections on new intermission
-        if (gameState.phase === 'intermission') {
+        // Reset selections on new question cycle setup
+        if (['prepare_first', 'prepare_next', 'post_question_pause'].includes(gameState.phase)) {
             setSelectedAnswer(null);
             setScoreGained(null);
-            setVisualTime(15);
+            setVisualTime(10); // Default to our 10s answering time
         }
 
-        // Award score logic upon reveal
-        if (gameState.phase === 'reveal') {
+        // Award score logic upon reveal (handled in reveal_results)
+        if (gameState.phase === 'reveal_results') {
             if (awardedIndex.current !== gameState.current_index) {
                 awardedIndex.current = gameState.current_index;
                 const currentQ = gameState.questions?.[gameState.current_index];
@@ -160,7 +198,8 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                 if (selectedAnswer === currentQ?.correct_answer) {
                     const myPlayer = players.find(p => p.user_id === user.id);
                     if (myPlayer) {
-                        const pts = Math.max(100, Math.floor(visualTime * 66));
+                        // Max 1000 pts base + up to 1000 pts based on speed (10s max)
+                        const pts = Math.max(100, Math.floor(visualTime * 100));
                         setScoreGained(pts);
                         supabase.from('bilionar_players').update({ score: myPlayer.score + pts }).eq('id', myPlayer.id).then();
                     }
@@ -172,8 +211,10 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         const botLvl = activeGame.settings?.bot_difficulty || 2;
                         const prob = botLvl === 1 ? 35 : (botLvl === 2 ? 65 : 92);
                         if (Math.random() * 100 < prob) {
-                            const botTime = botLvl === 1 ? (Math.random() * 10 + 3) : (botLvl === 2 ? (Math.random() * 6 + 1.5) : (Math.random() * 3 + 0.5));
-                            const botPts = Math.max(100, Math.floor((15 - botTime) * 66));
+                            // Bot answers correctly. Calculate how fast based on diff. Phase was 10s
+                            const botTimeTaken = botLvl === 1 ? (Math.random() * 6 + 4) : (botLvl === 2 ? (Math.random() * 4 + 1.5) : (Math.random() * 2 + 0.5));
+                            const botTimeLeft = Math.max(0, 10 - botTimeTaken);
+                            const botPts = Math.max(100, Math.floor(botTimeLeft * 100));
                             supabase.from('bilionar_players').update({ score: bot.score + botPts }).eq('id', bot.id).then();
                         }
                     });
@@ -185,7 +226,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
     // Simulated Bot Interactive Answering (Host only)
     const botTimersRef = useRef(new Set());
     useEffect(() => {
-        if (gameState.phase !== 'question') {
+        if (gameState.phase !== 'answering') {
             botTimersRef.current.clear();
             return;
         }
@@ -196,19 +237,19 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         unansweredBots.forEach(bot => {
             botTimersRef.current.add(bot.id);
             const botLvl = activeGame.settings?.bot_difficulty || 2;
-            const delay = botLvl === 1 ? (Math.random() * 8000 + 5000) : (botLvl === 2 ? (Math.random() * 5000 + 2000) : (Math.random() * 2000 + 500));
+            const delay = botLvl === 1 ? (Math.random() * 6000 + 4000) : (botLvl === 2 ? (Math.random() * 4000 + 1500) : (Math.random() * 2000 + 500));
 
             setTimeout(() => {
                 if (activeGame?.id) {
-                    supabase.from('bilionar_players').update({ has_answered: true }).eq('id', bot.id).then();
+                    supabase.from('bilionar_players').update({ has_answered: true, selected_answer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)] }).eq('id', bot.id).then();
                 }
             }, delay);
         });
     }, [gameState.phase, gameState.current_index, isHost, players, activeGame.id]);
 
-    // Fast visual timer update loop
+    // Fast visual timer update loop (only active during answering phase)
     useEffect(() => {
-        if (gameState.phase !== 'question') return;
+        if (gameState.phase !== 'answering') return;
 
         const visualTicker = setInterval(() => {
             const left = Math.max(0, Math.ceil((gameState.phase_end - Date.now()) / 1000));
@@ -281,6 +322,7 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     };
 
+    // Render helpers for specific phases
     if (gameState.phase === 'init') {
         return <div className="game-container"><h2 style={{ color: '#facc15' }}>Pripravujem otázky...</h2></div>;
     }
@@ -315,78 +357,160 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     }
 
+    // --- PRESENTATION PHASES ---
+
+    if (gameState.phase === 'big_intro') {
+        return (
+            <div className="bilionar-board fullscreen-flex">
+                <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
+            </div>
+        );
+    }
+
+    if (gameState.phase === 'welcome') {
+        return (
+            <div className="bilionar-board fullscreen-flex">
+                <div className="message-modal slide-in-scale">
+                    <h2>Vitajte v Bilionár Battle</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState.phase === 'prepare_first') {
+        return (
+            <div className="bilionar-board fullscreen-flex">
+                <div className="message-modal slide-in-scale">
+                    <h2>Pripravte sa na prvú otázku</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState.phase === 'prepare_next') {
+        return (
+            <div className="bilionar-board fullscreen-flex">
+                <div className="message-modal slide-in-scale">
+                    <h2>Ideme na ďalšiu otázku</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState.phase === 'post_question_pause' || gameState.phase === 'reveal_pause') {
+        return (
+            <div className="bilionar-board">
+                {/* Empty board for dramatic effect, keeping top bar */}
+                <div className="bilionar-top-bar">
+                    {players.map(renderPlayerAvatar)}
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState.phase === 'time_up') {
+        return (
+            <div className="bilionar-board fullscreen-flex relative-board">
+                <div className="bilionar-top-bar absolute-top">
+                    {players.map(renderPlayerAvatar)}
+                </div>
+                <div className="message-modal dramatic-pop">
+                    <h2>Koniec časového limitu</h2>
+                </div>
+            </div>
+        );
+    }
+
+    // --- QUESTION PHASES (showing_question_only, answering, reveal_results) ---
+
     const currentQ = gameState.questions?.[gameState.current_index];
     const totalQ = gameState.questions?.length;
+    const isQuestionOnly = gameState.phase === 'showing_question_only';
+    const isReveal = gameState.phase === 'reveal_results';
 
     return (
-        <div className="bilionar-board">
-
-            {/* INTERMISSION OVERLAY */}
-            {gameState.phase === 'intermission' && (
-                <div className="bilionar-intermission">
-                    <div className="bilionar-intermission-text">
-                        Otázka {gameState.current_index + 1}/{totalQ}
-                    </div>
-                </div>
-            )}
+        <div className="bilionar-board relative-board">
 
             {/* TOP BAR: Players and Scores */}
-            <div className="bilionar-top-bar">
+            <div className="bilionar-top-bar absolute-top">
                 {players.map(renderPlayerAvatar)}
             </div>
 
             {/* MAIN CONTENT AREA */}
             <div className="bilionar-main-content">
 
-                {/* Timer Area */}
-                <div className="bilionar-timer-wrapper">
-                    <div className="bilionar-timer-circle" style={{
-                        background: `conic-gradient(#ef4444 ${(visualTime / 15) * 360}deg, transparent 0deg)`
-                    }}>
-                        <div className="bilionar-timer-inner">
-                            {visualTime}
+                {/* Timer Area - Only visible when answering */}
+                {gameState.phase === 'answering' && (
+                    <div className="bilionar-timer-wrapper animate-fade-in">
+                        <div className="bilionar-timer-circle" style={{
+                            background: `conic-gradient(#ef4444 ${(visualTime / 10) * 360}deg, transparent 0deg)`
+                        }}>
+                            <div className="bilionar-timer-inner">
+                                {visualTime}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Question Area */}
                 <div className="bilionar-question-container">
-                    <div className="bilionar-question-box">
+                    <div className="bilionar-question-box animate-slide-down">
                         <span className="question-number">Otázka {gameState.current_index + 1}/{totalQ}</span>
                         <h2>{currentQ?.question_text}</h2>
                     </div>
                 </div>
 
-                {/* Options Area */}
-                <div className="bilionar-options-grid">
-                    {['A', 'B', 'C', 'D'].map((key) => {
-                        const optionText = currentQ?.[`option_${key.toLowerCase()}`];
-                        let statusClass = '';
+                {/* Options Area - Hidden when showing question initially */}
+                {!isQuestionOnly && (
+                    <div className="bilionar-options-grid animate-fade-up">
+                        {['A', 'B', 'C', 'D'].map((key) => {
+                            const optionText = currentQ?.[`option_${key.toLowerCase()}`];
+                            let statusClass = '';
 
-                        if (gameState.phase === 'question' && selectedAnswer === key) {
-                            statusClass = 'locked'; // Waiting for reveal
-                        }
-                        else if (gameState.phase === 'reveal') {
-                            if (key === currentQ?.correct_answer) {
-                                statusClass = 'correct'; // Always show right answer via blink
-                            } else if (selectedAnswer === key) {
-                                statusClass = 'wrong'; // Show wrong only to the person who clicked it
+                            // Determine class based on state
+                            if (gameState.phase === 'answering' && selectedAnswer === key) {
+                                statusClass = 'locked'; // Waiting for reveal
                             }
-                        }
+                            else if (isReveal) {
+                                if (key === currentQ?.correct_answer) {
+                                    statusClass = 'correct blink-green'; // Reveal correct
+                                } else if (selectedAnswer === key) {
+                                    statusClass = 'wrong'; // Reveal wrong for me
+                                }
+                            }
 
-                        return (
-                            <button
-                                key={key}
-                                className={`bilionar-option-btn ${statusClass}`}
-                                onClick={() => handleSelectOption(key)}
-                                disabled={selectedAnswer !== null || gameState.phase !== 'question'}
-                            >
-                                <div className="option-letter">{key}:</div>
-                                <div className="option-text">{optionText}</div>
-                            </button>
-                        );
-                    })}
-                </div>
+                            // Find players who picked this answer (only show on reveal)
+                            const pickedBy = isReveal ? players.filter(p => p.selected_answer === key) : [];
+
+                            return (
+                                <div key={key} style={{ position: 'relative' }}>
+                                    <button
+                                        className={`bilionar-option-btn ${statusClass}`}
+                                        onClick={() => handleSelectOption(key)}
+                                        disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
+                                    >
+                                        <div className="option-letter">{key}:</div>
+                                        <div className="option-text">{optionText}</div>
+                                    </button>
+
+                                    {/* Player Color Indicators */}
+                                    {isReveal && pickedBy.length > 0 && (
+                                        <div className="player-choice-indicators">
+                                            {pickedBy.map(p => (
+                                                <div
+                                                    key={p.id}
+                                                    className="choice-dot shadow-pop"
+                                                    style={{ backgroundColor: p.color || '#ffffff' }}
+                                                    title={p.player_name}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
