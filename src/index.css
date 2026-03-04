@@ -2123,6 +2123,9 @@ button.small {
       #fff 70%,
       #facc15 90%);
   background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 15px rgba(250, 204, 21, 0.4));
   animation: logoShimmer 4s linear infinite, bilionarLogoPulse 2s ease-in-out infinite alternate;
 }
