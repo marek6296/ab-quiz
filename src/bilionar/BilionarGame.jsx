@@ -127,7 +127,12 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         newState.phase = 'showing_question_only';
                         newState.phase_end = now + 4000; // 4s to read question
                         // Host resets answers
-                        supabase.from('bilionar_players').update({ has_answered: false }).eq('game_id', activeGame.id).then();
+                        supabase.from('bilionar_players').update({
+                            has_answered: false,
+                            selected_answer: null,
+                            last_answer_time: null,
+                            last_score_gained: null
+                        }).eq('game_id', activeGame.id).then();
                         break;
                     case 'showing_question_only':
                         newState.phase = 'answering';
@@ -146,6 +151,14 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                         newState.phase_end = now + 5000; // 5s showing correct answer & colors
                         break;
                     case 'reveal_results':
+                        newState.phase = 'recap_answers';
+                        newState.phase_end = now + 3000; // 3s showing who answered what and how fast
+                        break;
+                    case 'recap_answers':
+                        newState.phase = 'recap_scores';
+                        newState.phase_end = now + 4000; // 4s animating points and leaderboard
+                        break;
+                    case 'recap_scores':
                         if (gameState.current_index < (gameState.questions?.length - 1)) {
                             // Clear screen pause before next message
                             newState.phase = 'post_question_pause';
@@ -195,28 +208,30 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                 const currentQ = gameState.questions?.[gameState.current_index];
 
                 // 1. AWARD HUMAN SCORE
-                if (selectedAnswer === currentQ?.correct_answer) {
-                    const myPlayer = players.find(p => p.user_id === user.id);
-                    if (myPlayer) {
+                const myPlayer = players.find(p => p.user_id === user.id);
+                if (myPlayer) {
+                    if (selectedAnswer === currentQ?.correct_answer) {
+                        const timeTaken = myPlayer.last_answer_time || (10 - visualTime);
+                        const timeLeft = Math.max(0, 10 - timeTaken);
                         // Max 1000 pts base + up to 1000 pts based on speed (10s max)
-                        const pts = Math.max(100, Math.floor(visualTime * 100));
+                        const pts = Math.max(100, Math.floor(timeLeft * 100));
                         setScoreGained(pts);
-                        supabase.from('bilionar_players').update({ score: myPlayer.score + pts }).eq('id', myPlayer.id).then();
+                        supabase.from('bilionar_players').update({ score: myPlayer.score + pts, last_score_gained: pts }).eq('id', myPlayer.id).then();
+                    } else {
+                        supabase.from('bilionar_players').update({ last_score_gained: 0 }).eq('id', myPlayer.id).then();
                     }
                 }
 
                 // 2. AWARD BOT SCORE (Host only)
                 if (isHost && players.some(p => p.is_bot)) {
                     players.filter(p => p.is_bot).forEach(bot => {
-                        const botLvl = activeGame.settings?.bot_difficulty || 2;
-                        const prob = botLvl === 1 ? 35 : (botLvl === 2 ? 65 : 92);
-                        if (Math.random() * 100 < prob) {
-                            // Bot answers correctly. Calculate how fast based on diff. Phase was 10s
-                            const botTimeTaken = botLvl === 1 ? (Math.random() * 6 + 4) : (botLvl === 2 ? (Math.random() * 4 + 1.5) : (Math.random() * 2 + 0.5));
-                            const botTimeLeft = Math.max(0, 10 - botTimeTaken);
-                            const botPts = Math.max(100, Math.floor(botTimeLeft * 100));
-                            supabase.from('bilionar_players').update({ score: bot.score + botPts }).eq('id', bot.id).then();
+                        let botPts = 0;
+                        if (bot.selected_answer === currentQ?.correct_answer) {
+                            const timeTaken = bot.last_answer_time || 5;
+                            const botTimeLeft = Math.max(0, 10 - timeTaken);
+                            botPts = Math.max(100, Math.floor(botTimeLeft * 100));
                         }
+                        supabase.from('bilionar_players').update({ score: bot.score + botPts, last_score_gained: botPts }).eq('id', bot.id).then();
                     });
                 }
             }
@@ -232,20 +247,33 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         }
         if (!isHost) return;
 
-        const unansweredBots = players.filter(p => p.is_bot && !p.has_answered && !botTimersRef.current.has(p.id));
-
         unansweredBots.forEach(bot => {
             botTimersRef.current.add(bot.id);
             const botLvl = activeGame.settings?.bot_difficulty || 2;
-            const delay = botLvl === 1 ? (Math.random() * 6000 + 4000) : (botLvl === 2 ? (Math.random() * 4000 + 1500) : (Math.random() * 2000 + 500));
+            const delayMs = botLvl === 1 ? (Math.random() * 6000 + 4000) : (botLvl === 2 ? (Math.random() * 4000 + 1500) : (Math.random() * 2000 + 500));
+            const timeTakenSecs = parseFloat((delayMs / 1000).toFixed(2));
+
+            const prob = botLvl === 1 ? 35 : (botLvl === 2 ? 65 : 92);
+            const willBeCorrect = (Math.random() * 100) < prob;
+            const correctAns = gameState.questions[gameState.current_index]?.correct_answer || 'A';
+            let pickedAns = correctAns;
+
+            if (!willBeCorrect) {
+                const wrongOptions = ['A', 'B', 'C', 'D'].filter(opt => opt !== correctAns);
+                pickedAns = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+            }
 
             setTimeout(() => {
                 if (activeGame?.id) {
-                    supabase.from('bilionar_players').update({ has_answered: true, selected_answer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)] }).eq('id', bot.id).then();
+                    supabase.from('bilionar_players').update({
+                        has_answered: true,
+                        selected_answer: pickedAns,
+                        last_answer_time: timeTakenSecs
+                    }).eq('id', bot.id).then();
                 }
-            }, delay);
+            }, delayMs);
         });
-    }, [gameState.phase, gameState.current_index, isHost, players, activeGame.id]);
+    }, [gameState.phase, gameState.current_index, isHost, players, activeGame.id, gameState.questions]);
 
     // Fast visual timer update loop (only active during answering phase)
     useEffect(() => {
@@ -268,7 +296,12 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         // Update DB so others see you have answered
         const myPlayer = players.find(p => p.user_id === user.id);
         if (myPlayer) {
-            supabase.from('bilionar_players').update({ has_answered: true }).eq('id', myPlayer.id).then();
+            const timeTakenSecs = parseFloat((10 - visualTime).toFixed(2));
+            supabase.from('bilionar_players').update({
+                has_answered: true,
+                selected_answer: key,
+                last_answer_time: timeTakenSecs
+            }).eq('id', myPlayer.id).then();
         }
     };
 
@@ -408,12 +441,65 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         );
     }
 
+    const currentQ = gameState.questions?.[gameState.current_index];
+
+    if (gameState.phase === 'recap_answers') {
+        const answeredPlayers = [...players].filter(p => p.has_answered && p.last_answer_time !== null).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99));
+        return (
+            <div key="phase_recap_answers" className="bilionar-board fullscreen-flex">
+                <div className="message-modal dramatic-pop" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
+                    <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {answeredPlayers.map((p, i) => (
+                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1.2rem 2rem', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#94a3b8' }}>#{i + 1}</span>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#fff' }}>{p.player_name}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
+                                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: currentQ?.correct_answer === p.selected_answer ? '#4ade80' : '#ef4444' }}>{p.selected_answer || '-'}</span>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#38bdf8' }}>{p.last_answer_time?.toFixed(2)}s</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (gameState.phase === 'recap_scores') {
+        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+        return (
+            <div key="phase_recap_scores" className="bilionar-board fullscreen-flex">
+                <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
+                    <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {sortedPlayers.map((p, i) => (
+                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1.5rem 2rem', borderRadius: '8px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                    <span style={{ fontWeight: '900', fontSize: '2rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#fff' }}>{p.player_name}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                    {(p.last_score_gained > 0) && (
+                                        <span className="animate-fade-up" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.5rem', textShadow: '0 0 10px #4ade80' }}>+{p.last_score_gained}</span>
+                                    )}
+                                    <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff' }}>{p.score}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     // --- QUESTION PHASES (showing_question_only, answering, time_up, reveal_pause, reveal_results) ---
 
     // Don't render full screen replaces for these phases anymore
     // (reveal_pause, time_up) fall through so the question stays on screen
 
-    const currentQ = gameState.questions?.[gameState.current_index];
     const totalQ = gameState.questions?.length;
     const isQuestionOnly = gameState.phase === 'showing_question_only';
     const isReveal = gameState.phase === 'reveal_results';
