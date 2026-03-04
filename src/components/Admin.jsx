@@ -192,7 +192,7 @@ AKCIA:
 3. Oprav štylistiku otázky, aby nebola robotická, ale znela ako z úst moderátora (t.j. jasná, jednoznačná).
 4. Priraď/Oprav náročnosť (difficulty): 1=ľahké/odpoveď pre masy(95% ľudí vie), 2=stredné(priemerný fanúšik), 3=ťažké/veľké detaily.
 5. Vráť SPÄŤ rovnaké "id", aby sme otázku aktualizovali.
-6. STRIKTNÝ ZÁKAZ: Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď. Ak tam je, preformuluj otázku.
+6. STRIKTNÝ ZÁKAZ (KRITICKÉ): Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej koreň slova, a nesmie byť odpoveď ani nijako priamo zrejmá z preklepu či z kontextu vETY. Ak tam je akýkoľvek náznak odpovede alebo načrtnutá odpoveď, OKAMŽITE OD ZÁKLADU preformuluj otázku tak, aby odpoveď nebola nijako obsiahnutá v texte zadania. Písanie odpovede do samotnej otázky je fatálna chyba!
 Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_text, answer, difficulty, category.`
                             },
                             {
@@ -622,7 +622,7 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
     4. ŠPECIFIKÁ TÉM:
        - 'Slovensko': Len unikátne slovenské fakty (najvyššie, najstaršie, jediné).
        - 'Logika a Hádanky': Klasické vtipné hádanky, kde je odpoveď zväčša predmet alebo zviera.
-    5. ŽIADNA ODPOVEĎ V OTÁZKE: Text otázky nesmie priamo ani nepriamo obsahovať samotnú odpoveď. Je to kritická chyba, ak sa odpoveď nachádza v znení otázky.
+    5. ABSOLÚTNE ZAKÁZANÉ (KRITICKÉ): Text otázky nesmie v žiadnom prípade obsahovať samotnú odpoveď, jej časť, koreň slova a nesmie ju ani nijako okato našepkávať z kontextu! (Príklad ZLEJ otázky: "Aká rieka tečie cez mestský park, ktorý sa volá po nej - park rieky Dunaj?" Odpoveď: "Dunaj" - TOTO JE ZLÉ A STRIKTNE ZAKÁZANÉ! Správne: "Ktorá veľká európska rieka preteká priamo hlavným mestom Slovenska?"). Objavujúca sa odpoveď alebo jej obrys v samotnom texte otázky je fatálnou chybou, ktorú nesmieš spraviť!
     6. FORMÁT: Vždy vráť JSON s kľúčom "questions". Každý objekt má kľúče: question_text, answer, category.`
                                                             },
                                                             {
