@@ -67,7 +67,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     useEffect(() => {
         if (gameMode !== '1v1_online' || !activeGameId) return;
 
-        const fetchGame = async () => {
+        const fetchGame = async (retries = 3) => {
             const { data, error } = await supabase.from('games').select('*').eq('id', activeGameId).single();
             if (data) {
                 setGameData(data);
@@ -90,9 +90,14 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setSeenIds(seenData.map(s => s.question_id));
                 }
             } else if (error && error.code === 'PGRST116') {
-                // Hra uz neexistuje (0 rows returned)
-                alert('Túto hru už server neeviduje (ukončená).');
-                useGameStore.getState().resetToLobby();
+                if (retries > 0) {
+                    // Retry short delay for Supabase replication lag
+                    setTimeout(() => fetchGame(retries - 1), 800);
+                } else {
+                    // Hra uz neexistuje (0 rows returned)
+                    alert('Túto hru už server neeviduje (ukončená).');
+                    useGameStore.getState().resetToLobby();
+                }
             }
         };
 

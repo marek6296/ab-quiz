@@ -235,30 +235,12 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
             return;
         }
 
-        // Host spustí odpočítavanie (broadcast pre všetkých naraz na plynulý sync)
-        for (let i = 3; i >= 1; i--) {
-            await supabase.channel(`platform_lobby_${lobbyId}`).send({
-                type: 'broadcast',
-                event: 'countdown',
-                payload: { timer: i }
-            });
-            await new Promise(r => setTimeout(r, 1000));
-        }
-
-        await supabase.channel(`platform_lobby_${lobbyId}`).send({
-            type: 'broadcast',
-            event: 'countdown',
-            payload: { timer: 'ŠTART!' }
-        });
-
-        await new Promise(r => setTimeout(r, 800)); // malá pauza pre efekt
-
-        // Tu Host skutočne oznámi platforme, aby všetkým zmenila obrazovku
-        let targetGameId = lobbyId; // Defaultne pre nové hry (ideme cez lobbyId)
+        // Vytvorenie hry PRED odpočítavaním, aby sme predišli zlyhaniu po štarte
+        let targetGameId = null;
 
         if (lobby.selected_game === 'bilionar') {
             const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const { data: bGame } = await supabase.from('bilionar_games').insert([{
+            const { data: bGame, error: bError } = await supabase.from('bilionar_games').insert([{
                 host_id: user.id,
                 join_code: joinCode,
                 status: 'playing',
@@ -273,6 +255,10 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 state: { phase: 'init' }
             }]).select().single();
 
+            if (bError) {
+                alert('Chyba pri vytváraní hry (Bilionár): ' + bError.message);
+                return;
+            }
             if (bGame) {
                 targetGameId = bGame.id;
                 const bPlayers = players.map(p => ({
@@ -293,7 +279,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 targetGameId = 'localbot_' + lobbyId;
             } else {
                 // Pre Kvíz Duel - create `games` record
-                const { data: qGame } = await supabase.from('games').insert([{
+                const { data: qGame, error: qError } = await supabase.from('games').insert([{
                     player1_id: players[0]?.user_id || user.id,
                     player2_id: players[1]?.user_id || null,
                     game_type: gameRules,
@@ -302,18 +288,26 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                     difficulty: difficulty[0] || 1
                 }]).select().single();
 
+                if (qError) {
+                    alert('Chyba pri vytváraní hry (Kvíz Duel): ' + qError.message);
+                    return;
+                }
                 if (qGame) {
                     targetGameId = qGame.id;
                 }
             }
         }
         else if (lobby.selected_game === 'higher_lower') {
-            const { data: hlGame } = await supabase.from('higher_lower_games').insert([{
+            const { data: hlGame, error: hlError } = await supabase.from('higher_lower_games').insert([{
                 host_id: user.id,
                 status: 'playing',
                 state: { phase: 'init', current_round: 1 }
             }]).select().single();
 
+            if (hlError) {
+                alert('Chyba pri vytváraní hry (Higher Lower): ' + hlError.message);
+                return;
+            }
             if (hlGame) {
                 targetGameId = hlGame.id;
                 const hlPlayers = players.map(p => ({
@@ -328,23 +322,44 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
             }
         }
 
-        // Pre legacy podporu: Pred vygenerovaním zmeny `status=playing` si host zaloguje stav pre seba.
-        // Hneď nasleduje OnStartGameFlow, alebo to spraví listener pre `status === playing`.
+        if (!targetGameId) {
+            alert('Nastala neočakávaná chyba pri vytváraní hry.');
+            return;
+        }
+
+        // Host spustí odpočítavanie (broadcast pre všetkých naraz na plynulý sync)
+        for (let i = 3; i >= 1; i--) {
+            await supabase.channel(`platform_lobby_${lobbyId}`).send({
+                type: 'broadcast',
+                event: 'countdown',
+                payload: { timer: i }
+            });
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        await supabase.channel(`platform_lobby_${lobbyId}`).send({
+            type: 'broadcast',
+            event: 'countdown',
+            payload: { timer: 'ŠTART!' }
+        });
+
+        await new Promise(r => setTimeout(r, 800)); // malá pauza pre efekt
+
         let subMode = null;
         if (lobby.selected_game === 'quiz') {
             const isBot = players.length === 2 && players[1].is_bot;
             subMode = isBot ? '1vbot' : '1v1_online';
         }
 
-        // Launch actual game view
+        await supabase.from('platform_lobbies').update({ status: 'playing', active_game_id: targetGameId }).eq('id', lobbyId);
+
+        // Launch actual game view pre Hosta
         onStartGameFlow(lobby.selected_game, targetGameId, subMode, {
             rules: gameRules,
             cat: selectedCategories,
             diff: difficulty,
             botDiff: botDifficulty
         });
-
-        await supabase.from('platform_lobbies').update({ status: 'playing', active_game_id: targetGameId }).eq('id', lobbyId);
     };
 
     if (loading || !lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;

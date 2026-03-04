@@ -63,12 +63,16 @@ export const BilionarApp = ({ onBackToPortal, onlineUserIds, pendingGameId, onCl
     // Autoboot game from platform lobby
     useEffect(() => {
         if (pendingGameId && view === 'lobby') {
-            const bootGame = async () => {
-                const { data } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+            const bootGame = async (retries = 3) => {
+                const { data, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
                 if (data) {
                     setActiveGame(data);
                     setView('game');
                     if (onClearPending) onClearPending();
+                } else if (error && error.code === 'PGRST116' && retries > 0) {
+                    setTimeout(() => bootGame(retries - 1), 800);
+                } else if (error) {
+                    console.error("Failed to boot bilionar game:", error);
                 }
             };
             bootGame();

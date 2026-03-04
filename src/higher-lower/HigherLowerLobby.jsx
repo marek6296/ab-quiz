@@ -77,7 +77,7 @@ export const HigherLowerLobby = ({
     }, [user, activeGame, onSetGame]);
 
     useEffect(() => {
-        const handlePending = async () => {
+        const handlePending = async (retries = 3) => {
             if (pendingGameId && !activeGame) {
                 setLoading(true);
                 const { data: game, error } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).single();
@@ -86,6 +86,9 @@ export const HigherLowerLobby = ({
                     setView('room');
                     setActiveTab('play');
                     if (onClearPending) onClearPending();
+                } else if (error && error.code === 'PGRST116' && retries > 0) {
+                    setTimeout(() => handlePending(retries - 1), 800);
+                    return;
                 } else if (error) {
                     console.error("Error loading pending game:", error);
                 }
