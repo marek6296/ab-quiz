@@ -332,6 +332,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
 
         // Host spustí odpočítavanie (broadcast pre všetkých naraz na plynulý sync)
         for (let i = 3; i >= 1; i--) {
+            setCountdown(i); // Nastaviť lokálne pre Hosta
             await supabase.channel(`platform_lobby_${lobbyId}`).send({
                 type: 'broadcast',
                 event: 'countdown',
@@ -340,6 +341,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
             await new Promise(r => setTimeout(r, 1000));
         }
 
+        setCountdown('ŠTART!'); // Nastaviť lokálne pre Hosta
         await supabase.channel(`platform_lobby_${lobbyId}`).send({
             type: 'broadcast',
             event: 'countdown',
@@ -347,6 +349,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
         });
 
         await new Promise(r => setTimeout(r, 800)); // malá pauza pre efekt
+        setCountdown(null); // Reset pre Hosta pred zavretím lobby
 
         let subMode = null;
         if (lobby.selected_game === 'quiz') {
