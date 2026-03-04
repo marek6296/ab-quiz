@@ -9,14 +9,14 @@ export const PlatformMenu = ({ onLobbyJoined, onSignOut }) => {
     const [errorMsg, setErrorMsg] = useState('');
     const [profile, setProfile] = useState(null);
 
-    if (!user) return null;
-
     useEffect(() => {
         if (user?.id) {
             supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
                 .then(({ data }) => setProfile(data));
         }
     }, [user]);
+
+    if (!user) return null;
 
     const generateJoinCode = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

@@ -12,6 +12,7 @@ import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
 import { useAudio } from './hooks/useAudio';
 import { useGameStore, APP_STATES } from './game-engine/store';
+import { GamePortal } from './components/GamePortal';
 import { PlatformMenu } from './platform/PlatformMenu';
 import { PlatformLobby } from './platform/PlatformLobby';
 import { BilionarApp } from './bilionar/BilionarApp';

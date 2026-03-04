@@ -90,7 +90,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
         };
     }, [isHost, activeGame, gameState, players]);
 
-    const broadcastState = async (newState) => {
+    async function broadcastState(newState) {
         // Broadcast for instant UI sync
         await gameChannel?.send({
             type: 'broadcast',
@@ -99,9 +99,9 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
         });
         // Persist to DB
         await supabase.from('higher_lower_games').update({ state: newState }).eq('id', activeGame?.id);
-    };
+    }
 
-    const evaluateBot = async (bot, guess, qData) => {
+    async function evaluateBot(bot, guess, qData) {
         if (!qData) return;
         const isHigher = qData.second.value >= qData.first.value;
         const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
@@ -113,7 +113,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave }) =
         await supabase.from('higher_lower_players').update({
             score: newScore, lives: newLives, eliminated
         }).eq('id', bot.id);
-    };
+    }
 
     // ----------------------------------------------------------------------------------
     // PLAYER LOGIC (Real players sending guesses and evaluating themselves)
