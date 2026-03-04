@@ -153,7 +153,7 @@ const TurnAnnouncement = ({ announcement }) => {
 };
 
 // Wrapper component to use the Auth context
-const ABQuizApp = ({ onBackToPortal }) => {
+const ABQuizApp = ({ onBackToPortal, initialPendingGame, onClearPending }) => {
   const { user } = useAuth();
   const {
     appState, setAppState,
@@ -196,7 +196,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const [localCategory, setLocalCategory] = useState([]); // Empty array means "All"
   const [localDifficulty, setLocalDifficulty] = useState([1]);
   const [localBotDifficulty, setLocalBotDifficulty] = useState(2);
-  const [incomingInvite, setIncomingInvite] = useState(null);
   const [showVersus, setShowVersus] = useState(false);
   const manualExitRef = useRef(false);
   const prevActiveModalRef = useRef(null);
@@ -512,7 +511,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
   }, [user, activeGameId, handleStartGame]);
 
   // Logic extractions
-  useGameInvites({ user, activeGameId, handleStartGame, setIncomingInvite });
   useBotTurn({ gameMode, currentPlayer, winner, activeModal, showExitConfirm, board, getRandomQuestionForConfig, setActiveModal });
   const { handleSyncModal } = useModalSync({
     gameMode, activeGameId, gameData, currentPlayer, localPlayerNum, playSound, activeModal, setActiveModal
@@ -535,19 +533,13 @@ const ABQuizApp = ({ onBackToPortal }) => {
     }
   }, [gameMode, activeGameId, user?.id]);
 
-  const handleAcceptInvite = async (gameId, rules) => {
-    const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
-    if (!error) {
-      setIncomingInvite(null);
-      handleStartGame('1v1_online', rules, gameId);
+  // initialPendingGame effect
+  useEffect(() => {
+    if (initialPendingGame && appState === APP_STATES.HOME) {
+      handleStartGame(initialPendingGame.mode, initialPendingGame.rules, initialPendingGame.gameId);
+      onClearPending();
     }
-  };
-
-  const handleDeclineInvite = async (gameId) => {
-    manualExitRef.current = true;
-    await supabase.from('games').delete().eq('id', gameId);
-    setIncomingInvite(null);
-  };
+  }, [initialPendingGame, appState, handleStartGame, onClearPending]);
 
   const handleHexClick = async (hexId) => {
     // Okamžite zamerať globálny vstup, predtým než asynchrónna logika a stavové zmeny zablokujú focus (iOS restriction)
@@ -652,11 +644,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
           onShowAdmin={() => setShowAdmin(true)}
           onBackToPortal={onBackToPortal}
           onlineUserIds={onlineUserIds}
-        />
-        <GameInviteModal
-          invite={incomingInvite}
-          onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)}
-          onDecline={handleDeclineInvite}
         />
       </>
     );
@@ -900,9 +887,6 @@ const ABQuizApp = ({ onBackToPortal }) => {
           )}
 
           <ConfirmExitModal isOpen={showExitConfirm} onConfirm={handleRestart} onCancel={() => setShowExitConfirm(false)} />
-          <GameInviteModal invite={incomingInvite} onAccept={(gameId) => handleAcceptInvite(gameId, incomingInvite?.gameRules)} onDecline={handleDeclineInvite} />
-
-
         </div>
       </>
     );
@@ -914,6 +898,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
 const MainRouter = () => {
   const { user } = useAuth();
   const [currentApp, setCurrentApp] = useState('portal');
+  const [incomingInvite, setIncomingInvite] = useState(null);
+  const [pendingGame, setPendingGame] = useState(null);
 
   // Load from session storage for smoother reloads
   useEffect(() => {
@@ -926,6 +912,41 @@ const MainRouter = () => {
     sessionStorage.setItem('ab_quiz_current_app', app);
   };
 
+  // Global Invitations
+  useGameInvites({
+    user,
+    activeGameId: null, // Global listener doesn't have an active game filter
+    handleStartGame: (mode, rules, gameId) => {
+      // Auto-start for AB Quiz if already active or something? 
+      // Usually we rely on the invite modal.
+    },
+    setIncomingInvite
+  });
+
+  const handleAcceptInvite = async (gameId, rules) => {
+    if (incomingInvite?.gameType === 'bilionar') {
+      setIncomingInvite(null);
+      handleSetApp('bilionar_battle');
+      // BilionarApp will pick up the active game from bilionar_players automatically or via prop
+    } else {
+      const { error } = await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
+      if (!error) {
+        setIncomingInvite(null);
+        setPendingGame({ mode: '1v1_online', rules, gameId });
+        handleSetApp('ab_quiz');
+      }
+    }
+  };
+
+  const handleDeclineInvite = async (gameId) => {
+    if (incomingInvite?.gameType === 'bilionar') {
+      await supabase.from('bilionar_players').delete().eq('game_id', gameId).eq('user_id', user.id);
+    } else {
+      await supabase.from('games').delete().eq('id', gameId);
+    }
+    setIncomingInvite(null);
+  };
+
   if (!user) {
     return (
       <div className="game-container start-screen">
@@ -935,27 +956,33 @@ const MainRouter = () => {
     );
   }
 
-  if (currentApp === 'portal') {
-    return <GamePortal onSelectGame={handleSetApp} />;
-  }
+  return (
+    <>
+      {currentApp === 'portal' && <GamePortal onSelectGame={handleSetApp} />}
+      {currentApp === 'ab_quiz' && (
+        <ABQuizApp
+          onBackToPortal={() => handleSetApp('portal')}
+          initialPendingGame={pendingGame}
+          onClearPending={() => setPendingGame(null)}
+        />
+      )}
+      {currentApp === 'bilionar_battle' && <BilionarApp onBackToPortal={() => handleSetApp('portal')} />}
 
-  if (currentApp === 'ab_quiz') {
-    return <ABQuizApp onBackToPortal={() => handleSetApp('portal')} />;
-  }
-
-  if (currentApp === 'bilionar_battle') {
-    return <BilionarApp onBackToPortal={() => handleSetApp('portal')} />;
-  }
-
-  return null;
+      <GameInviteModal
+        invite={incomingInvite}
+        onAccept={(gameId, rules) => handleAcceptInvite(gameId, rules)}
+        onDecline={handleDeclineInvite}
+      />
+    </>
+  );
 };
 
-function App() {
+const App = () => {
   return (
     <AuthProvider>
       <MainRouter />
     </AuthProvider>
   );
-}
+};
 
 export default App;

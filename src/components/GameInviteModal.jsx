@@ -4,12 +4,12 @@ export const GameInviteModal = ({ invite, onAccept, onDecline }) => {
   return (
     <div className="modal-overlay" style={{ zIndex: 10005 }}>
       <div className="modal-content glass-panel" style={{ maxWidth: '450px', padding: '2.5rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⚔️</div>
+        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>{invite.gameType === 'bilionar' ? '💰' : '⚔️'}</div>
         <h2 style={{ fontSize: '2rem', color: '#f8fafc', marginBottom: '1rem' }}>Nová výzva!</h2>
         <p style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '2.5rem', lineHeight: '1.6' }}>
-          Hráč <strong style={{ color: '#38bdf8' }}>{invite.challengerName}</strong> ťa vyzýva na súboj. <br />
+          Hráč <strong style={{ color: '#facc15' }}>{invite.challengerName}</strong> ťa vyzýva na súboj. <br />
           <span style={{ fontSize: '1rem', opacity: 0.8, marginTop: '0.5rem', display: 'block' }}>
-            Režim: {invite.gameRules === 'hex' ? 'Hexagonálna cesta (AZ-kvíz)' : 'Súboj o body (Rýchlosť)'}
+            Hra: {invite.gameType === 'bilionar' ? 'Bilionár Battle' : (invite.gameRules === 'hex' ? 'Hexagonálna cesta (AZ-kvíz)' : 'Súboj o body (Rýchlosť)')}
           </span>
         </p>
         <div className="modal-actions" style={{ gap: '1rem' }}>

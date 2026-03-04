@@ -18,6 +18,7 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
     const [joinCodeInput, setJoinCodeInput] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
     // Room State
     const [activeGame, setActiveGame] = useState(null);
@@ -280,117 +281,130 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                     <h1 className="logo-brutal" style={{ color: '#facc15', textShadow: '0 0 10px rgba(250, 204, 21, 0.3)' }}>Bilionár Battle</h1>
                 </div>
 
-                {activeTab === 'play' && view === 'menu' && (
-                    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
-                        <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a s kým chcete hrať o milióny.</p>
+                {activeTab === 'play' && (
+                    <>
+                        {view === 'menu' && (
+                            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                                <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#f8fafc' }}>Vyberte si herný režim</h2>
+                                <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Vyberte si, ako a s kým chcete hrať o milióny.</p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-                            <div className="mode-card primary" onClick={handleHostGame} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👑</div>
-                                <h3>Založiť Miestnosť</h3>
-                                <p>Vytvor hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
-                                <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+                                    <div className="mode-card primary" onClick={handleHostGame} style={{ background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👑</div>
+                                        <h3>Založiť Miestnosť</h3>
+                                        <p>Vytvor hru pre seba a priateľov. Budeš hostiteľ a správca miestnosti.</p>
+                                        <span style={{ color: '#facc15', fontWeight: 'bold', marginTop: 'auto' }}>Vytvoriť →</span>
+                                    </div>
+
+                                    <div className="mode-card primary" onClick={async () => {
+                                        await handleHostGame();
+                                        setIsInviteModalOpen(true);
+                                    }} style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+                                        <h3 style={{ color: '#38bdf8' }}>Hrať s priateľmi</h3>
+                                        <p>Pozvi svojich priateľov priamo zo zoznamu do súkromnej hry.</p>
+                                        <span style={{ color: '#38bdf8', fontWeight: 'bold', marginTop: 'auto' }}>Pozvať →</span>
+                                    </div>
+
+                                    <div className="mode-card" onClick={handleAddBot /* This might need logic refactoring if adding bots from menu */} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
+                                        <h3>Tréning s BOTom</h3>
+                                        <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
+                                        <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                                    </div>
+
+                                    <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
+                                        <h3>Pripojiť sa</h3>
+                                        <p>Máš kód od kamaráta? Zadaj ho a prepoj sa do jeho hry.</p>
+                                        <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
+                                    </div>
+                                </div>
                             </div>
+                        )}
 
-                            <div className="mode-card" onClick={() => {
-                                handleHostGame().then(() => {
-                                    // Logic to add bots automatically could be added here if needed
-                                });
-                            }} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
-                                <h3>Tréning s BOTom</h3>
-                                <p>Hraj proti nášmu inteligentnému robotovi na offline tréning.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Trénovať →</span>
+                        {view === 'join' && (
+                            <div className="setup-panel" style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+                                <button onClick={() => setView('menu')} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1rem', cursor: 'pointer', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>←</span> Späť na výber
+                                </button>
+                                <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: 'white' }}>Pripojiť sa do hry</h2>
+                                <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Zadajte 6-miestny kód"
+                                        value={joinCodeInput}
+                                        onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                                        maxLength={6}
+                                        style={{ padding: '1.5rem', fontSize: '1.8rem', textAlign: 'center', letterSpacing: '4px', background: 'rgba(0,0,0,0.3)', border: '2px solid rgba(250, 204, 21, 0.5)', color: 'white', borderRadius: '12px', outline: 'none' }}
+                                        autoFocus
+                                    />
+                                    {errorMsg && <p style={{ color: '#ef4444', margin: 0 }}>{errorMsg}</p>}
+                                    <button type="submit" className="primary" disabled={loading || joinCodeInput.length < 3} style={{ padding: '1.2rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', border: 'none', borderRadius: '12px' }}>
+                                        {loading ? 'Pripájam sa...' : 'Pripojiť sa do miestnosti'}
+                                    </button>
+                                </form>
                             </div>
+                        )}
 
-                            <div className="mode-card" onClick={() => setView('join')} style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔑</div>
-                                <h3>Pripojiť sa</h3>
-                                <p>Máš kód od kamaráta? Zadaj ho a prepoj sa do jeho hry.</p>
-                                <span style={{ color: '#cbd5e1', fontWeight: 'bold', marginTop: 'auto' }}>Zadať kód →</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                        {view === 'room' && (
+                            <div className="setup-panel" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', textAlign: 'center', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(250, 204, 21, 0.5)' }}>
+                                <h2 style={{ color: '#facc15', fontSize: '2.5rem', marginBottom: '1rem', textShadow: '0 0 10px rgba(250, 204, 21, 0.5)' }}>Pripravovňa</h2>
+                                <div style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '2rem' }}>
+                                    Kód pre pripojenie: <strong style={{ fontSize: '2rem', letterSpacing: '4px', color: 'white', background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px dashed #facc15' }}>{activeGame?.join_code}</strong>
+                                </div>
 
-                {activeTab === 'play' && view === 'join' && (
-                    <div className="setup-panel" style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-                        <button onClick={() => setView('menu')} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1rem', cursor: 'pointer', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span>←</span> Späť na výber
-                        </button>
-                        <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: 'white' }}>Pripojiť sa do hry</h2>
-                        <form onSubmit={handleJoinGame} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <input
-                                type="text"
-                                placeholder="Zadajte 6-miestny kód"
-                                value={joinCodeInput}
-                                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                                maxLength={6}
-                                style={{ padding: '1.5rem', fontSize: '1.8rem', textAlign: 'center', letterSpacing: '4px', background: 'rgba(0,0,0,0.3)', border: '2px solid rgba(250, 204, 21, 0.5)', color: 'white', borderRadius: '12px', outline: 'none' }}
-                                autoFocus
-                            />
-                            {errorMsg && <p style={{ color: '#ef4444', margin: 0 }}>{errorMsg}</p>}
-                            <button type="submit" className="primary" disabled={loading || joinCodeInput.length < 3} style={{ padding: '1.2rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', border: 'none', borderRadius: '12px' }}>
-                                {loading ? 'Pripájam sa...' : 'Pripojiť sa do miestnosti'}
-                            </button>
-                        </form>
-                    </div>
-                )}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                                    {players.map(p => (
+                                        <div key={p.id} style={{
+                                            background: p.user_id === user.id ? 'rgba(250, 204, 21, 0.1)' : 'rgba(255,255,255,0.05)',
+                                            border: `1px solid ${p.user_id === user.id ? 'rgba(250, 204, 21, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                                            padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem',
+                                            position: 'relative'
+                                        }}>
+                                            {activeGame?.host_id === user.id && p.user_id !== user.id && (
+                                                <button onClick={() => handleRemovePlayer(p.id)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>✖</button>
+                                            )}
+                                            {renderAvatar(p.avatar_url, '60px')}
+                                            <span style={{ fontWeight: 'bold', color: 'white', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                                                {p.player_name}
+                                            </span>
+                                            {activeGame?.host_id === p.user_id && <span style={{ fontSize: '0.7rem', color: '#facc15', marginTop: '-5px' }}>👑 HOST</span>}
+                                            {p.is_bot && <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '-5px' }}>🤖 BOT</span>}
+                                        </div>
+                                    ))}
+                                    {Array.from({ length: 8 - players.length }).map((_, i) => (
+                                        <div key={'empty' + i} style={{ background: 'rgba(0,0,0,0.3)', border: '1px dashed rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', opacity: 0.5 }}>
+                                            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>❓</div>
+                                            <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Voľné miesto</span>
+                                        </div>
+                                    ))}
+                                </div>
 
-                {activeTab === 'play' && view === 'room' && (
-                    <div className="setup-panel" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', textAlign: 'center', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(250, 204, 21, 0.5)' }}>
-                        <h2 style={{ color: '#facc15', fontSize: '2.5rem', marginBottom: '1rem', textShadow: '0 0 10px rgba(250, 204, 21, 0.5)' }}>Pripravovňa</h2>
-                        <div style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: '2rem' }}>
-                            Kód pre pripojenie: <strong style={{ fontSize: '2rem', letterSpacing: '4px', color: 'white', background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px dashed #facc15' }}>{activeGame?.join_code}</strong>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                            {players.map(p => (
-                                <div key={p.id} style={{
-                                    background: p.user_id === user.id ? 'rgba(250, 204, 21, 0.1)' : 'rgba(255,255,255,0.05)',
-                                    border: `1px solid ${p.user_id === user.id ? 'rgba(250, 204, 21, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-                                    padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem',
-                                    position: 'relative'
-                                }}>
-                                    {activeGame?.host_id === user.id && p.user_id !== user.id && (
-                                        <button onClick={() => handleRemovePlayer(p.id)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>✖</button>
+                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                    <button className="neutral" onClick={handleLeaveRoom} style={{ padding: '1rem 2rem' }}>⬅ Opustiť</button>
+                                    {activeGame?.host_id === user.id && (
+                                        <>
+                                            <button className="secondary" onClick={() => setIsInviteModalOpen(true)} style={{ padding: '1rem 2rem', border: '1px solid #38bdf8', color: '#38bdf8', background: 'transparent' }}>
+                                                👥 Pozvať priateľa
+                                            </button>
+                                            <button className="secondary" onClick={handleAddBot} disabled={players.length >= 8 || loading} style={{ padding: '1rem 2rem', border: '1px solid #facc15', color: '#facc15', background: 'transparent' }}>
+                                                🤖 Pridať Bota
+                                            </button>
+                                            <button className="primary" onClick={handleStartMatch} disabled={players.length < 1 || loading} style={{ padding: '1rem 3rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold' }}>
+                                                {loading ? 'Štartujem...' : '▶ SPUSTIŤ HRU'}
+                                            </button>
+                                        </>
                                     )}
-                                    {renderAvatar(p.avatar_url, '60px')}
-                                    <span style={{ fontWeight: 'bold', color: 'white', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                                        {p.player_name}
-                                    </span>
-                                    {activeGame?.host_id === p.user_id && <span style={{ fontSize: '0.7rem', color: '#facc15', marginTop: '-5px' }}>👑 HOST</span>}
-                                    {p.is_bot && <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '-5px' }}>🤖 BOT</span>}
+                                    {activeGame?.host_id !== user.id && (
+                                        <div style={{ padding: '1rem', color: '#94a3b8', fontStyle: 'italic', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center' }}>
+                                            Čaká sa na spustenie hry HOSTom...
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                            {Array.from({ length: 8 - players.length }).map((_, i) => (
-                                <div key={'empty' + i} style={{ background: 'rgba(0,0,0,0.3)', border: '1px dashed rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', opacity: 0.5 }}>
-                                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>❓</div>
-                                    <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Voľné miesto</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button className="neutral" onClick={handleLeaveRoom} style={{ padding: '1rem 2rem' }}>⬅ Opustiť</button>
-                            {activeGame?.host_id === user.id && (
-                                <>
-                                    <button className="secondary" onClick={handleAddBot} disabled={players.length >= 8 || loading} style={{ padding: '1rem 2rem', border: '1px solid #facc15', color: '#facc15', background: 'transparent' }}>
-                                        🤖 Pridať Bota
-                                    </button>
-                                    <button className="primary" onClick={handleStartMatch} disabled={players.length < 1 || loading} style={{ padding: '1rem 3rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold' }}>
-                                        {loading ? 'Štartujem...' : '▶ SPUSTIŤ HRU'}
-                                    </button>
-                                </>
-                            )}
-                            {activeGame?.host_id !== user.id && (
-                                <div style={{ padding: '1rem', color: '#94a3b8', fontStyle: 'italic', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center' }}>
-                                    Čaká sa na spustenie hry HOSTom...
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {activeTab === 'friends' && (
@@ -402,10 +416,8 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                             <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Vďaka tomuto panelu môžeš vyhľadávať iných hráčov a pridávať si ich do priateľov.</p>
                             <FriendsList
                                 selectedGameRules="bilionar"
-                                selectedCategory={[]}
-                                selectedDifficulty={1}
-                                onlineUserIds={onlineUserIds}
                                 isBilionar={true}
+                                onlineUserIds={onlineUserIds}
                             />
                         </div>
                     </div>
@@ -476,6 +488,28 @@ export const BilionarLobby = ({ onStartGame, onBackToPortal, onShowAdmin, online
                             <button className="neutral" onClick={() => signOut()} style={{ padding: '1rem 2rem', border: '1px solid #ef4444', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}>
                                 Odhlásiť sa zo systému
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {isInviteModalOpen && activeGame && (
+                    <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                        <div className="modal-content glass-panel" style={{ maxWidth: '600px', width: '95%', padding: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ margin: 0, color: '#facc15' }}>Pozvať priateľov</h2>
+                                <button onClick={() => setIsInviteModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '2rem', cursor: 'pointer' }}>×</button>
+                            </div>
+                            <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                <FriendsList
+                                    selectedGameRules="bilionar"
+                                    isBilionar={true}
+                                    onlineUserIds={onlineUserIds}
+                                    existingBilionarGameId={activeGame.id}
+                                />
+                            </div>
+                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                                <button className="primary" onClick={() => setIsInviteModalOpen(false)} style={{ padding: '1rem 2rem' }}>Hotovo</button>
+                            </div>
                         </div>
                     </div>
                 )}
