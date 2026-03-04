@@ -576,9 +576,10 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                     disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
                                 >
                                     <div className="option-letter">{key}:</div>
+                                    <div className="option-text" style={{ textAlign: 'left' }}>{optionText}</div>
 
                                     {isReveal && pickedBy.length > 0 && (
-                                        <div style={{ display: 'flex', gap: '4px', marginRight: '15px', flexWrap: 'wrap', maxWidth: '140px' }}>
+                                        <div style={{ display: 'flex', gap: '4px', marginLeft: '10px', marginRight: '20px', flexWrap: 'wrap', maxWidth: '120px', justifyContent: 'flex-end' }}>
                                             {pickedBy.map(p => (
                                                 <div
                                                     key={p.id}
@@ -589,8 +590,6 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                                             ))}
                                         </div>
                                     )}
-
-                                    <div className="option-text">{optionText}</div>
                                 </button>
                             </div>
                         );
