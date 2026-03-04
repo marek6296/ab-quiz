@@ -446,7 +446,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.3; // 70% chance to know
                 if (isCorrect) {
-                    const pts = calculatePoints(2, timeLeft);
+                    const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
+                    const computedTimeLeft = Math.max(0, 15 - elapsedSeconds);
+                    const pts = calculatePoints(2, computedTimeLeft);
+
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackPrimaryCorrect');
@@ -467,7 +470,10 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             timeout = setTimeout(() => {
                 const isCorrect = Math.random() > 0.5; // 50% chance to steal
                 if (isCorrect) {
-                    const pts = calculatePoints(2, timeLeft);
+                    const elapsedSeconds = (Date.now() - phaseStartRef.current) / 1000;
+                    const computedTimeLeft = Math.max(0, 15 - elapsedSeconds);
+                    const pts = calculatePoints(2, computedTimeLeft);
+
                     setEarnedPoints(pts);
                     setLastAnswer(question.answer);
                     setPhase('feedbackSecondaryCorrect');
@@ -486,7 +492,7 @@ export const QuestionModal = ({ modalData, onSyncModal, question, hexId, current
             }, thinkTime);
         }
         return () => clearTimeout(timeout);
-    }, [isBotPrimaryTurn, isBotSecondaryTurn, question.answer, gameRules, timeLeft]);
+    }, [isBotPrimaryTurn, isBotSecondaryTurn, question.answer, gameRules]); // 🔴 Odstránený `timeLeft` z dependencies, inak sa Bot timeout neustále vymazával a reštartoval každú sekundu!
 
     // Timer Logic - Strictly based on absolute time elapsed to prevent browser background throttling issues
     useEffect(() => {
