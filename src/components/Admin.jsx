@@ -11,6 +11,7 @@ export const Admin = ({ onBack }) => {
     const [filterDifficulty, setFilterDifficulty] = useState('');
     const [activeTab, setActiveTab] = useState('list');
     const [reportedList, setReportedList] = useState([]);
+    const [allCats, setAllCats] = useState([]);
 
     // Edit State
     const [editingId, setEditingId] = useState(null);
@@ -89,6 +90,7 @@ export const Admin = ({ onBack }) => {
                 return acc;
             }, {});
             setStats({ total: allData.length, byCategory: statsObj });
+            setAllCats(Object.keys(statsObj).sort());
         }
     };
 
@@ -163,7 +165,7 @@ export const Admin = ({ onBack }) => {
 
     useEffect(() => {
         fetchQuestions();
-    }, [filterCategory, filterDifficulty]);
+    }, [filterCategory, filterDifficulty]); // Removed searchTerm from deps to avoid spam while typing, user must press Enter or pick a filter
 
     useEffect(() => {
         if (activeTab === 'reports') fetchReports();
@@ -416,8 +418,8 @@ Výstup musí byť vždy JSON { "questions": [...] } so kľúčmi: id, question_
                                         style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px', width: '100%' }}
                                     >
                                         <option value="">Všetky kategórie</option>
-                                        {Object.keys(stats.byCategory).sort().map(cat => (
-                                            <option key={cat} value={cat}>{cat} ({stats.byCategory[cat].total})</option>
+                                        {allCats.map(cat => (
+                                            <option key={cat} value={cat}>{cat} ({stats.byCategory[cat]?.total || 0})</option>
                                         ))}
                                     </select>
                                 </div>
