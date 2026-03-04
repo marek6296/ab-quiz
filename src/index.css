@@ -1498,6 +1498,7 @@ input:focus {
 
   .game-title {
     font-size: 3.8rem;
+    margin-top: 2rem;
     margin-bottom: 0.75rem;
   }
 }
