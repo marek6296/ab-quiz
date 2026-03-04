@@ -449,18 +449,18 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
         const answeredPlayers = [...players].filter(p => p.has_answered && p.last_answer_time !== null).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99));
         return (
             <div key="phase_recap_answers" className="bilionar-board fullscreen-flex">
-                <div className="message-modal dramatic-pop" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
+                <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px', background: 'rgba(2, 6, 23, 0.95)', border: '2px solid #3b82f6' }}>
                     <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {answeredPlayers.map((p, i) => (
-                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1.2rem 2rem', borderRadius: '12px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#94a3b8' }}>#{i + 1}</span>
+                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1.5rem 2rem', borderRadius: '8px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                    <span style={{ fontWeight: '900', fontSize: '2rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
                                     <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#fff' }}>{p.player_name}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
-                                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: currentQ?.correct_answer === p.selected_answer ? '#4ade80' : '#ef4444' }}>{p.selected_answer || '-'}</span>
-                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#38bdf8' }}>{p.last_answer_time?.toFixed(2)}s</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fff' }}>{p.selected_answer || '-'}</span>
+                                    <span style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff', marginLeft: '1rem' }}>{p.last_answer_time?.toFixed(2)}s</span>
                                 </div>
                             </div>
                         ))}
@@ -523,10 +523,10 @@ export const BilionarGame = ({ activeGame, onLeave }) => {
                     style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
                 >
                     <div className="bilionar-timer-circle" style={{
-                        background: `conic-gradient(#ef4444 ${(visualTime / 10) * 360}deg, transparent 0deg)`
+                        background: `conic-gradient(#ef4444 ${((gameState.phase === 'answering' ? visualTime : 0) / 10) * 360}deg, transparent 0deg)`
                     }}>
                         <div className="bilionar-timer-inner">
-                            {visualTime}
+                            {gameState.phase === 'answering' ? visualTime : 0}
                         </div>
                     </div>
                 </div>
