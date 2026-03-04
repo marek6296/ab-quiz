@@ -2184,3 +2184,43 @@ button.small {
     margin-top: 3rem !important;
   }
 }
+
+.turn-notice-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  padding: 3rem;
+  border-radius: 32px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.2);
+  color: #fff;
+  z-index: 100000;
+  text-align: center;
+  pointer-events: none;
+  animation: noticeFadeInOut 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes noticeFadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.9);
+  }
+}

@@ -163,6 +163,7 @@ const ABQuizApp = ({ onBackToPortal }) => {
   const manualExitRef = useRef(false);
   const prevActiveModalRef = useRef(null);
   const usedQuestionIdsRef = useRef(new Set());
+  const [turnNotice, setTurnNotice] = useState(false);
 
   const { playSound } = useAudio();
 
@@ -404,7 +405,8 @@ const ABQuizApp = ({ onBackToPortal }) => {
     if (gameMode === '1vbot' && currentPlayer === 2) return;
     if (gameMode === '1v1_online' && gameData?.paused_by) return;
     if (gameMode === '1v1_online' && currentPlayer !== localPlayerNum) {
-      alert("Teraz je na ťahu súper!");
+      setTurnNotice(true);
+      setTimeout(() => setTurnNotice(false), 2500);
       return;
     }
 
@@ -678,15 +680,23 @@ const ABQuizApp = ({ onBackToPortal }) => {
               markQuestionAsSeen={markQuestionAsSeen}
               playerNames={{
                 player1: gameMode === '1v1_online'
-                  ? (localPlayerNum === 1 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
-                  : `(Vy) ${profile?.username || 'Ja'}`,
+                  ? (localPlayerNum === 1 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
+                  : (profile?.username || 'Ja'),
                 player2: gameMode === '1vbot'
                   ? 'BOT'
                   : (gameMode === '1v1_online'
-                    ? (localPlayerNum === 2 ? `(Vy) ${profile?.username || 'Ja'}` : (opponentName || 'Súper'))
+                    ? (localPlayerNum === 2 ? (profile?.username || 'Ja') : (opponentName || 'Súper'))
                     : 'Hráč 2')
               }}
             />
+          )}
+
+          {turnNotice && (
+            <div className="turn-notice-overlay">
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+              <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#fff' }}>Teraz je na ťahu súper!</h2>
+              <p style={{ margin: '0.5rem 0 0', opacity: 0.7 }}>Počkajte, kým dokončí svoj ťah.</p>
+            </div>
           )}
 
           <ConfirmExitModal isOpen={showExitConfirm} onConfirm={handleRestart} onCancel={() => setShowExitConfirm(false)} />
