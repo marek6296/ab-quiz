@@ -5,38 +5,107 @@ export const GamePortal = ({ onSelectGame }) => {
     const { user, signOut } = useAuth();
 
     return (
-        <div className="game-container game-portal" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflow: 'hidden' }}>
-            <div className="portal-header">
+        <div className="game-container game-portal" style={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            overflow: 'hidden',
+            position: 'relative'
+        }}>
+            {/* Animated Background Accents */}
+            <div className="portal-bg-glow" style={{ background: '#3b82f6', top: '-10%', left: '-10%' }}></div>
+            <div className="portal-bg-glow" style={{ background: '#facc15', bottom: '-10%', right: '-10%', animationDelay: '-5s' }}></div>
+
+            <div className="portal-header entrance-fade" style={{ animationDelay: '0.1s' }}>
                 <button className="neutral logout-btn" onClick={signOut}>
                     Odhlásiť sa
                 </button>
                 <h1 className="hero-logo">Quizovník</h1>
             </div>
 
-            <h2 style={{ fontSize: '1.8rem', marginBottom: '0.25rem', color: '#f8fafc', textAlign: 'center' }}>Vyberte si hru</h2>
-            <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '1rem', textAlign: 'center' }}>Vitajte na našom hernom portáli. Ďalšie hry pribudnú čoskoro!</p>
+            <div className="entrance-fade" style={{ animationDelay: '0.3s', textAlign: 'center' }}>
+                <h2 style={{ fontSize: '1.8rem', marginBottom: '0.25rem', color: '#f8fafc' }}>Vyberte si hru</h2>
+                <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '2rem' }}>Vitajte na našom hernom portáli. Pripravený na výzvu?</p>
+            </div>
 
-            <div className="portal-grid" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
+            <div className="portal-grid" style={{
+                display: 'flex',
+                gap: '2.5rem',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                maxWidth: '1100px',
+                width: '100%',
+                padding: '1rem'
+            }}>
+                {/* KVÍZ DUEL CARD */}
                 <div
-                    className="mode-card primary"
+                    className="portal-grid-item portal-card-glass entrance-fade"
                     onClick={() => onSelectGame('ab_quiz')}
-                    style={{ minWidth: '280px', flex: 1, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.5rem' }}
+                    style={{
+                        animationDelay: '0.5s',
+                        minWidth: '280px',
+                        flex: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        padding: '2.5rem 1.5rem',
+                        background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+                    }}
                 >
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧠</div>
-                    <h3 style={{ fontSize: '1.6rem', marginBottom: '0.75rem', color: '#f8fafc' }}>Kvíz duel</h3>
-                    <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: '#cbd5e1', lineHeight: '1.5' }}>Vedomostná strategická hra na štýl legendárneho AZ-Kvízu. Spojte 3 strany hexagonálneho herného poľa!</p>
-                    <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '1.1rem', marginTop: 'auto', background: '#38bdf8', padding: '0.6rem 1.5rem', borderRadius: '30px' }}>Hrať teraz →</span>
+                    <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🧠</div>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#f8fafc', fontWeight: '800' }}>Kvíz duel</h3>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
+                        Vedomostná strategická hra na štýl legendárneho AZ-Kvízu. Spojte tri strany hexagonálneho poľa!
+                    </p>
+                    <span className="glow-btn" style={{
+                        color: '#0f172a',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        marginTop: 'auto',
+                        background: '#38bdf8',
+                        padding: '0.8rem 2.5rem',
+                        borderRadius: '16px'
+                    }}>HRAŤ TERAZ →</span>
                 </div>
 
+                {/* BILIONÁR BATTLE CARD */}
                 <div
-                    className="mode-card"
+                    className="portal-grid-item portal-card-glass entrance-fade"
                     onClick={() => onSelectGame('bilionar_battle')}
-                    style={{ minWidth: '280px', flex: 1, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.5rem', background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(250, 204, 21, 0.2)' }}
+                    style={{
+                        animationDelay: '0.7s',
+                        minWidth: '280px',
+                        flex: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        padding: '2.5rem 1.5rem',
+                        background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.08) 0%, rgba(15, 23, 42, 0.4) 100%)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+                    }}
                 >
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem', textShadow: '0 0 20px rgba(250, 204, 21, 0.4)' }}>💰</div>
-                    <h3 style={{ fontSize: '1.6rem', marginBottom: '0.75rem', color: '#facc15' }}>Bilionár Battle</h3>
-                    <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: '#cbd5e1', lineHeight: '1.5' }}>Súboj až pre 8 hráčov na čas. Odpovedz najrýchlejšie a prekonaj priateľov v tejto profesionálnej show!</p>
-                    <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '1.1rem', marginTop: 'auto', background: '#facc15', padding: '0.6rem 1.5rem', borderRadius: '30px', boxShadow: '0 0 15px rgba(250, 204, 21, 0.5)' }}>Hrať teraz →</span>
+                    <div className="portal-icon-floating" style={{ fontSize: '4rem', marginBottom: '1.5rem', textShadow: '0 0 30px rgba(250, 204, 21, 0.4)', animationDelay: '-1s' }}>💰</div>
+                    <h3 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#facc15', fontWeight: '800' }}>Bilionár Battle</h3>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '2rem', color: '#cbd5e1', lineHeight: '1.6', opacity: 0.8 }}>
+                        Súboj až pre 8 hráčov na čas. Odpovedz najrýchlejšie a prekonaj priateľov v tejto profesionálnej show!
+                    </p>
+                    <span className="glow-btn" style={{
+                        color: '#0f172a',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        marginTop: 'auto',
+                        background: '#facc15',
+                        padding: '0.8rem 2.5rem',
+                        borderRadius: '16px'
+                    }}>HRAŤ TERAZ →</span>
                 </div>
             </div>
         </div>
