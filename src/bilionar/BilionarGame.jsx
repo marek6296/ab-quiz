@@ -636,9 +636,10 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                             const pickedBy = isReveal ? players.filter(p => p.selected_answer === key && p.user_id !== user.id) : [];
 
                             return (
-                                <div key={key} style={{ position: 'relative' }}>
+                                <div key={key} style={{ position: 'relative', display: 'flex', height: '100%' }}>
                                     <button
                                         className={`bilionar-option-btn ${statusClass}`}
+                                        style={{ flex: 1 }}
                                         onClick={() => handleSelectOption(key)}
                                         disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
                                     >

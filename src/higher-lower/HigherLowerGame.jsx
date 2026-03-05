@@ -389,7 +389,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                 exit="exitLeft"
                                 transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                 style={{
-                                    width: '380px', height: '450px', flexShrink: 0, borderRadius: '24px',
+                                    width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                     border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                     background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                     boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
@@ -397,8 +397,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                 }}
                             >
-                                <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>{firstItem.image}</div>
-                                <h3 style={{ fontSize: '2rem', marginBottom: '2rem' }}>"{firstItem.name}"</h3>
+                                <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{firstItem.image}</div>
+                                <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>"{firstItem.name}"</h3>
                                 <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
                                     {firstItem.value.toLocaleString()}
                                 </div>
@@ -420,7 +420,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     exit="exitLeft"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                     style={{
-                                        width: '380px', height: '450px', flexShrink: 0, borderRadius: '24px',
+                                        width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                         boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
@@ -428,8 +428,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                         animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                     }}
                                 >
-                                    <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>{secondItem.image}</div>
-                                    <h3 style={{ fontSize: '2rem', marginBottom: '2rem' }}>"{secondItem.name}"</h3>
+                                    <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{secondItem.image}</div>
+                                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>"{secondItem.name}"</h3>
 
                                     {['reveal_value', 'reveal_result'].includes(gameState.phase) ? (
                                         <>
@@ -441,7 +441,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                             <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
                                         </>
                                     ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '200px', height: '100px', justifyContent: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '240px', minHeight: '160px', justifyContent: 'center' }}>
                                             {['reveal_buttons', 'question'].includes(gameState.phase) && (
                                                 !myGuess ? (
                                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
