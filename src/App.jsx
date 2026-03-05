@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthTabs } from './components/auth/AuthTabs';
 import { useGameState } from './hooks/useGameState';
 import { GameBoard } from './components/GameBoard';
+import { Lobby } from './components/Lobby';
+import { Matchmaking } from './components/Matchmaking';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
 
