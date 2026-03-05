@@ -66,15 +66,20 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     return;
                 }
 
+                const { data: pData } = await supabase.from('profiles').select('id, username, avatar_url');
+
                 const activeMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
-                const hlPlayers = activeMembers.map(m => ({
-                    game_id: match.id,
-                    user_id: m.user_id,
-                    player_name: m.metadata?.player_name || 'Hráč',
-                    avatar_url: m.metadata?.avatar_url || '',
-                    is_bot: m.role === 'bot',
-                    color: m.metadata?.color || '#10b981'
-                }));
+                const hlPlayers = activeMembers.map(m => {
+                    const profileData = pData?.find(x => x.id === m.user_id) || {};
+                    return {
+                        game_id: match.id,
+                        user_id: m.user_id,
+                        player_name: profileData.username || m.metadata?.player_name || 'Hráč',
+                        avatar_url: profileData.avatar_url || m.metadata?.avatar_url || '',
+                        is_bot: m.role === 'bot',
+                        color: m.metadata?.color || '#10b981'
+                    };
+                });
 
                 if (hlPlayers.length > 0) {
                     await supabase.from('higher_lower_players').insert(hlPlayers);

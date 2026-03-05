@@ -627,10 +627,10 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
   // initialPendingGame effect
   useEffect(() => {
     if (initialPendingGame && (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY)) {
-      if (match && match.id === initialPendingGame.gameId) {
+      if ((match && match.id === initialPendingGame.gameId) || (lobby && lobby.active_match_id === initialPendingGame.gameId)) {
         // PREVENT RACE CONDITION: Platform Match takes precedence! 
-        // The initQuizMatch hook handles DB initialization correctly for online play.
-        // If we fired handleStartGame here, the non-host would skip waiting for the DB row.
+        // We check BOTH match AND lobby.active_match_id because `match` might still be null (async load)
+        // when this effect fires!
         onClearPending();
         return;
       }
@@ -645,7 +645,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
       );
       onClearPending();
     }
-  }, [initialPendingGame, appState, handleStartGame, onClearPending, match]);
+  }, [initialPendingGame, appState, handleStartGame, onClearPending, match, lobby]);
 
   const handleHexClick = async (hexId) => {
     // Okamžite zamerať globálny vstup, predtým než asynchrónna logika a stavové zmeny zablokujú focus (iOS restriction)

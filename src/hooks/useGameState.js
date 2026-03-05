@@ -144,7 +144,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     }
                     return;
                 }
-                if (payload.eventType === 'UPDATE') {
+                if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
                     const newData = payload.new;
                     setGameData(newData);
                     setBoard(newData.board_state);
