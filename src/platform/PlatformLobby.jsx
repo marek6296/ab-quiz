@@ -72,12 +72,7 @@ export const PlatformLobby = ({ onlineUserIds }) => {
             lobby_id: lobby.id,
             user_id: partner.id,
             role: 'player',
-            state: 'invited',
-            metadata: {
-                player_name: partner.username,
-                avatar_url: partner.avatar_url,
-                color: '#34d399'
-            }
+            state: 'invited'
         });
 
         if (error) {
