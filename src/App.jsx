@@ -1034,7 +1034,7 @@ const MainRouter = () => {
       const timer = setTimeout(() => {
         setRenderLobby(false);
         setLobbyIsClosing(false);
-      }, 350);
+      }, 400);
       return () => clearTimeout(timer);
     }
   }, [actualLobbyModal, renderLobby]);
@@ -1224,13 +1224,11 @@ const MainRouter = () => {
 
       {
         renderLobby && (
-          <div className="modal-overlay" style={{
-            zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch',
-            animation: lobbyIsClosing ? 'lobbyFadeOut 0.35s ease forwards' : 'lobbyFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          <div className={`modal-overlay ${lobbyIsClosing ? 'lobby-closing-overlay' : 'lobby-opening-overlay'}`} style={{
+            zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch'
           }}>
-            <div style={{
-              position: 'relative', width: '100%', height: '100%', overflow: 'hidden',
-              animation: lobbyIsClosing ? 'lobbySlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'lobbySlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            <div className={lobbyIsClosing ? 'lobby-closing-content' : 'lobby-opening-content'} style={{
+              position: 'relative', width: '100%', height: '100%', overflow: 'hidden'
             }}>
 
               <PlatformLobby
