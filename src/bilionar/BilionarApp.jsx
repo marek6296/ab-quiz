@@ -236,18 +236,15 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                             await supabase.from('bilionar_players').delete().eq('user_id', user.id);
                         }
 
+                        if (match) { await leaveGame(); }
+                        if (onTerminateLobby) {
+                            await onTerminateLobby();
+                        }
+
                         // 2. Instantly navigate the leaving player out to avoid showing them their own "opponent_abandoned" broadcast
                         setActiveGame(null);
                         setPlayers([]);
                         onBackToPortal();
-
-                        // 3. Purge the remote match lobby after a 5 second grace period
-                        setTimeout(async () => {
-                            if (match) { leaveGame(); }
-                            if (onTerminateLobby) {
-                                await onTerminateLobby();
-                            }
-                        }, 5000);
                     }}
                 />
             )}
