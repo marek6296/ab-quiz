@@ -177,12 +177,11 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
                     if (answersChanged) {
                         await broadcastState({ answers: currentAnswers });
-                        return; // return to break out and avoid instantly triggering next logic in the same loop if player already answered 
-                    }
-
-                    const allAnswered = currentPlayers.length > 0 && currentPlayers.every(p => currentAnswers[p.id]);
-                    if (elapsed >= 8000 || allAnswered) {
-                        await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
+                    } else {
+                        const allAnswered = currentPlayers.length > 0 && currentPlayers.every(p => currentAnswers[p.id]);
+                        if (elapsed >= 8000 || allAnswered) {
+                            await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
+                        }
                     }
                 } else if (phase === 'reveal_value') {
                     if (now - (state.phase_start_time || now) >= 1000) {
