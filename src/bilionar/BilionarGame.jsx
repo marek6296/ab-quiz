@@ -15,16 +15,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const [scoreGained, setScoreGained] = useState(null);
     const awardedIndex = useRef(-1);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
-
-    // Auto-leave if opponent abandoned
-    // useEffect(() => {
-    //     if (gameState.phase === 'finished' && gameState.win_reason === 'opponent_abandoned') {
-    //         const t = setTimeout(() => {
-    //             onLeave();
-    //         }, 5000);
-    //         return () => clearTimeout(t);
-    //     }
-    // }, [gameState.phase, gameState.win_reason, onLeave]);
+    const [isLeaving, setIsLeaving] = useState(false);
 
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
@@ -43,7 +34,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
         // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
         // CRITICAL: Only the REMAINING player should trigger and see this. The leaving player's client should NOT trigger its own victory.
         const amIStillAlive = players.some(p => p.user_id === user.id);
-        if (amIStillAlive && activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+        if (amIStillAlive && !isLeaving && activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
             const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999, win_reason: 'opponent_abandoned' };
             supabase.from('bilionar_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
         }
@@ -56,7 +47,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 supabase.from('bilionar_games').update({ host_id: user.id }).eq('id', activeGame.id).then();
             }
         }
-    }, [players, activeGame.host_id, user, activeGame.state?.max_real_players, gameState.phase, activeGame.status]);
+    }, [players, activeGame.host_id, user, activeGame.state?.max_real_players, gameState.phase, activeGame.status, activeGame.id, isLeaving]);
 
     // 2. HOST Server Loop - Drives the Game State across all clients
     useEffect(() => {
@@ -416,8 +407,8 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
         if (gameState.win_reason === 'opponent_abandoned') {
             const amITheWinner = players.some(p => p.user_id === user.id);
             if (!amITheWinner) {
-                // Toho klienta sme my sami opustili! V tomto čase len čaká na odpojenie a renderuje 'Opúšťam hru...'
-                return <div className="bilionar-board fullscreen-flex"><div className="message-modal"><h2>Opúšťate zónu...</h2></div></div>;
+                // Toho klienta sme my sami opustili! Okamžite prejdeme do lobby, žiadne prechodné stavy
+                return null;
             }
 
             return (
@@ -493,11 +484,11 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                             <strong>Váš postup bude stratený.</strong>
                         </p>
                         <div className="modal-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={onLeave} style={{ minWidth: '140px', background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Áno, skončiť
+                            <button onClick={() => { setIsLeaving(true); onLeave(); }} style={{ minWidth: '140px', background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                                Áno, Opustiť
                             </button>
                             <button onClick={() => setShowExitConfirm(false)} style={{ minWidth: '140px', background: '#38bdf8', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Zostať v hre
+                                Zrušiť
                             </button>
                         </div>
                     </div>
