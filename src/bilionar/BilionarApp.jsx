@@ -246,7 +246,7 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                         }
                         setActiveGame(null);
                         setPlayers([]);
-                        setView('lobby');
+                        onBackToPortal();
                     }}
                 />
             )}
