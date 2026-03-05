@@ -835,9 +835,11 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                '--name-len': (profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')).length
+                '--name-len': (gameMode === '1v1_online' ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper')) : (profile?.username || 'Vy')).length
               }}>
-                {profile?.username || (localPlayerNum === 1 ? 'Vy' : 'Súper')}
+                {gameMode === '1v1_online'
+                  ? (localPlayerNum === 1 ? (profile?.username || 'Hráč 1') : (opponentName || 'Súper'))
+                  : (profile?.username || 'Vy')}
               </span>
               {renderAvatar(1, '42px', 'var(--player1-color)')}
             </div>
@@ -848,9 +850,11 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                '--name-len': (gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))).length
+                '--name-len': (gameMode === '1vbot' ? 'CPU' : (gameMode === '1v1_online' ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper')) : 'Hráč 2')).length
               }}>
-                {gameMode === '1vbot' ? 'CPU' : (opponentName || (localPlayerNum === 2 ? 'Vy' : 'Súper'))}
+                {gameMode === '1vbot'
+                  ? 'CPU'
+                  : (gameMode === '1v1_online' ? (localPlayerNum === 2 ? (profile?.username || 'Hráč 2') : (opponentName || 'Súper')) : 'Hráč 2')}
               </span>
             </div>
           </h1>
