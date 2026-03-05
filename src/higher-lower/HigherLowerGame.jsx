@@ -89,7 +89,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 const answeredAt = typeof guessRecord === 'object' ? guessRecord.timestamp : now;
                 const elapsed = Math.max(0, answeredAt - (state.phase_start_time || now));
 
-                const isHigher = secondItem.value >= firstItem.value;
+                const isHigher = Number(secondItem.value) >= Number(firstItem.value);
                 const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
 
                 let pointsEarned = 0;
@@ -307,13 +307,19 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
     if (['reveal_value', 'reveal_result'].includes(gameState.phase) && firstItem && secondItem) {
         const record = gameState.answers?.[myRecord?.id];
-        visualGuess = record ? (typeof record === 'object' ? record.value : record) : myGuess;
+        let vg = myGuess;
 
-        if (visualGuess && visualGuess !== 'timeout') {
-            const isHigher = secondItem.value >= firstItem.value;
-            isCorrect = (visualGuess === 'higher' && isHigher) || (visualGuess === 'lower' && !isHigher);
-        } else if (visualGuess === 'timeout') {
+        if (!vg && record) {
+            vg = typeof record === 'object' ? record.value : record;
+        }
+
+        if (vg && vg !== 'timeout') {
+            const isHigher = Number(secondItem.value) >= Number(firstItem.value);
+            isCorrect = (vg === 'higher' && isHigher) || (vg === 'lower' && !isHigher);
+            visualGuess = vg;
+        } else if (vg === 'timeout') {
             isCorrect = false;
+            visualGuess = 'timeout';
         }
     }
 
