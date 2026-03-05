@@ -257,7 +257,9 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
         const diffs = match.snapshot_settings?.diff || [1];
 
         // Ensure we know if we are playing against a real opponent or a bot
-        const realMembers = members.filter(m => m.state === 'in_game');
+        // RACE CONDITION PREVENCION: The realtime listener that sets `match` is usually faster than the one 
+        // updating member status to 'in_game'. So we consider both 'in_lobby' and 'in_game' members valid for start!
+        const realMembers = members.filter(m => m.state === 'in_lobby' || m.state === 'in_game');
         const botMember = realMembers.find(m => m.role === 'bot');
         const isBotGame = !!botMember;
         const actualMode = isBotGame ? '1vbot' : '1v1_online';
@@ -276,6 +278,10 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
             if (opponent) p2_id = opponent.user_id;
           }
 
+          // CLEANUP: If the host forcefully refreshed the lobby without finishing the previous game, 
+          // there might be a dangling 'active' public.games row that violates a potential DB unique constraint!
+          await supabase.from('games').delete().eq('player1_id', p1_id).eq('status', 'active');
+
           const { data: newGame, error: err } = await supabase.from('games').insert([{
             id: match.id,
             player1_id: p1_id,
@@ -287,6 +293,11 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
             category: JSON.stringify({ cats, diffs }),
             difficulty: diffs[0] || 1
           }]).select().single();
+
+          if (err) {
+            console.error("FATAL: Failed to insert new public.games row!", err);
+            alert("Nastal problém pri zakladaní hry na serveri: " + err.message);
+          }
 
           if (!err && newGame) {
             handleStartGame(actualMode, rules, match.id, cats, diffs, match.snapshot_settings?.botDiff || 2);

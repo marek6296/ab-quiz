@@ -47,15 +47,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
     // Globálny odpočet a presun do hry pre VŠETKÝCH hráčov
     useEffect(() => {
-        const playedLockId = `played_m_${lobby?.active_match_id}`;
-
-        if (lobby?.status === 'starting' && lobby?.active_match_id && !hasStartedRef.current) {
-            if (sessionStorage.getItem(playedLockId)) {
-                // Ak sme túto konkrétnu inštanciu matche už hrali, ignorujeme opätovné odpálenie ak DB nestihla vrátiť lobby.status naspäť na 'waiting'
-                return;
-            }
+        if (lobby?.status === 'countdown' && !hasStartedRef.current) {
             hasStartedRef.current = true;
-            sessionStorage.setItem(playedLockId, 'true');
 
             const doCountdown = async () => {
                 setCountdown("3");
@@ -68,23 +61,14 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 await new Promise(r => setTimeout(r, 500));
                 setCountdown(null);
 
-                if (onStartGameFlow) {
-                    onStartGameFlow(
-                        lobby.selected_game,
-                        lobby.active_match_id,
-                        lobby.selected_game === 'quiz' ? '1v1_online' : lobby.selected_game,
-                        {
-                            rules: lobby.settings?.rules || 'hex',
-                            cat: lobby.settings?.cat || [],
-                            diff: lobby.settings?.diff || [1],
-                            botDiff: 2
-                        }
-                    );
+                if (isHost) {
+                    // Host reálne odpáli hru v databáze AŽ PO SKONČENÍ odpočtu
+                    await startMatch();
                 }
             };
             doCountdown();
         }
-    }, [lobby?.status, lobby?.active_match_id, lobby?.selected_game, lobby?.settings, onStartGameFlow]);
+    }, [lobby?.status, isHost, startMatch]);
 
     const handleToggleCategory = (cat) => {
         if (!isHost) return;
@@ -132,8 +116,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const handleStartMatch = async () => {
         if (!isHost || !lobby) return;
 
-        // Okamžite zmení stav na 'starting' v DB, čo triggerne efekt u oboch hráčov (uvidia odpočet naraz)
-        await startMatch();
+        // Zmení stav Lobby na countdown, čo u všetkých zapne UI odpočet
+        await supabase.from('platform_lobbies').update({ status: 'countdown' }).eq('id', lobby.id);
     };
 
     if (!lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
