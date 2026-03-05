@@ -95,7 +95,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 }
             };
             initGame();
-            return;
+            // DO NOT RETURN HERE - otherwise the ticker is never created for the rest of the game!
         }
 
         const ticker = setInterval(() => {
@@ -416,10 +416,12 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     }
 
     // 2. Main Game Body
-    const totalQ = gameState.questions?.length;
+    const totalQ = gameState.questions?.length || 10;
     const currentQ = gameState.questions?.[gameState.current_index];
     const isQuestionOnly = gameState.phase === 'showing_question_only';
     const isReveal = gameState.phase === 'reveal_results';
+
+    const isBoardVisible = ['showing_question_only', 'answering', 'time_up', 'reveal_pause', 'reveal_results'].includes(gameState.phase);
 
     return (
         <div className="bilionar-board relative-board">
@@ -529,64 +531,66 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                     </div>
                 )}
 
-                {/* ACTIVE GAME BOARD (Always present in background or foreground) */}
-                <div
-                    className={`bilionar-timer-wrapper ${isQuestionOnly ? 'opacity-0' : 'animate-fade-in'}`}
-                    style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
-                >
-                    <div className="bilionar-timer-circle" style={{
-                        background: `conic-gradient(#ef4444 ${((gameState.phase === 'answering' ? visualTime : 0) / 10) * 360}deg, transparent 0deg)`
-                    }}>
-                        <div className="bilionar-timer-inner">
-                            {gameState.phase === 'answering' ? visualTime : 0}
+                {/* ACTIVE GAME BOARD (Hidden cleanly during intro/recap phases) */}
+                <div style={{ display: isBoardVisible ? 'contents' : 'none' }}>
+                    <div
+                        className={`bilionar-timer-wrapper ${isQuestionOnly ? 'opacity-0' : 'animate-fade-in'}`}
+                        style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
+                    >
+                        <div className="bilionar-timer-circle" style={{
+                            background: `conic-gradient(#ef4444 ${((gameState.phase === 'answering' ? visualTime : 0) / 10) * 360}deg, transparent 0deg)`
+                        }}>
+                            <div className="bilionar-timer-inner">
+                                {gameState.phase === 'answering' ? visualTime : 0}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="bilionar-question-container">
-                    <div className="bilionar-question-box animate-slide-down">
-                        <span className="question-number">Otázka {gameState.current_index + 1}/{totalQ}</span>
-                        <h2>{currentQ?.question_text || 'Načítavam otázku...'}</h2>
+                    <div className="bilionar-question-container">
+                        <div className="bilionar-question-box animate-slide-down">
+                            <span className="question-number">Otázka {gameState.current_index + 1}/{totalQ}</span>
+                            <h2>{currentQ?.question_text || 'Načítavam otázku...'}</h2>
+                        </div>
                     </div>
-                </div>
 
-                <div
-                    className={`bilionar-options-grid ${isQuestionOnly ? 'opacity-0' : 'animate-fade-up'}`}
-                    style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
-                >
-                    {['A', 'B', 'C', 'D'].map((key) => {
-                        const optionText = currentQ?.[`option_${key.toLowerCase()}`];
-                        let statusClass = '';
+                    <div
+                        className={`bilionar-options-grid ${isQuestionOnly ? 'opacity-0' : 'animate-fade-up'}`}
+                        style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
+                    >
+                        {['A', 'B', 'C', 'D'].map((key) => {
+                            const optionText = currentQ?.[`option_${key.toLowerCase()}`];
+                            let statusClass = '';
 
-                        if (gameState.phase === 'answering' && selectedAnswer === key) statusClass = 'locked';
-                        else if (isReveal) {
-                            if (key === currentQ?.correct_answer) statusClass = 'correct blink-green';
-                            else if (selectedAnswer === key) statusClass = 'wrong';
-                        }
+                            if (gameState.phase === 'answering' && selectedAnswer === key) statusClass = 'locked';
+                            else if (isReveal) {
+                                if (key === currentQ?.correct_answer) statusClass = 'correct blink-green';
+                                else if (selectedAnswer === key) statusClass = 'wrong';
+                            }
 
-                        const pickedBy = isReveal ? players.filter(p => p.selected_answer === key && p.user_id !== user.id) : [];
+                            const pickedBy = isReveal ? players.filter(p => p.selected_answer === key && p.user_id !== user.id) : [];
 
-                        return (
-                            <div key={key} style={{ position: 'relative' }}>
-                                <button
-                                    className={`bilionar-option-btn ${statusClass}`}
-                                    onClick={() => handleSelectOption(key)}
-                                    disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
-                                >
-                                    <div className="option-letter">{key}:</div>
-                                    <div className="option-text" style={{ textAlign: 'left' }}>{optionText}</div>
+                            return (
+                                <div key={key} style={{ position: 'relative' }}>
+                                    <button
+                                        className={`bilionar-option-btn ${statusClass}`}
+                                        onClick={() => handleSelectOption(key)}
+                                        disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
+                                    >
+                                        <div className="option-letter">{key}:</div>
+                                        <div className="option-text" style={{ textAlign: 'left' }}>{optionText}</div>
 
-                                    {isReveal && pickedBy.length > 0 && (
-                                        <div style={{ display: 'flex', gap: '4px', marginLeft: '10px', flexWrap: 'wrap', maxWidth: '120px', justifyContent: 'flex-end' }}>
-                                            {pickedBy.map(p => (
-                                                <div key={p.id} className="choice-dot shadow-pop" style={{ backgroundColor: p.color || '#ffffff' }} title={p.player_name} />
-                                            ))}
-                                        </div>
-                                    )}
-                                </button>
-                            </div>
-                        );
-                    })}
+                                        {isReveal && pickedBy.length > 0 && (
+                                            <div style={{ display: 'flex', gap: '4px', marginLeft: '10px', flexWrap: 'wrap', maxWidth: '120px', justifyContent: 'flex-end' }}>
+                                                {pickedBy.map(p => (
+                                                    <div key={p.id} className="choice-dot shadow-pop" style={{ backgroundColor: p.color || '#ffffff' }} title={p.player_name} />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
