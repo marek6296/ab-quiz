@@ -41,12 +41,12 @@ export const PlatformSessionProvider = ({ children }) => {
         const initializeSession = async () => {
             setIsLoading(true);
             try {
-                // 1. Find if I am in any lobby where my state is NOT 'left'
+                // 1. Find if I am in any lobby where my state is active (not left, not just invited)
                 const { data: memberData, error: memError } = await supabase
                     .from('lobby_members')
                     .select('lobby_id, role, state')
                     .eq('user_id', user.id)
-                    .neq('state', 'left')
+                    .in('state', ['in_lobby', 'in_game', 'disconnected'])
                     .order('joined_at', { ascending: false })
                     .limit(1);
 
