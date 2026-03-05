@@ -315,6 +315,8 @@ export const PlatformSessionProvider = ({ children }) => {
             await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', lobby.id);
             setLobby(null);
             setMembers([]);
+            setMatch(null);
+            setMatchPlayers([]);
 
             // Vytvor novú
             await createLobby(currentSelectedGame);

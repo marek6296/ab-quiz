@@ -233,6 +233,16 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     }
   }, [user]);
 
+  // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
+  useEffect(() => {
+    // If we were playing an online game and someone killed the match DB row (e.g. host left)
+    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && !match) {
+      resetToLobby();
+      onBackToPortal();
+      resetGame();
+    }
+  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame]);
+
   // Platform Match Synchronization & DB Game Initialization
   useEffect(() => {
     if (!match || match.game_type !== 'quiz' || myMatchState?.state === 'left') return;
@@ -558,21 +568,6 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     return () => clearTimeout(timeout);
   }, [currentPlayer, appState, profile, opponentName, winner, gameMode, activeModal]);
 
-  // Resume active game if we have one (local fallback for non-platform matches, though deprecated eventually)
-  useEffect(() => {
-    if (user?.id && !activeGameId && !manualExitRef.current && (!match || match.game_type !== 'quiz')) {
-      supabase.from('games').select('*')
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-        .eq('status', 'active')
-        .single()
-        .then(({ data }) => {
-          if (data && !activeGameId && !manualExitRef.current) {
-            handleStartGame('1v1_online', data.game_type || 'hex', data.id);
-          }
-        });
-    }
-  }, [user, activeGameId, handleStartGame, match]);
-
   // Logic extractions
   useBotTurn({ gameMode, currentPlayer, winner, activeModal, showExitConfirm, board, getRandomQuestionForConfig, setActiveModal });
   const { handleSyncModal } = useModalSync({
@@ -710,7 +705,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     }
 
     if (match) {
-      leaveGame();
+      await leaveGame();
     }
 
     // Explicitly terminate platform lobby if we were in one
