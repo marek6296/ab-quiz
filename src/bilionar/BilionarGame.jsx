@@ -223,8 +223,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
     // 3. Client Local State Handlers (Timer and Score)
     useEffect(() => {
-        // Reset selections on new question cycle setup
-        if (['prepare_first', 'prepare_next', 'post_question_pause'].includes(gameState.phase)) {
+        if (['welcome', 'prepare_next', 'post_question_pause'].includes(gameState.phase)) {
             setSelectedAnswer(null);
             setScoreGained(null);
             setVisualTime(10); // Default to our 10s answering time
@@ -542,10 +541,10 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                     </div>
                 )}
 
-                {(gameState.phase === 'prepare_first' || gameState.phase === 'prepare_next') && (
+                {gameState.phase === 'prepare_next' && (
                     <div className="fullscreen-flex" style={{ zIndex: 100 }}>
                         <div className="message-modal slide-in-scale">
-                            <h2>{gameState.phase === 'prepare_first' ? 'Pripravte sa na prvú otázku' : 'Ideme na ďalšiu otázku'}</h2>
+                            <h2>Ideme na ďalšiu otázku</h2>
                         </div>
                     </div>
                 )}
