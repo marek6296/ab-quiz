@@ -20,7 +20,8 @@ export const HigherLowerAdmin = ({ onBack }) => {
     const [newItem, setNewItem] = useState({ name: '', value: '', image: '', category_id: '', difficulty: 1 });
 
     // AI Generator state
-    const [aiPrompt, setAiPrompt] = useState('10 filmov s ich celosvetovými tržbami');
+    const [selectedGenCats, setSelectedGenCats] = useState([]);
+    const [aiCount, setAiCount] = useState(10);
     const [aiDifficulty, setAiDifficulty] = useState(1);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiStatus, setAiStatus] = useState('');
@@ -155,77 +156,97 @@ export const HigherLowerAdmin = ({ onBack }) => {
     const getCatDetails = (cId) => categories.find(c => c.id === cId) || {};
 
     const handleGenerateAI = async () => {
-        if (!filterCategory) return alert("Najprv vyber na ľavom paneli kategóriu, pre ktorú chceš generovať!");
-        if (!aiPrompt) return alert("Zadaj tému!");
-
-        const catObj = getCatDetails(filterCategory);
+        if (selectedGenCats.length === 0) return alert("Najprv vyber na paneli kategórie, pre ktoré chceš generovať!");
+        if (!aiCount || aiCount < 1) return alert("Zadaj platný počet položiek (napr. 10)!");
 
         setAiLoading(true);
-        setAiStatus('Posielam požiadavku na OpenAI...');
 
         try {
             const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
             if (!apiKey) throw new Error("Chýba VITE_OPENAI_API_KEY");
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    temperature: 0.7,
-                    messages: [
-                        {
-                            role: "system",
-                            content: `Si ODBORNÝ EDITOR dát pre hru Higher/Lower. Tvojou úlohou je vygenerovať presne ten počet záznamov, o aký ťa používateľ požiada.
+            let totalInserted = 0;
+
+            for (let i = 0; i < selectedGenCats.length; i++) {
+                const catId = selectedGenCats[i];
+                const catObj = getCatDetails(catId);
+
+                setAiStatus(`Generujem tému: ${catObj.name} (${i + 1}/${selectedGenCats.length})...`);
+
+                // Fetch some existing items to avoid duplicates
+                const { data: existingData } = await supabase
+                    .from('higher_lower_items')
+                    .select('name')
+                    .eq('category_id', catId)
+                    .limit(50);
+
+                const avoidList = existingData?.length > 0
+                    ? `\nTIETO POLOŽKY UŽ MÁME (NEOPAKOVAŤ ICH): ${existingData.map(val => val.name).join(', ')}`
+                    : "";
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o",
+                        temperature: 0.8,
+                        messages: [
+                            {
+                                role: "system",
+                                content: `Si ODBORNÝ EDITOR dát pre hru Higher/Lower. Tvojou úlohou je vygenerovať presne ten počet záznamov, o aký ťa požiadame.
 Vytváraš JSON pre kategóriu "${catObj.name}" s metrikou "${catObj.metric}".
-Cieľová NÁROČNOSŤ (1=ľahké známe fakty, 2=stredné, 3=ťažké fakty pre expertov) je VŽDY nastavená na: ${aiDifficulty}.
+Cieľová NÁROČNOSŤ (1=ľahké známe fakty, 2=stredné, 3=ťažké špecifické fakty) je VŽDY nastavená na: ${aiDifficulty}.
 
 AKCIA:
-1. Vygeneruj unikátne záznamy na tému, ktorú ti zadá používateľ. Snaž sa neopakovať bežne známe veci.
-2. Zisti si PRESNÚ HODNOTU danej veci vo svete (napr. predaje v kusoch, kalórie na 100g, km/h, atď) - odpoveď MUSÍ byť len čisté matematické číslo bez medzier a oddelovačov (napríklad 1500000 namiesto 1 500 000). To pôjde do kľúča "value".
-3. Pre každú položku vymysli výstižné 1 VIZUÁLNE EMOJI. To pôjde do kľúča "image". Povoľujeme max 1 znak.
+1. Vygeneruj unikátne záznamy, ktoré sa presne hodia do kategórie.
+2. Zisti si PRESNÚ HODNOTU danej veci vo svete (napr. zisk, výška, váha, kalórie atď. podľa aktuálnej metriky) - "value" MUSÍ byť len čisté matematické číslo (napríklad 1500000 namiesto 1 500 000). Nechaj to ako normálne JSON číslo. Nepridávaj do hodnoty texty.
+3. Pre každú položku vymysli výstižné 1 VIZUÁLNE EMOJI. To pôjde do kľúča "image". Povoľujeme max 1 znak (emoji).
 4. Krátky a jasný názov veci pôjde do "name".
-5. Nepridávaj do hodnoty znaky meny alebo skratky metriky, IBA ČÍSLO.
+5. Nesmieš použiť rovnaké položky ako tieto: ${avoidList}
 
 Výstup musí byť vždy JSON { "items": [ { "name": "...", "value": 1500, "image": "🚗" }, ... ] }`
-                        },
-                        {
-                            role: "user",
-                            content: `Vygeneruj mi dáta: ${aiPrompt}`
-                        }
-                    ],
-                    response_format: { type: "json_object" }
-                })
-            });
+                            },
+                            {
+                                role: "user",
+                                content: `Záväzná úloha: Vygeneruj presne ${aiCount} nových záznamov pre kategóriu "${catObj.name}".`
+                            }
+                        ],
+                        response_format: { type: "json_object" }
+                    })
+                });
 
-            if (!response.ok) throw new Error("Chyba z OpenAI API: " + response.statusText);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `HTTP ${response.status}`);
+                }
 
-            const rawData = await response.json();
-            const result = JSON.parse(rawData.choices[0].message.content);
-            const generatedItems = result.items || [];
+                const rawData = await response.json();
+                const result = JSON.parse(rawData.choices[0].message.content);
+                const generatedItems = result.items || [];
 
-            if (generatedItems.length === 0) throw new Error("AI nevrátilo žiadne položky.");
+                if (generatedItems.length === 0) throw new Error(`AI nevrátilo žiadne položky pre kategóriu ${catObj.name}`);
 
-            setAiStatus(`Generátor vymyslel ${generatedItems.length} záznamov. Ukladám do DB...`);
+                const toInsert = generatedItems.map(it => ({
+                    name: String(it.name),
+                    value: parseFloat(it.value) || 0,
+                    image: it.image || '❓',
+                    category_id: catId,
+                    difficulty: parseInt(aiDifficulty, 10)
+                }));
 
-            const toInsert = generatedItems.map(it => ({
-                name: it.name,
-                value: parseFloat(it.value) || 0,
-                image: it.image || '❓',
-                category_id: filterCategory,
-                difficulty: aiDifficulty
-            }));
+                const { error } = await supabase.from('higher_lower_items').insert(toInsert);
+                if (error) throw error;
 
-            const { error } = await supabase.from('higher_lower_items').insert(toInsert);
-            if (error) throw error;
+                totalInserted += toInsert.length;
+            }
 
-            alert(`✅ Úspešne pridaných ${generatedItems.length} nových položiek!`);
+            alert(`✅ Úspešne vygenerovaných a pridaných: ${totalInserted} položiek!`);
             fetchItems();
             fetchCategories();
-            setAiPrompt('');
+            setSelectedGenCats([]);
         } catch (err) {
             console.error(err);
             alert('Chyba pri AI generovaní: ' + err.message);
@@ -491,53 +512,95 @@ Výstup musí byť vždy JSON { "items": [ { "name": "...", "value": 1500, "imag
                     )}
 
                     {activeTab === 'generate' && (
-                        <div className="auth-form" style={{ maxWidth: '600px' }}>
+                        <div className="auth-form" style={{ maxWidth: '800px' }}>
                             <h2 style={{ color: '#facc15', marginBottom: '1rem' }}>AI Generátor Položiek</h2>
                             <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-                                Vyberte si kategóriu na ľavom paneli a dajte AI pokyn, aby pre ňu vygenerovalo úplne nové položky, rovno aj s hodnotami, aj emotikonom.
+                                Vyber si jednu alebo viac herných kategórií, napíš množstvo položiek per kategóriu, a AI ich automaticky vymyslí spolu s ich reálnymi hodnotami a priradeným emoji!
                             </p>
 
                             <div className="form-group">
-                                <label>Kategória pre generovanie</label>
-                                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', color: filterCategory ? '#38bdf8' : '#ef4444', fontWeight: 'bold' }}>
-                                    {filterCategory ? getCatDetails(filterCategory).name : '⚠️ Nevybrali ste kategóriu (vyberte na ľavej lište)'}
+                                <label style={{ marginBottom: '0.8rem', display: 'block' }}>Kategórie na generovanie</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedGenCats(categories.map(c => c.id))}
+                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid #38bdf8' }}
+                                    >Všetky Kategórie</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedGenCats([])}
+                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444' }}
+                                    >Zrušiť Výber</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    {categories.map(cat => {
+                                        const isSelected = selectedGenCats.includes(cat.id);
+                                        return (
+                                            <button
+                                                key={`gen-${cat.id}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedGenCats(prev =>
+                                                        isSelected ? prev.filter(id => id !== cat.id) : [...prev, cat.id]
+                                                    );
+                                                }}
+                                                style={{
+                                                    padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                                                    background: isSelected ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                                    color: isSelected ? 'white' : '#94a3b8',
+                                                    fontWeight: 'bold', fontSize: '0.9rem',
+                                                    transition: 'all 0.2s', border: isSelected ? '1px solid #34d399' : '1px solid rgba(255,255,255,0.1)'
+                                                }}
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>Náročnosť otázok pre AI (1, 2 alebo 3)</label>
-                                <select
-                                    value={aiDifficulty}
-                                    onChange={e => setAiDifficulty(e.target.value)}
-                                    style={{ background: '#1e293b', color: 'white', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
-                                >
-                                    <option value="1">1 (Ľahké - 95% ľudí vie)</option>
-                                    <option value="2">2 (Stredné - priemerný prehľad)</option>
-                                    <option value="3">3 (Ťažké - pre expertov hladačov faktov)</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Prompt / Príkaz</label>
-                                <textarea
-                                    value={aiPrompt}
-                                    onChange={e => setAiPrompt(e.target.value)}
-                                    rows={3}
-                                    required
-                                    placeholder="Napr: 15 najväčších jazier s ich rozlohou v km2"
-                                />
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Počet položiek NA KATEGÓRIU (1-50)</label>
+                                    <input
+                                        type="number"
+                                        value={aiCount}
+                                        onChange={e => setAiCount(parseInt(e.target.value) || 1)}
+                                        min={1}
+                                        max={50}
+                                        required
+                                        style={{ width: '100%', background: '#1e293b', color: 'white', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Náročnosť položiek pre AI</label>
+                                    <select
+                                        value={aiDifficulty}
+                                        onChange={e => setAiDifficulty(e.target.value)}
+                                        style={{ background: '#1e293b', color: 'white', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    >
+                                        <option value="1">1 (Ľahké - 95% ľudí pozná tieto veci)</option>
+                                        <option value="2">2 (Stredné - bežný rozhľad)</option>
+                                        <option value="3">3 (Ťažké - pre expertov s detailmi)</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <button
                                 onClick={handleGenerateAI}
-                                disabled={aiLoading || !filterCategory}
+                                disabled={aiLoading || selectedGenCats.length === 0}
                                 className="primary"
-                                style={{ width: '100%', marginTop: '1rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', padding: '1rem' }}
+                                style={{ width: '100%', marginTop: '1rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                             >
-                                {aiLoading ? 'Generujem (čítaj status)...' : '✨ Generovať s AI'}
+                                {aiLoading ? (
+                                    <>
+                                        <div className="loader" style={{ width: '28px', height: '28px', border: '3px solid rgba(0,0,0,0.2)', borderTop: '3px solid black', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                                        <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>{aiStatus || 'Beží...'}</span>
+                                    </>
+                                ) : '✨ Generovať zvolené kategórie s AI'}
                             </button>
 
-                            {aiStatus && (
+                            {aiStatus && !aiLoading && (
                                 <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderRadius: '8px', border: '1px dashed #38bdf8' }}>
                                     {aiStatus}
                                 </div>
