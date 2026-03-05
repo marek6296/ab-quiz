@@ -190,7 +190,6 @@ export const PlatformSessionProvider = ({ children }) => {
     // Actions
     const createLobby = async (gameType) => {
         if (!user) return;
-        setIsLoading(true);
         try {
             const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -224,14 +223,11 @@ export const PlatformSessionProvider = ({ children }) => {
         } catch (err) {
             console.error("Create lobby error:", err);
             setError(err.message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
     const joinLobby = async (joinCode) => {
         if (!user) return;
-        setIsLoading(true);
         try {
             const { data: targetLobby } = await supabase
                 .from('platform_lobbies')
@@ -246,14 +242,11 @@ export const PlatformSessionProvider = ({ children }) => {
         } catch (err) {
             console.error("Join lobby error:", err);
             throw err;
-        } finally {
-            setIsLoading(false);
         }
     };
 
     const joinLobbyById = async (id) => {
         if (!user) return;
-        setIsLoading(true);
         try {
             const { data: targetLobby } = await supabase
                 .from('platform_lobbies')
@@ -287,8 +280,6 @@ export const PlatformSessionProvider = ({ children }) => {
         } catch (err) {
             console.error("Join lobby error:", err);
             throw err;
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -339,7 +330,6 @@ export const PlatformSessionProvider = ({ children }) => {
 
     const startMatch = async () => {
         if (!isHost || !lobby) return;
-        setIsLoading(true);
         try {
             // 1. Create a new Match record
             const { data: newMatch, error: matchErr } = await supabase
@@ -388,8 +378,6 @@ export const PlatformSessionProvider = ({ children }) => {
         } catch (err) {
             console.error("Start match error:", err);
             setError(err.message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
