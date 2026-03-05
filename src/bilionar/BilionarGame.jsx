@@ -335,45 +335,47 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
         return (
             <div key={p.id} className={`bilionar-player-avatar ${isMe ? 'is-me' : ''}`} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                width: '60px', position: 'relative'
+                display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px',
+                padding: '6px 16px 6px 6px',
+                background: isMe ? 'linear-gradient(135deg, rgba(250,204,21,0.15) 0%, rgba(0,0,0,0.6) 100%)' : 'rgba(0,0,0,0.4)',
+                borderRadius: '50px',
+                border: isMe ? '1px solid rgba(250,204,21,0.4)' : '1px solid rgba(255,255,255,0.05)',
+                boxShadow: isMe ? '0 0 15px rgba(250,204,21,0.1)' : '0 4px 10px rgba(0,0,0,0.3)',
+                position: 'relative'
             }}>
                 {showAnswered && (
                     <div style={{
-                        position: 'absolute', top: '-5px', right: '5px', background: '#22c55e',
+                        position: 'absolute', top: '-4px', left: '-4px', background: '#10b981',
                         color: 'white', borderRadius: '50%', width: '18px', height: '18px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px',
                         zIndex: 10, border: '2px solid #0f172a', fontWeight: 'bold'
                     }}>
                         ✓
                     </div>
                 )}
                 <div style={{
-                    position: 'relative', width: '45px', height: '45px', borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.1)', border: `2px solid ${isMe ? '#facc15' : 'rgba(250, 204, 21, 0.4)'}`,
-                    overflow: 'hidden', boxShadow: isMe ? '0 0 10px rgba(250, 204, 21, 0.6)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    position: 'relative', width: '42px', height: '42px', borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.1)', border: `2px solid ${isMe ? '#facc15' : 'rgba(255, 255, 255, 0.2)'}`,
+                    overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0
                 }}>
                     {scoreGained !== null && isMe && (
-                        <div className="score-popup">+{scoreGained}</div>
+                        <div className="score-popup" style={{ fontSize: '14px', zIndex: 10 }}>+{scoreGained}</div>
                     )}
                     {p.avatar_url ? (
                         <img src={p.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                     ) : null}
                     <div style={{ display: p.avatar_url ? 'none' : 'block', fontSize: '20px' }}>👤</div>
-
-                    {/* Score Badge */}
-                    <div style={{
-                        position: 'absolute', bottom: '-4px', right: '-4px', background: '#0f172a',
-                        border: '1px solid #facc15', color: '#facc15', fontSize: '10px',
-                        fontWeight: 'bold', padding: '1px 4px', borderRadius: '8px'
-                    }}>
-                        {p.score}
-                    </div>
                 </div>
-                <span style={{ fontSize: '10px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontWeight: isMe ? 'bold' : 'normal' }}>
-                    {p.player_name?.split(' ')[0]}
-                </span>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '14px', color: isMe ? '#facc15' : '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', fontWeight: 'bold', lineHeight: 1 }}>
+                        {p.player_name || 'Hráč'}
+                    </span>
+                    <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', lineHeight: 1 }}>
+                        <span style={{ color: '#facc15', fontSize: '11px' }}>★</span> {p.score}
+                    </span>
+                </div>
             </div>
         );
     };
@@ -440,13 +442,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
             <div className="bilionar-board fullscreen-flex" style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #020617 100%)' }}>
                 <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
-                    {players.map((p, i) => (
+                    {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, i) => (
                         <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                 <span style={{ fontSize: '1.5rem', fontWeight: '900', color: i === 0 ? '#facc15' : '#94a3b8' }}>#{i + 1}</span>
+                                <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
                                 <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
                             </div>
-                            <span style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.4rem' }}>{p.score} b</span>
+                            <span style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.4rem' }}>{p.score || 0} b</span>
                         </div>
                     ))}
                 </div>

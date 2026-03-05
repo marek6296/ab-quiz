@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase';
+
 export const HL_DATASET = [
     {
         category: "Priemerný mesačný plat (€)",
@@ -44,9 +46,30 @@ export const HL_DATASET = [
 ];
 
 // Returns a single random category object, with its items shuffled
-export const getRandomGameSequence = (length = 100) => {
-    const cat = HL_DATASET[Math.floor(Math.random() * HL_DATASET.length)];
-    let items = [...cat.items];
+export const getRandomGameSequence = async (length = 100) => {
+    let cat;
+    let items = [];
+
+    // Try DB first
+    try {
+        const { data: categories, error: catErr } = await supabase.from('higher_lower_categories').select('*');
+        if (!catErr && categories && categories.length > 0) {
+            cat = categories[Math.floor(Math.random() * categories.length)];
+            const { data: dbItems, error: itemsErr } = await supabase.from('higher_lower_items').select('*').eq('category_id', cat.id);
+            if (!itemsErr && dbItems && dbItems.length > 0) {
+                items = dbItems;
+            }
+        }
+    } catch (err) {
+        console.error("Failed to fetch HL dataset from DB:", err);
+    }
+
+    // Fallback to local
+    if (!cat || items.length === 0) {
+        cat = HL_DATASET[Math.floor(Math.random() * HL_DATASET.length)];
+        items = [...cat.items];
+        cat = { name: cat.category, metric: cat.metric }; // Normalize to DB shape
+    }
 
     // Shuffle items
     items.sort(() => Math.random() - 0.5);
@@ -65,7 +88,7 @@ export const getRandomGameSequence = (length = 100) => {
     }
 
     return {
-        topic: cat.category,
+        topic: cat.name,
         metric: cat.metric,
         sequence
     };

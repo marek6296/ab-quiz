@@ -110,7 +110,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
             try {
                 if (phase === 'init') {
                     if (!state.phase_start_time) {
-                        const seqData = getRandomGameSequence(50);
+                        const seqData = await getRandomGameSequence(50);
                         await broadcastState({
                             phase: 'spawning_clear',
                             round_index: 0,
