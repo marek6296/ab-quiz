@@ -3571,6 +3571,7 @@ button.small {
   text-align: center;
   margin: 0;
   line-height: 1;
+  will-change: transform, opacity, filter;
 }
 
 .massive-entrance {
@@ -3580,26 +3581,26 @@ button.small {
 @keyframes massiveEntrance {
   0% {
     opacity: 0;
-    transform: scale(0.1) translateZ(-1000px);
-    filter: blur(20px);
+    transform: scale(0.5) translateY(20px);
+    filter: blur(10px);
   }
 
   30% {
     opacity: 1;
-    transform: scale(1.2) translateZ(0);
+    transform: scale(1.1) translateY(0);
     filter: blur(0);
   }
 
   80% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
     filter: blur(0);
   }
 
   100% {
     opacity: 0;
-    transform: scale(3) translateZ(500px);
-    filter: blur(30px);
+    transform: scale(1.5) translateY(-30px);
+    filter: blur(5px);
   }
 }
 

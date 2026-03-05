@@ -34,21 +34,68 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
 
     // HigherLowerApp main logic
 
-    // Autoboot
+    // Platform Match Initialization
     useEffect(() => {
-        if (pendingGameId && view === 'lobby') {
-            const bootGame = async () => {
-                const { data } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).single();
-                if (data) {
-                    setActiveGame(data);
-                    setView('game');
-                    fetchPlayers(pendingGameId);
-                    if (onClearPending) onClearPending();
+        if (!match) return;
+
+        const initHLGame = async (retries = 7) => {
+            const { data: existingGame } = await supabase.from('higher_lower_games').select('*').eq('id', match.id).maybeSingle();
+
+            if (existingGame) {
+                setActiveGame(existingGame);
+                setView('game');
+                if (onClearPending) onClearPending();
+            } else if (isHost) {
+                const joinCode = 'H' + Math.random().toString(36).substring(2, 7).toUpperCase();
+                const { data: newGame, error: err } = await supabase.from('higher_lower_games').insert([{
+                    id: match.id,
+                    host_id: user.id,
+                    join_code: joinCode,
+                    status: 'playing',
+                    is_public: false,
+                    settings: {
+                        bot_difficulty: match.snapshot_settings?.botDiff || 2
+                    },
+                    state: { phase: 'init' }
+                }]).select().single();
+
+                if (err) {
+                    console.error("Error creating higher_lower DB row", err);
+                    if (retries > 0) setTimeout(() => initHLGame(retries - 1), 1000);
+                    return;
                 }
-            };
-            bootGame();
+
+                const activeMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
+                const hlPlayers = activeMembers.map(m => ({
+                    game_id: match.id,
+                    user_id: m.user_id,
+                    player_name: m.metadata?.player_name || 'Hráč',
+                    avatar_url: m.metadata?.avatar_url || '',
+                    is_bot: m.role === 'bot',
+                    color: m.metadata?.color || '#10b981'
+                }));
+
+                if (hlPlayers.length > 0) {
+                    await supabase.from('higher_lower_players').insert(hlPlayers);
+                }
+
+                setActiveGame(newGame);
+                setView('game');
+                if (onClearPending) onClearPending();
+                await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
+            } else if (retries > 0) {
+                if (view !== 'game') {
+                    setTimeout(() => initHLGame(retries - 1), 1000);
+                }
+            } else {
+                console.error("Non-host failed to boot HL game because host took too long");
+            }
+        };
+
+        if (match.id) {
+            initHLGame();
         }
-    }, [pendingGameId, view, onClearPending]);
+    }, [match?.id, isHost]);
 
     useEffect(() => {
         if (!activeGame?.id) return;
@@ -104,7 +151,7 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
 
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
-            {view === 'lobby' ? (
+            {!showAdmin && view === 'lobby' && !match && (
                 <HigherLowerLobby
                     activeGame={activeGame}
                     players={players}
@@ -113,7 +160,10 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     onClearPending={onClearPending}
                     onSetGame={setActiveGame}
                     onShowAdmin={() => setShowAdmin(true)}
-                    onBackToPortal={onBackToPortal}
+                    onBackToPortal={() => {
+                        if (match) { leaveGame(); }
+                        onBackToPortal();
+                    }}
                     match={match}
                     members={members}
                     onStartGame={(game) => {
@@ -121,7 +171,15 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                         setView('game');
                     }}
                 />
-            ) : (
+            )}
+
+            {!showAdmin && view === 'lobby' && match && (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Wait for DB bootup to transition to 'game' */}
+                </div>
+            )}
+
+            {!showAdmin && view === 'game' && (
                 <HigherLowerGame
                     activeGame={activeGame}
                     players={players}
