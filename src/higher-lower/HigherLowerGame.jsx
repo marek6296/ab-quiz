@@ -376,7 +376,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 {gameState.phase === 'init' && <h2 style={{ fontSize: '2rem' }}>Generujem dáta...</h2>}
 
                 {showLeftCard && firstItem && secondItem && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '900px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '1200px', flexWrap: 'wrap', padding: '0 1rem' }}>
 
                         {/* FIRST ITEM */}
                         <AnimatePresence>
