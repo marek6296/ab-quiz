@@ -1208,8 +1208,8 @@ const MainRouter = () => {
 
       {
         showLobbyModal && (
-          <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)' }}>
-            <div style={{ position: 'relative', width: '100%', height: '100%', overflowY: 'auto' }}>
+          <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch' }}>
+            <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
 
               <PlatformLobby
                 initialLobbyId={activeLobbyId}

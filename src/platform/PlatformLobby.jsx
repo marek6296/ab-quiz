@@ -191,7 +191,7 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
     return (
         <div style={{
-            display: 'flex', flexDirection: 'column', height: '100vh', padding: '1rem',
+            display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem',
             background: 'var(--bg-gradient, radial-gradient(circle at top, #0f172a, #020617))', color: 'white', boxSizing: 'border-box'
         }}>
             {/* Header NavBar */}
