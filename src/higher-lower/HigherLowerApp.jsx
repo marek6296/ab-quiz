@@ -191,13 +191,17 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     latestPlayerGuess={latestPlayerGuess}
                     onSetGame={setActiveGame}
                     onLeave={async () => {
+                        // 1. Await DB cleanup to prevent browser from cancelling the network request on unmount
                         if (user?.id) {
                             await supabase.from('higher_lower_players').delete().eq('user_id', user.id);
                         }
+
                         if (match) { await leaveGame(); }
                         if (onTerminateLobby) {
                             await onTerminateLobby();
                         }
+
+                        // 2. Instantly navigate the leaving player out to avoid showing them their own "opponent_abandoned" broadcast
                         setActiveGame(null);
                         setPlayers([]);
                         onBackToPortal();

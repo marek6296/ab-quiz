@@ -23,6 +23,22 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const [countdown, setCountdown] = useState(null);
     const [mobileTab, setMobileTab] = useState('players'); // 'games', 'settings', 'players', 'friends'
 
+    const wasMultiplayerRef = React.useRef(false);
+
+    // Auto-teardown lobby if the other player leaves
+    useEffect(() => {
+        const activeMembers = members.filter(m => ['in_lobby', 'in_game', 'disconnected'].includes(m.state));
+
+        if (activeMembers.length > 1) {
+            wasMultiplayerRef.current = true;
+        } else if (activeMembers.length <= 1 && wasMultiplayerRef.current && !countdown) {
+            const timer = setTimeout(() => {
+                leaveLobby();
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [members, countdown, leaveLobby]);
+
     // Fetch categories on mount
     useEffect(() => {
         const fetchCategories = async () => {

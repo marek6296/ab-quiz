@@ -36,6 +36,33 @@ export const HigherLowerLobby = ({
     const matchmakingTimer = useRef(null);
 
     const [botDifficulty, setBotDifficulty] = useState(2); // 1 = Easy, 2 = Medium, 3 = Hard
+    const wasMultiplayerRef = useRef(false);
+
+    // Auto-teardown lobby if the other players leave or if host leaves
+    useEffect(() => {
+        if (!activeGame || view !== 'room') return;
+
+        const realPlayersCount = players.filter(p => !p.is_bot).length;
+        const hostStillHere = players.some(p => p.user_id === activeGame.host_id);
+
+        if (realPlayersCount > 1) {
+            wasMultiplayerRef.current = true;
+        }
+
+        let timer = null;
+        if (
+            (realPlayersCount <= 1 && wasMultiplayerRef.current) ||
+            (!hostStillHere && players.some(p => p.user_id === user?.id))
+        ) {
+            timer = setTimeout(() => {
+                handleLeaveRoom();
+            }, 5000);
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [players, activeGame, view, user]);
 
     useEffect(() => {
         if (user) {

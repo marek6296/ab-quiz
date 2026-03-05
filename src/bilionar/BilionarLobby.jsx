@@ -38,6 +38,43 @@ export const BilionarLobby = ({
     const [difficulty, setDifficulty] = useState([2]); // Default to Stredné
     const [botDifficulty, setBotDifficulty] = useState(2);
 
+    const wasMultiplayerRef = useRef(false);
+
+    // Auto-teardown lobby if the other players leave or if host leaves
+    useEffect(() => {
+        if (!activeGame || view !== 'room') return;
+
+        const realPlayersCount = players.filter(p => !p.is_bot).length;
+        const hostStillHere = players.some(p => p.user_id === activeGame.host_id);
+
+        if (realPlayersCount > 1) {
+            wasMultiplayerRef.current = true;
+        }
+
+        let timer = null;
+        if (
+            (realPlayersCount <= 1 && wasMultiplayerRef.current) ||
+            (!hostStillHere && players.some(p => p.user_id === user?.id))
+        ) {
+            timer = setTimeout(() => {
+                // Delete user row and leave via logic equivalent to handleLeaveRoom
+                if (activeGame.host_id === user?.id) {
+                    supabase.from('bilionar_players').delete().eq('game_id', activeGame.id).then(() => {
+                        supabase.from('bilionar_games').delete().eq('id', activeGame.id).then();
+                    });
+                } else {
+                    supabase.from('bilionar_players').delete().eq('game_id', activeGame.id).eq('user_id', user?.id).then();
+                }
+                onSetGame(null);
+                setView('menu');
+            }, 5000);
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [players, activeGame, view, user, onSetGame]);
+
     // Initial load
     useEffect(() => {
         if (user) {

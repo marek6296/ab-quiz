@@ -28,6 +28,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
     const isHost = activeGame?.host_id === user?.id;
     const [myGuess, setMyGuess] = useState(null);
     const [timeLeft, setTimeLeft] = useState(100);
+    const [isLeaving, setIsLeaving] = useState(false);
 
     const tickerRef = useRef(null);
     const gameState = activeGame?.state || {};
@@ -46,6 +47,45 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
     }, [players]);
 
     const myRecord = players.find(p => p.user_id === user?.id);
+
+    const maxLocalRealPlayersRef = useRef(0);
+
+    // Host Migration & Local Auto-Victory
+    useEffect(() => {
+        if (!players.length || !user || !activeGame) return;
+
+        const realPlayers = players.filter(p => !p.is_bot);
+        const realPlayersCount = realPlayers.length;
+        const hostStillHere = players.some(p => p.user_id === activeGame.host_id);
+
+        // Keep track locally of the maximum players seen
+        if (realPlayersCount > maxLocalRealPlayersRef.current) {
+            maxLocalRealPlayersRef.current = realPlayersCount;
+        }
+
+        const amIStillAlive = players.some(p => p.user_id === user.id);
+
+        // Auto Victory Check (If we ever saw 2+ players and now there's 1 or 0 left, end the game)
+        if (amIStillAlive && !isLeaving && maxLocalRealPlayersRef.current >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+            console.log("Local Auto Victory triggered! Opponent abandoned the game.");
+            const finishState = { ...gameState, phase: 'finished', win_reason: 'opponent_abandoned' };
+            // Update local state instantly to show the victory screen
+            if (onSetGame) {
+                onSetGame(prev => ({ ...prev, state: finishState }));
+            }
+            // Attempt to close out the game in DB, though local UI matters most.
+            supabase.from('higher_lower_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
+        }
+
+        // Host Migration (if Host disappeared, lowest string user_id takes over)
+        if (!hostStillHere && realPlayersCount > 0 && gameState.phase !== 'finished' && activeGame.status === 'playing') {
+            const nextHostId = [...realPlayers].sort((a, b) => a.user_id.localeCompare(b.user_id))[0].user_id;
+            if (nextHostId === user.id) {
+                console.log("Host migration: I am the new host!");
+                supabase.from('higher_lower_games').update({ host_id: user.id }).eq('id', activeGame.id).then();
+            }
+        }
+    }, [players, activeGame.host_id, user, gameState.phase, activeGame.status, activeGame.id, isLeaving, onSetGame]);
 
     // Host loop
     useEffect(() => {
@@ -394,7 +434,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                         </div>
                     ))}
                 </div>
-                <button className="danger" onClick={onLeave} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px' }}>Opustiť</button>
+                <button className="danger" onClick={() => { setIsLeaving(true); onLeave(); }} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px' }}>Opustiť</button>
             </div>
 
             {/* Header Topic */}
@@ -575,15 +615,25 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                         transition={{ duration: 0.6, delay: 0.6, type: 'spring' }}
                         style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
                     >
-                        <h1 style={{ fontSize: '5rem', color: '#ef4444', fontWeight: '900', textShadow: '0 0 20px rgba(239, 68, 68, 0.5)', marginBottom: '1rem' }}>GAME OVER</h1>
-
-                        <div style={{ fontSize: '2rem', marginBottom: '3rem', background: 'rgba(255,255,255,0.05)', padding: '2rem 4rem', borderRadius: '24px', border: '2px solid rgba(250, 204, 21, 0.3)' }}>
-                            <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Tvoje konečné skóre</div>
-                            <div style={{ fontSize: '4rem', color: '#facc15', fontWeight: 'bold' }}>{myRecord?.score}</div>
-                        </div>
+                        {gameState.win_reason === 'opponent_abandoned' ? (
+                            <>
+                                <h1 style={{ fontSize: '5rem', color: '#10b981', fontWeight: '900', textShadow: '0 0 20px rgba(16, 185, 129, 0.5)', marginBottom: '1rem' }}>VYHRÁVATE!</h1>
+                                <div style={{ color: '#94a3b8', fontSize: '1.5rem', marginBottom: '2.5rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 2rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    Súper opustil hru, vyhrávate kontumačne.
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h1 style={{ fontSize: '5rem', color: '#ef4444', fontWeight: '900', textShadow: '0 0 20px rgba(239, 68, 68, 0.5)', marginBottom: '1rem' }}>GAME OVER</h1>
+                                <div style={{ fontSize: '2rem', marginBottom: '3rem', background: 'rgba(255,255,255,0.05)', padding: '2rem 4rem', borderRadius: '24px', border: '2px solid rgba(250, 204, 21, 0.3)' }}>
+                                    <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Tvoje konečné skóre</div>
+                                    <div style={{ fontSize: '4rem', color: '#facc15', fontWeight: 'bold' }}>{myRecord?.score}</div>
+                                </div>
+                            </>
+                        )}
 
                         <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button className="primary" onClick={onLeave} style={{ padding: '1.5rem 3rem', fontSize: '1.5rem', borderRadius: '16px' }}>Späť do menu</button>
+                            <button className="primary" onClick={() => { setIsLeaving(true); onLeave(); }} style={{ padding: '1.5rem 3rem', fontSize: '1.5rem', borderRadius: '16px' }}>Späť do menu</button>
                         </div>
                     </motion.div>
                 )}
