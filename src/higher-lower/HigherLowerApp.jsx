@@ -89,13 +89,8 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
         }
     }, [activeGame?.status, view]);
 
-    // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
-    useEffect(() => {
-        if (!match && view === 'game' && activeGame) {
-            onBackToPortal();
-            setActiveGame(null);
-        }
-    }, [match, view, activeGame, onBackToPortal]);
+    // Avoid kicking valid Supabase games arbitrarily if match is null.
+    // The channel's DELETE event already perfectly cleans up dead games.
 
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
@@ -108,6 +103,8 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     onClearPending={onClearPending}
                     onSetGame={setActiveGame}
                     onBackToPortal={onBackToPortal}
+                    match={match}
+                    members={members}
                     onStartGame={(game) => {
                         setActiveGame(game);
                         setView('game');

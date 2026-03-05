@@ -313,7 +313,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
   // Pass necessary info down to the game engine
   const {
-    board, currentPlayer, winner, winReason, claimHexagon, resetGame,
+    board, currentPlayer, winner, setWinner, winReason, setWinReason, claimHexagon, resetGame,
     localPlayerNum, p1Score, p2Score, p1Combo, p2Combo,
     gameData, presenceCount, seenIds, markQuestionAsSeen,
     disconnectReason, setDisconnectReason,
@@ -328,23 +328,33 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
   // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
   useEffect(() => {
-    // If we were playing an online game and someone killed the match DB row (e.g. host left)
-    // We strictly prevent auto-kicking if the user has ALREADY received a victory (like 'opponent_abandoned').
-    // In that case, they should stay in the victory modal with the manual exit button.
     let timer;
-    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && !match) {
-      if (!winner && !winReason) {
-        // RACE CONDITION PREVENCION: 'match' delete broadcast often arrives faster than 'games' status broadcast.
-        // Delay the kick by 2 seconds to allow winReason to be populated by useGameState.
-        timer = setTimeout(() => {
-          resetToLobby();
-          onBackToPortal();
-          resetGame();
-        }, 2000);
+    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online') {
+
+      // 1. Check if the opponent explicitly left the session early
+      // Ensures the local user gets the victory modal instantly even if DB is lagging
+      const opponent = members.find(m => m.user_id !== user?.id);
+      if (opponent && opponent.state === 'left' && !winner && !manualExitRef.current) {
+        setWinner(localPlayerNum);
+        setWinReason('opponent_abandoned');
+        return; // Don't proceed to null-match check
+      }
+
+      // 2. Check if match record was deleted (e.g. host ended match)
+      if (!match) {
+        if (!winner && !winReason) {
+          // RACE CONDITION PREVENCION: 'match' delete broadcast often arrives faster than 'games' status broadcast.
+          // Delay the kick by 2 seconds to allow winReason to be populated by useGameState.
+          timer = setTimeout(() => {
+            resetToLobby();
+            onBackToPortal();
+            resetGame();
+          }, 2000);
+        }
       }
     }
     return () => clearTimeout(timer);
-  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame, winner, winReason]);
+  }, [match, members, appState, gameMode, resetToLobby, onBackToPortal, resetGame, winner, winReason, user?.id, localPlayerNum, setWinner, setWinReason]);
 
   // Turn Announcement Sync for Online Games
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { updateBoardWithClaim, generateInitialBoard } from '../game-engine/board';
 import { calculateClaimResults } from '../game-engine/scoring';
@@ -30,6 +30,12 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     const [currentPlayer, setCurrentPlayer] = useState(localInitial?.currentPlayer || 1);
     const [winner, setWinner] = useState(localInitial?.winner || null);
     const [gameData, setGameData] = useState(null); // stores player mappings
+
+    const gameDataRef = useRef(null);
+    useEffect(() => {
+        gameDataRef.current = gameData;
+    }, [gameData]);
+
     const [presenceCount, setPresenceCount] = useState(1); // Track online players
 
     // Points Mode State
@@ -126,23 +132,16 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
             }, (payload) => {
                 if (payload.eventType === 'DELETE') {
                     if (manualExitRef?.current) return; // Silent for the leaver
-                    // ANTI-PATTERN FIX: Setting state inside another state's updater is unsafe in React 18+.
-                    // We queue it on the next tick so the event loop handles it after render.
-                    setGameData(prev => {
-                        if (prev && prev.player1_id) {
-                            const p1 = prev.player1_id;
-                            setTimeout(() => {
-                                const pNum = userId === p1 ? 1 : 2;
-                                setWinner(pNum);
-                                setWinReason('opponent_abandoned');
-                            }, 50);
-                        } else {
-                            setTimeout(() => {
-                                setDisconnectReason("Hra bola ukončená druhým hráčom.");
-                            }, 50);
-                        }
-                        return prev;
-                    });
+
+                    const prev = gameDataRef.current;
+                    if (prev && prev.player1_id) {
+                        const p1 = prev.player1_id;
+                        const pNum = userId === p1 ? 1 : 2;
+                        setWinner(pNum);
+                        setWinReason('opponent_abandoned');
+                    } else {
+                        setDisconnectReason("Hra bola ukončená druhým hráčom.");
+                    }
                     return;
                 }
                 if (payload.eventType === 'UPDATE') {
@@ -324,6 +323,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         board,
         currentPlayer,
         winner,
+        setWinner,
         winReason,
         setWinReason,
         claimHexagon,
