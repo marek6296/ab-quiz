@@ -6,7 +6,7 @@ import { BilionarLobby } from './BilionarLobby';
 import { BilionarGame } from './BilionarGame';
 import { usePlatformSession } from '../context/PlatformSessionContext';
 
-export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
+export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const { match, isHost, members, leaveGame } = usePlatformSession();
     const [profile, setProfile] = useState(null);
