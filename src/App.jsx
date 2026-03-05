@@ -740,8 +740,11 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
   if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
     if (match && myMatchState?.state !== 'left') {
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2rem', background: '#0f172a', color: 'white', fontFamily: '"Outfit", sans-serif' }}>
           <h2 style={{ animation: 'pulse 1.5s infinite' }}>Pripravujem hru...</h2>
+          <button className="primary" onClick={() => leaveGame()} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '1rem 2rem', borderRadius: '12px' }}>
+            NÚDZOVÝ NÁVRAT (Zaseknutí?)
+          </button>
         </div>
       );
     }

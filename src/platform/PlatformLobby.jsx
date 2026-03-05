@@ -70,6 +70,25 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
         }
     }, [lobby?.status, isHost, startMatch]);
 
+    // Listener na skutočné spustenie hry (po tom čo Host vytvoril zápas na DB)
+    useEffect(() => {
+        if (lobby?.status === 'starting' && lobby?.active_match_id) {
+            if (onStartGameFlow) {
+                onStartGameFlow(
+                    lobby.selected_game,
+                    lobby.active_match_id,
+                    lobby.selected_game === 'quiz' ? '1v1_online' : lobby.selected_game,
+                    {
+                        rules: lobby.settings?.rules || 'hex',
+                        cat: lobby.settings?.cat || [],
+                        diff: lobby.settings?.diff || [1],
+                        botDiff: 2
+                    }
+                );
+            }
+        }
+    }, [lobby?.status, lobby?.active_match_id, lobby?.selected_game, lobby?.settings, onStartGameFlow]);
+
     const handleToggleCategory = (cat) => {
         if (!isHost) return;
         const currentCats = lobby?.settings?.cat || [];
