@@ -12,9 +12,11 @@ const GAMES = [
 
 const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
-export const PlatformLobby = ({ onlineUserIds }) => {
+export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const { user } = useAuth();
     const { lobby, members, isHost, updateLobbySettings, setLobbyGame, startMatch, leaveLobby } = usePlatformSession();
+
+    const hasStartedRef = React.useRef(false);
 
     const [availableQuizCategories, setAvailableQuizCategories] = useState([]);
     const [availableBilionarCategories, setAvailableBilionarCategories] = useState([]);
@@ -42,6 +44,39 @@ export const PlatformLobby = ({ onlineUserIds }) => {
         setLobbyGame(gameId);
         updateLobbySettings({ ...lobby.settings, cat: [] }); // Reset categories
     };
+
+    // Globálny odpočet a presun do hry pre VŠETKÝCH hráčov
+    useEffect(() => {
+        if (lobby?.status === 'starting' && lobby?.active_match_id && !hasStartedRef.current) {
+            hasStartedRef.current = true;
+            const doCountdown = async () => {
+                setCountdown("3");
+                await new Promise(r => setTimeout(r, 1000));
+                setCountdown("2");
+                await new Promise(r => setTimeout(r, 1000));
+                setCountdown("1");
+                await new Promise(r => setTimeout(r, 1000));
+                setCountdown("ŠTART!");
+                await new Promise(r => setTimeout(r, 500));
+                setCountdown(null);
+
+                if (onStartGameFlow) {
+                    onStartGameFlow(
+                        lobby.selected_game,
+                        lobby.active_match_id,
+                        lobby.selected_game === 'quiz' ? '1v1_online' : lobby.selected_game,
+                        {
+                            rules: lobby.settings?.rules || 'hex',
+                            cat: lobby.settings?.cat || [],
+                            diff: lobby.settings?.diff || [1],
+                            botDiff: 2
+                        }
+                    );
+                }
+            };
+            doCountdown();
+        }
+    }, [lobby?.status, lobby?.active_match_id, lobby?.selected_game, lobby?.settings, onStartGameFlow]);
 
     const handleToggleCategory = (cat) => {
         if (!isHost) return;
@@ -89,18 +124,7 @@ export const PlatformLobby = ({ onlineUserIds }) => {
     const handleStartMatch = async () => {
         if (!isHost || !lobby) return;
 
-        // Host spustí odpočítavanie na DB urovni alebo len lokálne pre efekt, 
-        // potom vytvori 'match'. Pre jednoduchosť urobíme lokálny vizuál
-        setCountdown("3");
-        await new Promise(r => setTimeout(r, 1000));
-        setCountdown("2");
-        await new Promise(r => setTimeout(r, 1000));
-        setCountdown("1");
-        await new Promise(r => setTimeout(r, 1000));
-        setCountdown("ŠTART!");
-        await new Promise(r => setTimeout(r, 500));
-
-        setCountdown(null);
+        // Okamžite zmení stav na 'starting' v DB, čo triggerne efekt u oboch hráčov (uvidia odpočet naraz)
         await startMatch();
     };
 

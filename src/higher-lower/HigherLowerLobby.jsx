@@ -80,13 +80,42 @@ export const HigherLowerLobby = ({
         const handlePending = async (retries = 3) => {
             if (pendingGameId && !activeGame) {
                 setLoading(true);
-                const { data: game, error } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).single();
+                const { data: game, error } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).maybeSingle();
+                
                 if (game) {
                     onSetGame(game);
                     setView('room');
                     setActiveTab('play');
                     if (onClearPending) onClearPending();
-                } else if (error && error.code === 'PGRST116' && retries > 0) {
+                } else if (!game && isHost) {
+                     // Host initializes the game row
+                    const { data: newGame, error: insertErr } = await supabase.from('higher_lower_games').insert([{
+                        id: pendingGameId,
+                        host_id: user.id,
+                        status: 'playing',
+                        settings: match?.snapshot_settings || {}
+                    }]).select().single();
+
+                    if (!insertErr && newGame) {
+                        onSetGame(newGame);
+                        setView('room');
+                        setActiveTab('play');
+                        if (onClearPending) onClearPending();
+
+                        const realMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
+                        for (const m of realMembers) {
+                            const { data: prof } = await supabase.from('profiles').select('username, avatar_url').eq('id', m.user_id).single();
+                            await supabase.from('higher_lower_players').insert({
+                                game_id: pendingGameId,
+                                user_id: m.user_id,
+                                player_name: prof?.username || 'Hráč',
+                                avatar_url: prof?.avatar_url || null
+                            });
+                        }
+                    } else {
+                        console.error("Failed to initialize higher lower game as host:", insertErr);
+                    }
+                } else if (retries > 0) {
                     setTimeout(() => handlePending(retries - 1), 800);
                     return;
                 } else if (error) {
@@ -96,7 +125,7 @@ export const HigherLowerLobby = ({
             }
         };
         handlePending();
-    }, [pendingGameId, activeGame, onSetGame, onClearPending]);
+    }, [pendingGameId, activeGame, onSetGame, onClearPending, isHost, user?.id, members, match]);
 
     useEffect(() => {
         if (activeGame && view !== 'room') {

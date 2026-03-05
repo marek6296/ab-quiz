@@ -238,7 +238,8 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
     const initQuizMatch = async () => {
       try {
-        const { data: existingGame } = await supabase.from('games').select('*').eq('id', match.id).single();
+        const { data: existingGame, error: singleErr } = await supabase.from('games').select('*').eq('id', match.id).maybeSingle();
+        if (singleErr) throw singleErr;
 
         const rules = match.snapshot_settings?.rules || 'hex';
         const cats = match.snapshot_settings?.cat || [];
@@ -279,6 +280,11 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
           if (!err && newGame) {
             handleStartGame(actualMode, rules, match.id, cats, diffs, match.snapshot_settings?.botDiff || 2);
             await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
+          }
+        } else {
+          // Non-host: Game row doesn't exist yet (host is creating it), so we poll every 1s
+          if (appState !== APP_STATES.IN_GAME) {
+            setTimeout(initQuizMatch, 1000);
           }
         }
       } catch (err) {

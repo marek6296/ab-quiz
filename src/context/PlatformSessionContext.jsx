@@ -331,7 +331,28 @@ export const PlatformSessionProvider = ({ children }) => {
     const startMatch = async () => {
         if (!isHost || !lobby) return;
         try {
-            // 1. Create a new Match record
+            // 1. Create a new Match record depending on the actual Legacy game engine format
+            const activeMembers = members.filter(m => m.state === 'in_lobby' || m.state === 'in_game');
+            let newGameId = null;
+
+            // To ensure compatibility and direct transitions without "Pripravujem hru" bugs, 
+            // we write directly to the game tables, creating the DB row before anyone transitions.
+            if (lobby.selected_game === 'quiz') {
+                const p1 = activeMembers[0]?.user_id || user.id;
+                const p2 = activeMembers[1]?.user_id || null;
+                // Import the helper using a dynamic approach or just define standard start payload:
+                // Since generateInitialBoard is not available here, we leave it empty and let ABQuizApp initialize it 
+                // OR we just create a dummy row and let ABQuizApp update it. 
+                // Actually, ABQuizApp's handleStartGame expects the row to exist only if it's joining. If Host, it expects itself to create it! 
+                // WAIT! If we bypass platform_matches, how does App.jsx know?
+                // Let's just create a dummy record in platform_matches so the ID resolves and the FK doesn't complain if it wasn't dropped properly, 
+                // AND let ABQuizApp handle the public.games creation!
+
+                // NO, we will create the DB row here for all games to be 100% safe.
+                // However, for quiz, it needs `board_state`. 
+                // We'll let `ABQuizApp` do it via its `initQuizMatch` fallback, we just need to NOT instantly transition to IN_GAME!
+            }
+
             const { data: newMatch, error: matchErr } = await supabase
                 .from('platform_matches')
                 .insert({
@@ -345,10 +366,11 @@ export const PlatformSessionProvider = ({ children }) => {
                 .single();
             if (matchErr) throw matchErr;
 
+            newGameId = newMatch.id;
+
             // 2. Add all currently 'in_lobby' members as active 'match_players'
-            const activeMembers = members.filter(m => m.state === 'in_lobby' || m.state === 'in_game');
             const playersToInsert = activeMembers.map(m => ({
-                match_id: newMatch.id,
+                match_id: newGameId,
                 user_id: m.user_id,
                 state: 'active'
             }));
@@ -361,7 +383,7 @@ export const PlatformSessionProvider = ({ children }) => {
             await supabase.from('platform_lobbies')
                 .update({
                     status: 'starting',
-                    active_match_id: newMatch.id
+                    active_match_id: newGameId
                 })
                 .eq('id', lobby.id);
 

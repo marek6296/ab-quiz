@@ -123,13 +123,42 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, p
     // Autoboot game from platform lobby
     useEffect(() => {
         if (pendingGameId && view === 'lobby') {
-            const bootGame = async (retries = 3) => {
-                const { data, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+            const bootGame = async (retries = 5) => {
+                const { data, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).maybeSingle();
+
                 if (data) {
                     setActiveGame(data);
                     setView('game');
                     if (onClearPending) onClearPending();
-                } else if (error && error.code === 'PGRST116' && retries > 0) {
+                } else if (!data && isHost) {
+                    // Host initializes the game row
+                    const { data: newGame, error: insertErr } = await supabase.from('bilionar_games').insert([{
+                        id: pendingGameId,
+                        host_id: user.id,
+                        status: 'playing',
+                        settings: match?.snapshot_settings || {}
+                    }]).select().single();
+
+                    if (!insertErr && newGame) {
+                        setActiveGame(newGame);
+                        setView('game');
+                        if (onClearPending) onClearPending();
+
+                        // Prep players
+                        const realMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
+                        for (const m of realMembers) {
+                            const { data: prof } = await supabase.from('profiles').select('username, avatar_url').eq('id', m.user_id).single();
+                            await supabase.from('bilionar_players').insert({
+                                game_id: pendingGameId,
+                                user_id: m.user_id,
+                                player_name: prof?.username || 'Hráč',
+                                avatar_url: prof?.avatar_url || null
+                            });
+                        }
+                    } else {
+                        console.error("Failed to initialize bilionar game as host:", insertErr);
+                    }
+                } else if (retries > 0) {
                     setTimeout(() => bootGame(retries - 1), 800);
                 } else if (error) {
                     console.error("Failed to boot bilionar game:", error);
@@ -137,7 +166,7 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, p
             };
             bootGame();
         }
-    }, [pendingGameId, view, onClearPending]);
+    }, [pendingGameId, view, onClearPending, isHost, user?.id, members, match]);
 
     // Central Subscription for Bilionár Game Cycle
     useEffect(() => {
