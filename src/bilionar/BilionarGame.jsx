@@ -3,8 +3,18 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetGame }) => {
+export const BilionarGame = ({ activeGame, players: rawPlayers, onLeave, gameChannel, onSetGame }) => {
     const { user } = useAuth();
+
+    // Assign stable colors to players based on their UUID so everyone sees the same colors
+    const colorPalette = ['#38bdf8', '#fb923c', '#a78bfa', '#f472b6', '#4ade80', '#e879f9'];
+    const players = React.useMemo(() => {
+        const sorted = [...rawPlayers].sort((a, b) => a.id.localeCompare(b.id));
+        return rawPlayers.map(p => {
+            const index = sorted.findIndex(sp => sp.id === p.id);
+            return { ...p, color: p.color || colorPalette[index % colorPalette.length] };
+        });
+    }, [rawPlayers]);
 
     // Directly use props as the SINGLE Source of Truth. No local shadow states!
     const gameState = activeGame?.state || { phase: 'init' };
@@ -333,15 +343,16 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const renderPlayerAvatar = (p) => {
         const isMe = p.user_id === user.id;
         const showAnswered = p.has_answered && gameState.phase === 'answering';
+        const pColor = p.color;
 
         return (
             <div key={p.id} className={`bilionar-player-avatar ${isMe ? 'is-me' : ''}`} style={{
                 display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px',
                 padding: '6px 16px 6px 6px',
-                background: isMe ? 'linear-gradient(135deg, rgba(250,204,21,0.15) 0%, rgba(0,0,0,0.6) 100%)' : 'rgba(0,0,0,0.4)',
+                background: isMe ? `linear-gradient(135deg, ${pColor}25 0%, rgba(0,0,0,0.6) 100%)` : 'rgba(0,0,0,0.4)',
                 borderRadius: '50px',
-                border: isMe ? '1px solid rgba(250,204,21,0.4)' : '1px solid rgba(255,255,255,0.05)',
-                boxShadow: isMe ? '0 0 15px rgba(250,204,21,0.1)' : '0 4px 10px rgba(0,0,0,0.3)',
+                border: isMe ? `1px solid ${pColor}80` : '1px solid rgba(255,255,255,0.05)',
+                boxShadow: isMe ? `0 0 15px ${pColor}30` : '0 4px 10px rgba(0,0,0,0.3)',
                 position: 'relative'
             }}>
                 {showAnswered && (
@@ -356,12 +367,12 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 )}
                 <div style={{
                     position: 'relative', width: '42px', height: '42px', borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.1)', border: `2px solid ${isMe ? '#facc15' : 'rgba(255, 255, 255, 0.2)'}`,
+                    background: 'rgba(255, 255, 255, 0.1)', border: `2px solid ${isMe ? pColor : `${pColor}80`}`,
                     overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0
                 }}>
                     {scoreGained !== null && isMe && (
-                        <div className="score-popup" style={{ fontSize: '14px', zIndex: 10 }}>+{scoreGained}</div>
+                        <div className="score-popup" style={{ fontSize: '14px', zIndex: 10, color: pColor }}>+{scoreGained}</div>
                     )}
                     {p.avatar_url ? (
                         <img src={p.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
@@ -370,11 +381,11 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '14px', color: isMe ? '#facc15' : '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', fontWeight: 'bold', lineHeight: 1 }}>
+                    <span style={{ fontSize: '14px', color: isMe ? pColor : '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', fontWeight: 'bold', lineHeight: 1 }}>
                         {p.player_name || 'Hráč'}
                     </span>
                     <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', lineHeight: 1 }}>
-                        <span style={{ color: '#facc15', fontSize: '11px' }}>★</span> {p.score}
+                        <span style={{ color: pColor, fontSize: '11px' }}>★</span> {p.score}
                     </span>
                 </div>
             </div>
@@ -444,13 +455,13 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
                     {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, i) => (
-                        <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
+                        <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? `linear-gradient(90deg, ${p.color}30, rgba(0,0,0,0.5))` : 'rgba(0,0,0,0.5)', border: i === 0 ? `2px solid ${p.color}` : `1px solid ${p.color}40`, borderLeft: `6px solid ${p.color}`, borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <span style={{ fontSize: '1.5rem', fontWeight: '900', color: i === 0 ? '#facc15' : '#94a3b8' }}>#{i + 1}</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '900', color: p.color }}>#{i + 1}</span>
                                 <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
                                 <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
                             </div>
-                            <span style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '1.4rem' }}>{p.score || 0} b</span>
+                            <span style={{ color: p.color, fontWeight: 'bold', fontSize: '1.5rem' }}>{p.score || 0} b</span>
                         </div>
                     ))}
                 </div>
@@ -554,13 +565,13 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                                 <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
                                     {[...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99)).map((p, i) => (
-                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: `6px solid ${p.color}` }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: p.color }}>{i + 1}.</span>
                                                 <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                                <span style={{ fontWeight: 'bold', color: '#facc15' }}>{p.selected_answer}</span>
+                                                <span style={{ fontWeight: 'bold', color: p.color }}>{p.selected_answer}</span>
                                                 <span style={{ fontWeight: '900' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
                                             </div>
                                         </div>
@@ -577,14 +588,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                                 <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     {[...players].sort((a, b) => b.score - a.score).map((p, i) => (
-                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: `6px solid ${p.color}` }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: p.color }}>{i + 1}.</span>
                                                 <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                                                 {p.last_score_gained > 0 && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>+{p.last_score_gained}</span>}
-                                                <span style={{ fontSize: '2rem', fontWeight: '900' }}>{p.score}</span>
+                                                <span style={{ fontSize: '2rem', fontWeight: '900', color: p.color }}>{p.score}</span>
                                             </div>
                                         </div>
                                     ))}
