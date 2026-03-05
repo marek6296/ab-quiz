@@ -970,7 +970,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
 const MainRouter = () => {
   const { user, signOut } = useAuth();
-  const { lobby, match, leaveLobby, createLobby, isLoading } = usePlatformSession();
+  const { lobby, match, leaveLobby, createLobby, joinLobbyById, isLoading } = usePlatformSession();
 
   const [currentApp, setCurrentApp] = useState('portal');
   const [incomingInvite, setIncomingInvite] = useState(null);
@@ -1064,8 +1064,7 @@ const MainRouter = () => {
 
   const handleAcceptInvite = async (gameId, rules) => {
     if (incomingInvite?.gameType === 'platform_lobby') {
-      setActiveLobbyId(gameId);
-      setShowLobbyModal(true);
+      await joinLobbyById(gameId);
       setIncomingInvite(null);
       return;
     }
@@ -1167,7 +1166,7 @@ const MainRouter = () => {
 
               {/* Zavieracie tlacidlo pre overlay */}
               <button
-                onClick={() => setShowLobbyModal(false)}
+                onClick={() => leaveLobby()}
                 style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10000, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '0.8rem 1.5rem', borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}>
                 Zavrieť Lobby ✖
               </button>
@@ -1176,11 +1175,9 @@ const MainRouter = () => {
                 initialLobbyId={activeLobbyId}
                 onlineUserIds={onlineUserIds}
                 onLeaveLobby={() => {
-                  setActiveLobbyId(null);
-                  setShowLobbyModal(false);
+                  leaveLobby();
                 }}
                 onStartGameFlow={(gameType, gameId, subMode, extra = {}) => {
-                  setShowLobbyModal(false); // Hide the lobby modal
                   // Destructure extra settings if provided
                   const { rules = 'hex', cat = [], diff = [1], botDiff = 2 } = extra;
 
