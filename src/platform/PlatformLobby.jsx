@@ -80,9 +80,11 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     }, [lobby?.status, isHost, startMatch]);
 
     // Listener na skutočné spustenie hry (po tom čo Host vytvoril zápas na DB)
+    const hasFiredStartFlowRef = useRef(null);
     useEffect(() => {
         if (lobby?.status === 'starting' && lobby?.active_match_id) {
-            if (onStartGameFlow) {
+            if (onStartGameFlow && hasFiredStartFlowRef.current !== lobby.active_match_id) {
+                hasFiredStartFlowRef.current = lobby.active_match_id;
                 onStartGameFlow(
                     lobby.selected_game,
                     lobby.active_match_id,
