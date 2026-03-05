@@ -233,15 +233,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     }
   }, [user]);
 
-  // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
-  useEffect(() => {
-    // If we were playing an online game and someone killed the match DB row (e.g. host left)
-    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && !match) {
-      resetToLobby();
-      onBackToPortal();
-      resetGame();
-    }
-  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame]);
+
 
   // Platform Match Synchronization & DB Game Initialization
   useEffect(() => {
@@ -333,6 +325,16 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     activeGameId,
     manualExitRef
   });
+
+  // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
+  useEffect(() => {
+    // If we were playing an online game and someone killed the match DB row (e.g. host left)
+    if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && !match) {
+      resetToLobby();
+      onBackToPortal();
+      resetGame();
+    }
+  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame]);
 
   // Turn Announcement Sync for Online Games
   useEffect(() => {
