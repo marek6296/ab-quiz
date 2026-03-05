@@ -63,7 +63,6 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
                 if (isHost) {
                     try {
-                        setCountdown("Pripravujem zápas...");
                         // Host reálne odpáli hru v databáze AŽ PO SKONČENÍ odpočtu
                         await startMatch();
                     } catch (e) {
@@ -71,8 +70,6 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                         hasStartedRef.current = false;
                         alert("Nepodarilo sa spustiť hru: " + e.message);
                     }
-                } else {
-                    setCountdown("Pripravujem zápas...");
                 }
             };
             doCountdown();
