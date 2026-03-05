@@ -411,13 +411,43 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
         );
     }
     if (gameState.phase === 'finished') {
+        if (gameState.win_reason === 'opponent_abandoned') {
+            return (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(10px)',
+                    zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    animation: 'fadeIn 0.5s ease-out'
+                }}>
+                    <div className="winner-banner" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)', marginBottom: '1.5rem' }}>
+                        Vyhrávate!
+                    </div>
+
+                    <div style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2.5rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        Súper opustil hru, vyhrávate kontumačne.
+                    </div>
+
+                    <button
+                        className="primary"
+                        onClick={onLeave}
+                        style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            padding: '1.2rem 3rem',
+                            fontSize: '1.3rem',
+                            borderRadius: '16px',
+                            boxShadow: '0 10px 25px -5px rgba(16,185,129,0.3)',
+                            border: '1px solid rgba(255,255,255,0.2)'
+                        }}
+                    >
+                        Opustiť Hru
+                    </button>
+                </div>
+            );
+        }
+
         return (
             <div className="bilionar-board fullscreen-flex" style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #020617 100%)' }}>
-                {gameState.win_reason === 'opponent_abandoned' ? (
-                    <h2 className="animate-fade-in slide-in-scale" style={{ color: '#4ade80', fontSize: '2rem', marginBottom: '1rem', textAlign: 'center' }}>Súper opustil hru! Vyhrávate kontumačne.</h2>
-                ) : (
-                    <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
-                )}
+                <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
                     {players.map((p, i) => (
                         <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
