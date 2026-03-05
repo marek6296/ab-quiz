@@ -613,27 +613,51 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.6, delay: 0.6, type: 'spring' }}
-                        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+                        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle at center, #064e3b 0%, #020617 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(10px)', padding: '1rem' }}
                     >
-                        {gameState.win_reason === 'opponent_abandoned' ? (
-                            <>
-                                <h1 style={{ fontSize: '5rem', color: '#10b981', fontWeight: '900', textShadow: '0 0 20px rgba(16, 185, 129, 0.5)', marginBottom: '1rem' }}>VYHRÁVATE!</h1>
-                                <div style={{ color: '#94a3b8', fontSize: '1.5rem', marginBottom: '2.5rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 2rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                    Súper opustil hru, vyhrávate kontumačne.
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <h1 style={{ fontSize: '5rem', color: '#ef4444', fontWeight: '900', textShadow: '0 0 20px rgba(239, 68, 68, 0.5)', marginBottom: '1rem' }}>GAME OVER</h1>
-                                <div style={{ fontSize: '2rem', marginBottom: '3rem', background: 'rgba(255,255,255,0.05)', padding: '2rem 4rem', borderRadius: '24px', border: '2px solid rgba(250, 204, 21, 0.3)' }}>
-                                    <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Tvoje konečné skóre</div>
-                                    <div style={{ fontSize: '4rem', color: '#facc15', fontWeight: 'bold' }}>{myRecord?.score}</div>
-                                </div>
-                            </>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '400px' }}>
+                            {gameState.win_reason === 'opponent_abandoned' ? (
+                                <>
+                                    <div className="winner-banner" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)', marginBottom: '1.5rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: '2px solid #34d399', boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4)' }}>
+                                        Vyhrávate!
+                                    </div>
+                                    <div style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2.5rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        Súper opustil hru, vyhrávate kontumačne.
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '3rem', marginBottom: '2rem', textAlign: 'center' }}>KONIEC HRY</h1>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', marginBottom: '2.5rem' }}>
+                                        {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, i) => (
+                                            <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? `linear-gradient(90deg, ${p.color}30, rgba(0,0,0,0.5))` : 'rgba(0,0,0,0.5)', border: i === 0 ? `2px solid ${p.color}` : `1px solid ${p.color}40`, borderLeft: `6px solid ${p.color}`, borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
+                                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '1.5rem', fontWeight: '900', color: p.color }}>#{i + 1}</span>
+                                                    <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
+                                                </div>
+                                                <span style={{ color: p.color, fontWeight: 'bold', fontSize: '1.5rem' }}>{p.score || 0} b</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button className="primary" onClick={() => { setIsLeaving(true); onLeave(); }} style={{ padding: '1.5rem 3rem', fontSize: '1.5rem', borderRadius: '16px' }}>Späť do menu</button>
+                            <button
+                                className="primary"
+                                onClick={() => { setIsLeaving(true); onLeave(); }}
+                                style={{
+                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                    padding: '1.2rem 3rem',
+                                    fontSize: '1.3rem',
+                                    borderRadius: '16px',
+                                    boxShadow: '0 10px 25px -5px rgba(16,185,129,0.3)',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    alignSelf: 'center'
+                                }}
+                            >
+                                Späť do menu
+                            </button>
                         </div>
                     </motion.div>
                 )}
