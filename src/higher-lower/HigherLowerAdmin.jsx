@@ -9,6 +9,7 @@ export const HigherLowerAdmin = ({ onBack }) => {
 
     // Filters
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterDifficulty, setFilterDifficulty] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Edit state
@@ -16,7 +17,13 @@ export const HigherLowerAdmin = ({ onBack }) => {
     const [editItemData, setEditItemData] = useState({});
 
     // Add item form
-    const [newItem, setNewItem] = useState({ name: '', value: '', image: '', category_id: '' });
+    const [newItem, setNewItem] = useState({ name: '', value: '', image: '', category_id: '', difficulty: 1 });
+
+    // AI Generator state
+    const [aiPrompt, setAiPrompt] = useState('10 filmov s ich celosvetovými tržbami');
+    const [aiDifficulty, setAiDifficulty] = useState(1);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiStatus, setAiStatus] = useState('');
 
     // Category management
     const [editingCatId, setEditingCatId] = useState(null);
@@ -29,7 +36,7 @@ export const HigherLowerAdmin = ({ onBack }) => {
 
     useEffect(() => {
         fetchItems();
-    }, [filterCategory]);
+    }, [filterCategory, filterDifficulty]);
 
     useEffect(() => {
         localStorage.setItem('hl_admin_tab', activeTab);
@@ -47,6 +54,9 @@ export const HigherLowerAdmin = ({ onBack }) => {
         if (filterCategory) {
             query = query.eq('category_id', filterCategory);
         }
+        if (filterDifficulty) {
+            query = query.eq('difficulty', parseInt(filterDifficulty));
+        }
         if (searchTerm) {
             query = query.ilike('name', `%${searchTerm}%`);
         }
@@ -62,7 +72,8 @@ export const HigherLowerAdmin = ({ onBack }) => {
             name: editItemData.name,
             value: parseFloat(editItemData.value) || 0,
             image: editItemData.image,
-            category_id: editItemData.category_id
+            category_id: editItemData.category_id,
+            difficulty: parseInt(editItemData.difficulty) || 1
         }).eq('id', id);
 
         if (!error) {
@@ -88,10 +99,11 @@ export const HigherLowerAdmin = ({ onBack }) => {
             name: newItem.name,
             value: parseFloat(newItem.value) || 0,
             image: newItem.image,
-            category_id: newItem.category_id
+            category_id: newItem.category_id,
+            difficulty: parseInt(newItem.difficulty) || 1
         }]);
         if (!error) {
-            setNewItem({ name: '', value: '', image: '', category_id: filterCategory || '' });
+            setNewItem({ name: '', value: '', image: '', category_id: filterCategory || '', difficulty: 1 });
             fetchItems();
             fetchCategories();
             alert('Položka pridaná!');
@@ -142,6 +154,87 @@ export const HigherLowerAdmin = ({ onBack }) => {
     // Helpers
     const getCatDetails = (cId) => categories.find(c => c.id === cId) || {};
 
+    const handleGenerateAI = async () => {
+        if (!filterCategory) return alert("Najprv vyber na ľavom paneli kategóriu, pre ktorú chceš generovať!");
+        if (!aiPrompt) return alert("Zadaj tému!");
+
+        const catObj = getCatDetails(filterCategory);
+
+        setAiLoading(true);
+        setAiStatus('Posielam požiadavku na OpenAI...');
+
+        try {
+            const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+            if (!apiKey) throw new Error("Chýba VITE_OPENAI_API_KEY");
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    temperature: 0.7,
+                    messages: [
+                        {
+                            role: "system",
+                            content: `Si ODBORNÝ EDITOR dát pre hru Higher/Lower. Tvojou úlohou je vygenerovať presne ten počet záznamov, o aký ťa používateľ požiada.
+Vytváraš JSON pre kategóriu "${catObj.name}" s metrikou "${catObj.metric}".
+Cieľová NÁROČNOSŤ (1=ľahké známe fakty, 2=stredné, 3=ťažké fakty pre expertov) je VŽDY nastavená na: ${aiDifficulty}.
+
+AKCIA:
+1. Vygeneruj unikátne záznamy na tému, ktorú ti zadá používateľ. Snaž sa neopakovať bežne známe veci.
+2. Zisti si PRESNÚ HODNOTU danej veci vo svete (napr. predaje v kusoch, kalórie na 100g, km/h, atď) - odpoveď MUSÍ byť len čisté matematické číslo bez medzier a oddelovačov (napríklad 1500000 namiesto 1 500 000). To pôjde do kľúča "value".
+3. Pre každú položku vymysli výstižné 1 VIZUÁLNE EMOJI. To pôjde do kľúča "image". Povoľujeme max 1 znak.
+4. Krátky a jasný názov veci pôjde do "name".
+5. Nepridávaj do hodnoty znaky meny alebo skratky metriky, IBA ČÍSLO.
+
+Výstup musí byť vždy JSON { "items": [ { "name": "...", "value": 1500, "image": "🚗" }, ... ] }`
+                        },
+                        {
+                            role: "user",
+                            content: `Vygeneruj mi dáta: ${aiPrompt}`
+                        }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) throw new Error("Chyba z OpenAI API: " + response.statusText);
+
+            const rawData = await response.json();
+            const result = JSON.parse(rawData.choices[0].message.content);
+            const generatedItems = result.items || [];
+
+            if (generatedItems.length === 0) throw new Error("AI nevrátilo žiadne položky.");
+
+            setAiStatus(`Generátor vymyslel ${generatedItems.length} záznamov. Ukladám do DB...`);
+
+            const toInsert = generatedItems.map(it => ({
+                name: it.name,
+                value: parseFloat(it.value) || 0,
+                image: it.image || '❓',
+                category_id: filterCategory,
+                difficulty: aiDifficulty
+            }));
+
+            const { error } = await supabase.from('higher_lower_items').insert(toInsert);
+            if (error) throw error;
+
+            alert(`✅ Úspešne pridaných ${generatedItems.length} nových položiek!`);
+            fetchItems();
+            fetchCategories();
+            setAiPrompt('');
+        } catch (err) {
+            console.error(err);
+            alert('Chyba pri AI generovaní: ' + err.message);
+        } finally {
+            setAiLoading(false);
+            setAiStatus('');
+        }
+    };
+
     return (
         <div className="game-container lobby admin-panel">
             <div className="lobby-header">
@@ -185,6 +278,7 @@ export const HigherLowerAdmin = ({ onBack }) => {
                         <button className={`secondary ${activeTab === 'items' ? 'active' : ''}`} onClick={() => setActiveTab('items')}>Položky</button>
                         <button className={`secondary ${activeTab === 'add_item' ? 'active' : ''}`} onClick={() => setActiveTab('add_item')}>Pridať Položku</button>
                         <button className={`secondary ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>Kategórie</button>
+                        <button className={`secondary ${activeTab === 'generate' ? 'active' : ''}`} onClick={() => setActiveTab('generate')}>AI Generátor</button>
                     </div>
 
                     {activeTab === 'items' && (
@@ -211,8 +305,20 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                         ))}
                                     </select>
                                 </div>
-                                {(filterCategory || searchTerm) && (
-                                    <button className="neutral" onClick={() => { setFilterCategory(''); setSearchTerm(''); fetchItems(); }} style={{ padding: '0.8rem' }}>✖ Zrušiť</button>
+                                <div className="form-group" style={{ width: '160px' }}>
+                                    <select
+                                        value={filterDifficulty}
+                                        onChange={(e) => setFilterDifficulty(e.target.value)}
+                                        style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px', width: '100%' }}
+                                    >
+                                        <option value="">Náročnosť</option>
+                                        <option value="1">1 (Ľahké)</option>
+                                        <option value="2">2 (Stredné)</option>
+                                        <option value="3">3 (Ťažké)</option>
+                                    </select>
+                                </div>
+                                {(filterCategory || filterDifficulty || searchTerm) && (
+                                    <button className="neutral" onClick={() => { setFilterCategory(''); setFilterDifficulty(''); setSearchTerm(''); fetchItems(); }} style={{ padding: '0.8rem' }}>✖ Zrušiť</button>
                                 )}
                             </div>
                             <div className="admin-table-wrapper">
@@ -223,6 +329,7 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                             <th>Názov</th>
                                             <th>Hodnota</th>
                                             <th className="hide-mobile">Kategória</th>
+                                            <th>Kat.</th>
                                             <th style={{ textAlign: 'center' }}>Akcie</th>
                                         </tr>
                                     </thead>
@@ -245,6 +352,13 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                                                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                             </select>
                                                         </td>
+                                                        <td>
+                                                            <select value={editItemData.difficulty} onChange={e => setEditItemData(prev => ({ ...prev, difficulty: e.target.value }))} style={{ width: '60px', background: '#1e293b', color: 'white', padding: '0.4rem' }}>
+                                                                <option value="1">1</option>
+                                                                <option value="2">2</option>
+                                                                <option value="3">3</option>
+                                                            </select>
+                                                        </td>
                                                         <td className="q-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                                             <button onClick={() => handleUpdateItem(it.id)} className="secondary" title="Uložiť">✅</button>
                                                             <button onClick={() => setEditingItemId(null)} className="neutral" title="Zrušiť">❌</button>
@@ -258,6 +372,9 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                                             {it.value.toLocaleString('sk-SK')} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>{it.higher_lower_categories?.metric}</span>
                                                         </td>
                                                         <td className="hide-mobile">{it.higher_lower_categories?.name}</td>
+                                                        <td style={{ textAlign: 'center', color: it.difficulty === 1 ? '#10b981' : it.difficulty === 2 ? '#facc15' : '#ef4444' }}>
+                                                            <b>{it.difficulty}</b>
+                                                        </td>
                                                         <td className="q-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                                             <button onClick={() => { setEditingItemId(it.id); setEditItemData({ ...it }); }} className="neutral" title="Upraviť">✏️</button>
                                                             <button onClick={() => handleDeleteItem(it.id)} className="delete-btn" title="Vymazať">🗑️</button>
@@ -286,6 +403,18 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                 >
                                     <option value="" disabled>Vyberte kategóriu...</option>
                                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Náročnosť</label>
+                                <select
+                                    value={newItem.difficulty}
+                                    onChange={e => setNewItem({ ...newItem, difficulty: e.target.value })}
+                                    style={{ background: '#1e293b', color: 'white', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                                >
+                                    <option value="1">1 (Ľahké - 95% ľudí vie)</option>
+                                    <option value="2">2 (Stredné - priemerný prehľad)</option>
+                                    <option value="3">3 (Ťažké - pre expertov)</option>
                                 </select>
                             </div>
                             <div className="form-group">
@@ -359,6 +488,61 @@ export const HigherLowerAdmin = ({ onBack }) => {
                                 <button type="submit" className="primary" style={{ marginTop: '0.5rem' }}>Pridať Kategóriu</button>
                             </form>
                         </>
+                    )}
+
+                    {activeTab === 'generate' && (
+                        <div className="auth-form" style={{ maxWidth: '600px' }}>
+                            <h2 style={{ color: '#facc15', marginBottom: '1rem' }}>AI Generátor Položiek</h2>
+                            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
+                                Vyberte si kategóriu na ľavom paneli a dajte AI pokyn, aby pre ňu vygenerovalo úplne nové položky, rovno aj s hodnotami, aj emotikonom.
+                            </p>
+
+                            <div className="form-group">
+                                <label>Kategória pre generovanie</label>
+                                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', color: filterCategory ? '#38bdf8' : '#ef4444', fontWeight: 'bold' }}>
+                                    {filterCategory ? getCatDetails(filterCategory).name : '⚠️ Nevybrali ste kategóriu (vyberte na ľavej lište)'}
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Náročnosť otázok pre AI (1, 2 alebo 3)</label>
+                                <select
+                                    value={aiDifficulty}
+                                    onChange={e => setAiDifficulty(e.target.value)}
+                                    style={{ background: '#1e293b', color: 'white', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                                >
+                                    <option value="1">1 (Ľahké - 95% ľudí vie)</option>
+                                    <option value="2">2 (Stredné - priemerný prehľad)</option>
+                                    <option value="3">3 (Ťažké - pre expertov hladačov faktov)</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Prompt / Príkaz</label>
+                                <textarea
+                                    value={aiPrompt}
+                                    onChange={e => setAiPrompt(e.target.value)}
+                                    rows={3}
+                                    required
+                                    placeholder="Napr: 15 najväčších jazier s ich rozlohou v km2"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleGenerateAI}
+                                disabled={aiLoading || !filterCategory}
+                                className="primary"
+                                style={{ width: '100%', marginTop: '1rem', background: '#facc15', color: '#0f172a', fontWeight: 'bold', fontSize: '1.2rem', padding: '1rem' }}
+                            >
+                                {aiLoading ? 'Generujem (čítaj status)...' : '✨ Generovať s AI'}
+                            </button>
+
+                            {aiStatus && (
+                                <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderRadius: '8px', border: '1px dashed #38bdf8' }}>
+                                    {aiStatus}
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
