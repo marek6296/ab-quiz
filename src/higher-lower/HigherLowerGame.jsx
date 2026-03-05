@@ -389,7 +389,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                 exit="exitLeft"
                                 transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                 style={{
-                                    flex: '1 1 300px', height: '400px', borderRadius: '24px',
+                                    width: '380px', height: '450px', flexShrink: 0, borderRadius: '24px',
                                     border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                     background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                     boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
@@ -420,7 +420,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     exit="exitLeft"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                     style={{
-                                        flex: '1 1 300px', height: '400px', borderRadius: '24px',
+                                        width: '380px', height: '450px', flexShrink: 0, borderRadius: '24px',
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                         boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
@@ -438,10 +438,10 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                                     <CountUp value={secondItem.value} isRevealing={gameState.phase === 'reveal_value'} />
                                                 ) : "ČAS VYPRŠAL!"}
                                             </div>
-                                            <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '1rem' }}>{gameState.metric}</div>
+                                            <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
                                         </>
                                     ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '200px', minHeight: '130px', justifyContent: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '200px', height: '100px', justifyContent: 'center' }}>
                                             {['reveal_buttons', 'question'].includes(gameState.phase) && (
                                                 !myGuess ? (
                                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
