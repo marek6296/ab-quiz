@@ -68,12 +68,12 @@ export const PlatformLobby = ({ onlineUserIds }) => {
         if (!isHost || !lobby) return;
 
         // Vložíme do lobby_members záznam s tagom 'invited' – to spustí notifikáciu u pozvaného.
-        const { error } = await supabase.from('lobby_members').insert({
+        const { error } = await supabase.from('lobby_members').upsert({
             lobby_id: lobby.id,
             user_id: partner.id,
             role: 'member',
             state: 'invited'
-        });
+        }, { onConflict: 'lobby_id, user_id' });
 
         if (error) {
             alert(`Chyba pri pozývaní: ${error.message}`);

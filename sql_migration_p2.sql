@@ -185,3 +185,4 @@ CREATE POLICY "Enable insert access for all" ON match_players FOR INSERT WITH CH
 DROP POLICY IF EXISTS "Enable update access for all" ON match_players;
 CREATE POLICY "Enable update access for all" ON match_players FOR UPDATE USING (true);
 
+ALTER PUBLICATION supabase_realtime ADD TABLE lobby_members;
