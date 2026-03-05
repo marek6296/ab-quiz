@@ -393,7 +393,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 {gameState.phase === 'init' && <h2 style={{ fontSize: '2rem' }}>Generujem dáta...</h2>}
 
                 {showLeftCard && firstItem && secondItem && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', width: '100%', maxWidth: '1200px', flexWrap: 'wrap', padding: '0 1rem' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px', height: '500px' }}>
 
                         {/* FIRST ITEM */}
                         <AnimatePresence>
@@ -406,6 +406,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                 exit="exitLeft"
                                 transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                 style={{
+                                    position: 'absolute',
+                                    left: 0,
                                     width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                     border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                     background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
@@ -427,7 +429,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                             </motion.div>
                         </AnimatePresence>
 
-                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}>VS</div>
+                        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}>VS</div>
 
                         {/* SECOND ITEM */}
                         <AnimatePresence>
@@ -441,6 +443,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     exit="exitLeft"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                     style={{
+                                        position: 'absolute',
+                                        right: 0,
                                         width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',

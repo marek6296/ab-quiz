@@ -414,6 +414,12 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     }
     if (gameState.phase === 'finished') {
         if (gameState.win_reason === 'opponent_abandoned') {
+            const amITheWinner = players.some(p => p.user_id === user.id);
+            if (!amITheWinner) {
+                // Toho klienta sme my sami opustili! V tomto čase len čaká na odpojenie a renderuje 'Opúšťam hru...'
+                return <div className="bilionar-board fullscreen-flex"><div className="message-modal"><h2>Opúšťate zónu...</h2></div></div>;
+            }
+
             return (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
