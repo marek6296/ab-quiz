@@ -181,10 +181,10 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         await broadcastState({ phase: 'reveal_result', phase_start_time: now });
                     }
                 } else if (phase === 'reveal_result') {
-                    if (now - (state.phase_start_time || now) >= 800) {
+                    if (now - (state.phase_start_time || now) >= 2000) {
                         const latestPlayers = playersRef.current;
                         const activePlayers = latestPlayers.filter(p => !p.eliminated);
-                        const isGameOver = activePlayers.length <= 1 || state.round_index >= (state.sequence?.length || 0) - 2;
+                        const isGameOver = state.round_index >= (state.sequence?.length || 0) - 2 || activePlayers.length === 0 || (activePlayers.length === 1 && latestPlayers.length > 1 && !latestPlayers.some(p => p.is_bot));
 
                         if (isGameOver) {
                             await broadcastState({ phase: 'finished', phase_start_time: now });
