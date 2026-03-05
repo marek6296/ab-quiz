@@ -310,17 +310,23 @@ export const PlatformSessionProvider = ({ children }) => {
     const leaveGame = async () => {
         if (!user || !lobby || !match) return;
         try {
-            // Only leave the GAME, return to lobby post-game state
+            // Odlúpnutie match stavu
             await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', match.id).eq('user_id', user.id);
-            await supabase.from('lobby_members').update({ state: 'in_lobby' }).eq('lobby_id', lobby.id).eq('user_id', user.id);
 
-            // IF HOST is leaving the game, the game is officially over or canceled, reset the lobby so we don't start it again automatically
+            // AUTOMATIKA: Užívateľ poprosil o zjednodušenie. Keď sa odchádza z hry, rozpustí sa aj samotné Lobby. Žiadne vracanie sa do Lobby.
+            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', lobby.id).eq('user_id', user.id);
+
+            // Ak hru opúšťa Hostiteľ, definitívne rozhádže celú miestnosť pre všetkých
             if (isHost) {
-                await supabase.from('platform_lobbies').update({ status: 'waiting', active_match_id: null }).eq('id', lobby.id);
+                await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', lobby.id);
             }
-            // Okamžite vyčistiť aj lokálne stavy
+
+            // Okamžite vyčistiť RAM stavy a odpáliť hráča do Portal Menu
+            setLobby(null);
+            setMembers([]);
             setMatch(null);
             setMatchPlayers([]);
+            sessionStorage.removeItem('ab_quiz_active_lobby');
         } catch (e) {
             console.error(e);
         }
