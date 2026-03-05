@@ -67,18 +67,18 @@ export const PlatformLobby = ({ onlineUserIds }) => {
     const handleInvite = async (partner) => {
         if (!isHost || !lobby) return;
 
-        // V skutočnej implementácii zrejme pošleme notifikáciu užívateľovi (game_invites tabuľka).
-        // Na zjednodušenie a pretože 'friends' logika bola pôvodne závislá od starej lobby,
-        // prekopírujeme správanie z pôvodnej App (ak sa používalo supabase.from('games'...)).
-        // Nateraz funkčné posielanie pozvánok do platform_lobby typu:
-
-        const { error } = await supabase.from('game_invites').insert([{
-            from_user_id: user.id,
-            to_user_id: partner.id,
-            game_type: 'platform_lobby', // špecialny typ ktorý indikuje vstup do lobby
-            game_id: lobby.id,
-            rules: 'custom'
-        }]);
+        // Vložíme do lobby_members záznam s tagom 'invited' – to spustí notifikáciu u pozvaného.
+        const { error } = await supabase.from('lobby_members').insert({
+            lobby_id: lobby.id,
+            user_id: partner.id,
+            role: 'player',
+            state: 'invited',
+            metadata: {
+                player_name: partner.username,
+                avatar_url: partner.avatar_url,
+                color: '#34d399'
+            }
+        });
 
         if (error) {
             alert(`Chyba pri pozývaní: ${error.message}`);

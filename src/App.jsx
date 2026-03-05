@@ -1121,7 +1121,7 @@ const MainRouter = () => {
 
   const handleDeclineInvite = async (gameId) => {
     if (incomingInvite?.gameType === 'platform_lobby') {
-      await supabase.from('platform_players').delete().eq('lobby_id', gameId).eq('user_id', user.id);
+      await supabase.from('lobby_members').delete().eq('lobby_id', gameId).eq('user_id', user.id);
     } else if (incomingInvite?.gameType === 'bilionar') {
       await supabase.from('bilionar_players').delete().eq('game_id', gameId).eq('user_id', user.id);
     } else if (incomingInvite?.gameType === 'higher_lower') {

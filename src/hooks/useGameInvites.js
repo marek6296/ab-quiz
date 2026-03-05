@@ -93,7 +93,7 @@ export const useGameInvites = ({ user, activeGameId, handleStartGame, setIncomin
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'platform_players',
+                table: 'lobby_members',
                 filter: `user_id=eq.${user.id}`
             }, async (payload) => {
                 const { data: lobby } = await supabase.from('platform_lobbies').select('*').eq('id', payload.new.lobby_id).single();
