@@ -1045,16 +1045,15 @@ const MainRouter = () => {
 
   // Auto-route to the active game when match starts
   useEffect(() => {
-    if (match) {
-      if (match.game_type === 'quiz' && currentApp !== 'ab_quiz') {
-        setCurrentApp('ab_quiz');
-      } else if (match.game_type === 'bilionar' && currentApp !== 'bilionar_battle') {
-        setCurrentApp('bilionar_battle');
-      } else if (match.game_type === 'higher_lower' && currentApp !== 'higher_lower') {
-        setCurrentApp('higher_lower');
-      }
+    if (match?.id) {
+      setCurrentApp(prev => {
+        if (match.game_type === 'quiz' && prev !== 'ab_quiz') return 'ab_quiz';
+        if (match.game_type === 'bilionar' && prev !== 'bilionar_battle') return 'bilionar_battle';
+        if (match.game_type === 'higher_lower' && prev !== 'higher_lower') return 'higher_lower';
+        return prev;
+      });
     }
-  }, [match, currentApp]);
+  }, [match?.id]);
 
   // Global Presence Tracking across the whole application
   useEffect(() => {
