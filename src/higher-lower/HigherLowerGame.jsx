@@ -516,7 +516,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 40, backdropFilter: 'blur(10px)' }}
                     >
                         <h2 style={{ fontSize: '3rem', color: '#facc15', marginBottom: '2rem', textShadow: '0 0 15px rgba(250, 204, 21, 0.5)' }}>
-                            Skóre po {state.round_index + 1}. kole
+                            Skóre po {gameState.round_index + 1}. kole
                         </h2>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '500px' }}>
