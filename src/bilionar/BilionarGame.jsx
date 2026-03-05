@@ -29,6 +29,9 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
+    const playersRef = useRef(players);
+    useEffect(() => { playersRef.current = players; }, [players]);
+
     // 1.5 Host Migration & Auto-Victory Fallback Drop-in
     useEffect(() => {
         if (!players.length || !user || !activeGame) return;
@@ -181,10 +184,10 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 // Auto-victory condition: If game started with > 1 real player and now <= 1 remains
                 // Only trigger this if we are not already finished
                 if (newState.phase !== 'finished' && newState.phase !== 'init' && newState.phase !== 'no_questions') {
-                    const realPlayersCount = players.filter(p => !p.is_bot).length;
+                    const realPlayersCount = playersRef.current.filter(p => !p.is_bot).length;
 
                     // Keep track of the maximum number of real players we have ever seen in this session
-                    if (realPlayersCount > (activeGame.state?.max_real_players || 0)) {
+                    if (realPlayersCount > (current.max_real_players || 0)) {
                         newState.max_real_players = realPlayersCount;
                     }
 
