@@ -210,7 +210,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         }
                     }
                 } else if (phase === 'cleanup_round') {
-                    if (now - (state.phase_start_time || now) >= 800) {
+                    if (now - (state.phase_start_time || now) >= 400) {
                         await broadcastState({ phase: 'spawning_clear', phase_start_time: now, round_index: state.round_index + 1 });
                     }
                 }
@@ -328,8 +328,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
         }
     }, [gameState.phase, isCorrect, playSound]);
 
-    const showLeftCard = ['spawning_left', 'spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'round_scoreboard'].includes(gameState.phase);
-    const showRightCard = ['spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'round_scoreboard'].includes(gameState.phase);
+    const showLeftCard = ['spawning_left', 'spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result'].includes(gameState.phase);
+    const showRightCard = ['spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result'].includes(gameState.phase);
 
     const cardVariants = {
         hiddenLeft: { x: -300, opacity: 0, scale: 0.8 },
@@ -525,7 +525,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.4 }}
+                        transition={{ duration: 0.4, delay: 0.5 }}
                         style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 40, backdropFilter: 'blur(10px)' }}
                     >
                         <h2 style={{ fontSize: '3rem', color: '#facc15', marginBottom: '2rem', textShadow: '0 0 15px rgba(250, 204, 21, 0.5)' }}>

@@ -305,19 +305,24 @@ export const PlatformSessionProvider = ({ children }) => {
     const leaveLobby = async () => {
         if (!user || !lobby) return;
         try {
-            // Update state to left
-            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', lobby.id).eq('user_id', user.id);
+            const preservedLobbyId = lobby.id;
+            const preservedMatchId = lobby.active_match_id;
+            const hadMatch = !!lobby.active_match_id && myMatchState && myMatchState.state !== 'left';
 
-            // If in match, also leave match
-            if (lobby.active_match_id && myMatchState && myMatchState.state !== 'left') {
-                await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', lobby.active_match_id).eq('user_id', user.id);
-            }
-
+            // 1. Okamžite vyčistiť RAM stavy PREDTÝM než zavoláme DB. 
+            // Tým zrušíme channel listenery a zabránime race-condition "znovu-vtiahnutia" do hry cez webhook!
             setLobby(null);
             setMembers([]);
             setMatch(null);
             setMatchPlayers([]);
             sessionStorage.removeItem('ab_quiz_active_lobby');
+
+            // 2. Až teraz spustiť sieťové operácie
+            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', preservedLobbyId).eq('user_id', user.id);
+
+            if (hadMatch) {
+                await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', preservedMatchId).eq('user_id', user.id);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -327,12 +332,14 @@ export const PlatformSessionProvider = ({ children }) => {
         if (!user || !lobby || !isHost) return;
         try {
             const currentSelectedGame = lobby.selected_game;
-            // Zavri aktuálne lobby
-            await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', lobby.id);
+            const preservedLobbyId = lobby.id;
+
             setLobby(null);
             setMembers([]);
             setMatch(null);
             setMatchPlayers([]);
+
+            await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', preservedLobbyId);
 
             // Vytvor novú
             await createLobby(currentSelectedGame);
@@ -344,23 +351,24 @@ export const PlatformSessionProvider = ({ children }) => {
     const leaveGame = async () => {
         if (!user || !lobby || !match) return;
         try {
-            // Odlúpnutie match stavu
-            await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', match.id).eq('user_id', user.id);
+            const preservedLobbyId = lobby.id;
+            const preservedMatchId = match.id;
 
-            // AUTOMATIKA: Užívateľ poprosil o zjednodušenie. Keď sa odchádza z hry, rozpustí sa aj samotné Lobby. Žiadne vracanie sa do Lobby.
-            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', lobby.id).eq('user_id', user.id);
-
-            // Ak hru opúšťa Hostiteľ, definitívne rozhádže celú miestnosť pre všetkých
-            if (isHost) {
-                await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', lobby.id);
-            }
-
-            // Okamžite vyčistiť RAM stavy a odpáliť hráča do Portal Menu
+            // 1. Okamžite vyčistiť RAM stavy PREDTÝM než zavoláme DB na odlúpnutie.
             setLobby(null);
             setMembers([]);
             setMatch(null);
             setMatchPlayers([]);
             sessionStorage.removeItem('ab_quiz_active_lobby');
+
+            // 2. Sieťové eventy (potom ako sme sa odpojili od poslucháčov channelu)
+            await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', preservedMatchId).eq('user_id', user.id);
+
+            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', preservedLobbyId).eq('user_id', user.id);
+
+            if (isHost) {
+                await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', preservedLobbyId);
+            }
         } catch (e) {
             console.error(e);
         }
