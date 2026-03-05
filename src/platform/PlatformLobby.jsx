@@ -303,16 +303,16 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                                 </div>
                             </div>
 
-                            <div>
-                                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginBottom: '0.4rem' }}>Kategórie</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '110px', overflowY: 'auto' }}>
-                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginBottom: '0.4rem', flexShrink: 0 }}>Kategórie</div>
+                                <div className="categories-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '120px', overflowY: 'auto', alignContent: 'flex-start' }}>
+                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default', flexShrink: 0 }}>
                                         Všetky
                                     </button>
                                     {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
                                         const isSel = selectedCategories.includes(c);
                                         return (
-                                            <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default' }}>
+                                            <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default', flexShrink: 0 }}>
                                                 {c}
                                             </button>
                                         )
@@ -410,6 +410,7 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     .lobby-grid {
                         display: flex !important;
                         flex-direction: column;
+                        overflow-y: auto !important;
                     }
                     .mobile-tabs {
                         display: flex !important;
@@ -419,7 +420,11 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     }
                     .mobile-active {
                         display: flex !important;
-                        flex: 1;
+                        height: max-content;
+                    }
+                    .categories-list {
+                        max-height: none !important;
+                        overflow-y: visible !important;
                     }
                 }
             `}</style>
