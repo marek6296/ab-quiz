@@ -627,6 +627,13 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                             const optionText = currentQ?.[`option_${key.toLowerCase()}`];
                             let statusClass = '';
 
+                            let fontScale = 1;
+                            if (optionText) {
+                                if (optionText.length > 55) fontScale = 0.65;
+                                else if (optionText.length > 35) fontScale = 0.75;
+                                else if (optionText.length > 20) fontScale = 0.85;
+                            }
+
                             if (gameState.phase === 'answering' && selectedAnswer === key) statusClass = 'locked';
                             else if (isReveal) {
                                 if (key === currentQ?.correct_answer) statusClass = 'correct blink-green';
@@ -639,7 +646,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                                 <div key={key} style={{ position: 'relative', display: 'flex', height: '100%' }}>
                                     <button
                                         className={`bilionar-option-btn ${statusClass} ${key === 'A' || key === 'C' ? 'opt-left' : 'opt-right'}`}
-                                        style={{ flex: 1 }}
+                                        style={{ flex: 1, '--font-scale': fontScale }}
                                         onClick={() => handleSelectOption(key)}
                                         disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
                                     >
