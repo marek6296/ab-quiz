@@ -339,7 +339,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
   // Turn Announcement Sync for Online Games
   useEffect(() => {
     if (!channel || gameMode !== '1v1_online') return;
-    const tracker = channel.on('broadcast', { event: 'turn_announcement' }, (msg) => {
+    channel.on('broadcast', { event: 'turn_announcement' }, (msg) => {
       setTurnAnnouncement(msg.payload);
       if (msg.payload === null) return;
       // Safety auto-clear
@@ -347,7 +347,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
         setTurnAnnouncement(prev => (prev?.text === msg.payload.text ? null : prev));
       }, 3000);
     });
-    return () => { channel.off('broadcast', { event: 'turn_announcement' }); };
+    // Poznámka: Supabase v2 nemá `.off()`. Kanál sa spoľahlivo zničí z useGameState cez `removeChannel()`.
   }, [channel, gameMode]);
 
   const getRandomQuestionForConfig = useCallback(async () => {
