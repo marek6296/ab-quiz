@@ -3571,36 +3571,33 @@ button.small {
   text-align: center;
   margin: 0;
   line-height: 1;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 .massive-entrance {
   animation: massiveEntrance 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes massiveEntrance {
   0% {
     opacity: 0;
     transform: scale(0.5) translateY(20px);
-    filter: blur(10px);
   }
 
   30% {
     opacity: 1;
     transform: scale(1.1) translateY(0);
-    filter: blur(0);
   }
 
   80% {
     opacity: 1;
     transform: scale(1) translateY(0);
-    filter: blur(0);
   }
 
   100% {
     opacity: 0;
     transform: scale(1.5) translateY(-30px);
-    filter: blur(5px);
   }
 }
 
@@ -3609,8 +3606,9 @@ button.small {
   border: 2px solid #38bdf8;
   border-radius: 20px;
   padding: 3rem 4rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.2);
   text-align: center;
+  will-change: transform, opacity;
 }
 
 .message-modal h2 {
@@ -3623,6 +3621,7 @@ button.small {
 
 .slide-in-scale {
   animation: slideInScale 4s ease-in-out forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes slideInScale {
@@ -3752,6 +3751,7 @@ button.small {
 
 .animate-slide-down {
   animation: slideDownIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes slideDownIn {
@@ -3768,6 +3768,7 @@ button.small {
 
 .animate-fade-up {
   animation: fadeUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes fadeUpIn {
@@ -3784,6 +3785,7 @@ button.small {
 
 .animate-fade-in {
   animation: fadeIn 0.5s ease-in forwards;
+  will-change: opacity;
 }
 
 @keyframes fadeIn {
