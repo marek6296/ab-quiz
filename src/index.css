@@ -3260,27 +3260,27 @@ button.small {
 }
 
 /* Left buttons (A, C) */
-.bilionar-option-btn:nth-child(odd) {
+.bilionar-option-btn.opt-left {
   clip-path: polygon(0% 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 0% 100%);
   padding-left: 10%;
   /* More padding for inner alignment */
 }
 
-.bilionar-option-btn:nth-child(odd)::before {
+.bilionar-option-btn.opt-left::before {
   left: 3px;
   right: 3px;
   clip-path: polygon(0% 0%, calc(100% - 28px) 0%, 100% 50%, calc(100% - 28px) 100%, 0% 100%);
 }
 
 /* Right buttons (B, D) */
-.bilionar-option-btn:nth-child(even) {
+.bilionar-option-btn.opt-right {
   clip-path: polygon(30px 0%, 100% 0%, 100% 100%, 30px 100%, 0% 50%);
   padding-right: 10%;
   padding-left: 3rem;
   /* Allow space for point */
 }
 
-.bilionar-option-btn:nth-child(even)::before {
+.bilionar-option-btn.opt-right::before {
   left: 3px;
   right: 3px;
   clip-path: polygon(28px 0%, 100% 0%, 100% 100%, 28px 100%, 0% 50%);
@@ -3317,21 +3317,21 @@ button.small {
     padding: 1rem 1.5rem;
   }
 
-  .bilionar-option-btn:nth-child(odd) {
+  .bilionar-option-btn.opt-left {
     clip-path: polygon(0% 0%, calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 0% 100%);
     padding-left: 1.5rem;
   }
 
-  .bilionar-option-btn:nth-child(odd)::before {
+  .bilionar-option-btn.opt-left::before {
     clip-path: polygon(0% 0%, calc(100% - 18px) 0%, 100% 50%, calc(100% - 18px) 100%, 0% 100%);
   }
 
-  .bilionar-option-btn:nth-child(even) {
+  .bilionar-option-btn.opt-right {
     clip-path: polygon(20px 0%, 100% 0%, 100% 100%, 20px 100%, 0% 50%);
     padding-left: 2rem;
   }
 
-  .bilionar-option-btn:nth-child(even)::before {
+  .bilionar-option-btn.opt-right::before {
     clip-path: polygon(18px 0%, 100% 0%, 100% 100%, 18px 100%, 0% 50%);
   }
 

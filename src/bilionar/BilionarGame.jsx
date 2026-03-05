@@ -638,7 +638,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                             return (
                                 <div key={key} style={{ position: 'relative', display: 'flex', height: '100%' }}>
                                     <button
-                                        className={`bilionar-option-btn ${statusClass}`}
+                                        className={`bilionar-option-btn ${statusClass} ${key === 'A' || key === 'C' ? 'opt-left' : 'opt-right'}`}
                                         style={{ flex: 1 }}
                                         onClick={() => handleSelectOption(key)}
                                         disabled={selectedAnswer !== null || gameState.phase !== 'answering'}
