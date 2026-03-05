@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthTabs } from './components/auth/AuthTabs';
-import { Lobby } from './components/Lobby';
 import { useGameState } from './hooks/useGameState';
 import { GameBoard } from './components/GameBoard';
 import { QuestionModal } from './components/QuestionModal';
 import { GameInviteModal } from './components/GameInviteModal';
-import { Matchmaking } from './components/Matchmaking';
 
 import { supabase } from './lib/supabase';
 import { Admin } from './components/Admin';
@@ -16,6 +14,7 @@ import { GamePortal } from './components/GamePortal';
 import { PlatformLobby } from './platform/PlatformLobby';
 import { BilionarApp } from './bilionar/BilionarApp';
 import { HigherLowerApp } from './higher-lower/HigherLowerApp';
+import { PlatformSessionProvider, usePlatformSession } from './context/PlatformSessionContext';
 
 // Custom Hooks pre logiku hry
 import { useBlockNavigation } from './hooks/useBlockNavigation';
@@ -157,6 +156,7 @@ const TurnAnnouncement = ({ announcement }) => {
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onClearPending, onlineUserIds }) => {
   const { user } = useAuth();
+  const { match, isHost, members, leaveGame } = usePlatformSession();
   const {
     appState, setAppState,
     gameMode, setGameMode,
@@ -229,6 +229,65 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
         .then(({ data }) => setProfile(data));
     }
   }, [user]);
+
+  // Platform Match Synchronization & DB Game Initialization
+  useEffect(() => {
+    if (!match || match.game_type !== 'quiz') return;
+
+    const initQuizMatch = async () => {
+      try {
+        const { data: existingGame } = await supabase.from('games').select('*').eq('id', match.id).single();
+
+        const rules = match.snapshot_settings?.rules || 'hex';
+        const cats = match.snapshot_settings?.cat || [];
+        const diffs = match.snapshot_settings?.diff || [1];
+
+        // Ensure we know if we are playing against a real opponent or a bot
+        const realMembers = members.filter(m => m.state === 'in_game');
+        const botMember = realMembers.find(m => m.role === 'bot');
+        const isBotGame = !!botMember;
+        const actualMode = isBotGame ? '1vbot' : '1v1_online';
+
+        if (existingGame) {
+          if (activeGameId !== match.id) {
+            handleStartGame(actualMode, rules, match.id, cats, diffs, match.snapshot_settings?.botDiff || 2);
+          }
+        } else if (isHost) {
+          // Initialize DB game
+          let p1_id = user.id;
+          let p2_id = null;
+
+          if (!isBotGame) {
+            const opponent = realMembers.find(m => m.user_id !== user.id);
+            if (opponent) p2_id = opponent.user_id;
+          }
+
+          const { data: newGame, error: err } = await supabase.from('games').insert([{
+            id: match.id,
+            player1_id: p1_id,
+            player2_id: p2_id,
+            game_type: rules,
+            status: 'active',
+            board_state: generateInitialBoard(rules),
+            current_turn: p1_id,
+            category: JSON.stringify({ cats, diffs }),
+            difficulty: diffs[0] || 1
+          }]).select().single();
+
+          if (!err && newGame) {
+            handleStartGame(actualMode, rules, match.id, cats, diffs, match.snapshot_settings?.botDiff || 2);
+            await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to initialize match:", err);
+      }
+    };
+
+    if (match.id && appState !== APP_STATES.IN_GAME) {
+      initQuizMatch();
+    }
+  }, [match?.id, isHost, appState]);
 
   // Pass necessary info down to the game engine
   const {
@@ -490,9 +549,9 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     return () => clearTimeout(timeout);
   }, [currentPlayer, appState, profile, opponentName, winner, gameMode, activeModal]);
 
-  // Resume active game if we have one
+  // Resume active game if we have one (local fallback for non-platform matches, though deprecated eventually)
   useEffect(() => {
-    if (user?.id && !activeGameId && !manualExitRef.current) {
+    if (user?.id && !activeGameId && !manualExitRef.current && (!match || match.game_type !== 'quiz')) {
       supabase.from('games').select('*')
         .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
         .eq('status', 'active')
@@ -503,7 +562,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
           }
         });
     }
-  }, [user, activeGameId, handleStartGame]);
+  }, [user, activeGameId, handleStartGame, match]);
 
   // Logic extractions
   useBotTurn({ gameMode, currentPlayer, winner, activeModal, showExitConfirm, board, getRandomQuestionForConfig, setActiveModal });
@@ -641,14 +700,19 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
       supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
     }
 
+    if (match) {
+      leaveGame();
+    }
+
     // Explicitly terminate platform lobby if we were in one
-    if (onTerminateLobby) {
+    if (onTerminateLobby && !match) {
       await onTerminateLobby();
     }
 
     resetToLobby();
+    onBackToPortal();
     setShowExitConfirm(false);
-    setActiveModal(null); // Extrémne dôležité: Vyčistiť starý modal
+    setActiveModal(null);
     resetGame();
     addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
   };
@@ -657,28 +721,15 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
-  if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
+  // If no match is active, do not render local lobby/matchmaking. Portal handles this now.
+  if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY || appState === APP_STATES.MATCHMAKING) {
     return (
-      <>
-        <Lobby
-          onStart1vBot={(rules, cat, diff, botDiff) => handleStartGame('1vbot', rules, null, cat, diff, botDiff)}
-          onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
-          onShowAdmin={() => setShowAdmin(true)}
-          onBackToPortal={onBackToPortal}
-          onlineUserIds={onlineUserIds}
-        />
-      </>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+        <h2 style={{ animation: 'pulse 1.5s infinite' }}>
+          {!match ? "Návrat do portálu..." : "Pripravujem hru..."}
+        </h2>
+      </div>
     );
-  }
-
-  if (appState === APP_STATES.MATCHMAKING) {
-    return <Matchmaking
-      user={user}
-      gameRules={gameRules}
-      categories={localCategory}
-      difficulty={localDifficulty}
-      onMatchFound={(gameId, rules, cat, diff) => handleStartGame('1v1_online', rules, gameId, cat, diff)}
-    />;
   }
 
   if (appState === APP_STATES.IN_GAME) {
@@ -919,18 +970,29 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
 const MainRouter = () => {
   const { user, signOut } = useAuth();
+  const { lobby, match, leaveLobby, createLobby, isLoading } = usePlatformSession();
+
   const [currentApp, setCurrentApp] = useState('portal');
-  const [activeLobbyId, setActiveLobbyId] = useState(null);
-  const [showLobbyModal, setShowLobbyModal] = useState(false);
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [pendingGame, setPendingGame] = useState(null);
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
 
+  // Derive lobby UI state from DB context instead of local state
+  const activeLobbyId = lobby?.id || null;
+  const showLobbyModal = !!lobby && !match;
+
+  // Auto-route to the active game when match starts
   useEffect(() => {
-    if (currentApp !== 'portal' && showLobbyModal) {
-      setShowLobbyModal(false);
+    if (match) {
+      if (match.game_type === 'quiz' && currentApp !== 'ab_quiz') {
+        setCurrentApp('ab_quiz');
+      } else if (match.game_type === 'bilionar' && currentApp !== 'bilionar_battle') {
+        setCurrentApp('bilionar_battle');
+      } else if (match.game_type === 'higher_lower' && currentApp !== 'higher_lower') {
+        setCurrentApp('higher_lower');
+      }
     }
-  }, [currentApp, showLobbyModal]);
+  }, [match, currentApp]);
 
   // Global Presence Tracking across the whole application
   useEffect(() => {
@@ -960,11 +1022,9 @@ const MainRouter = () => {
   // Load from session storage for smoother reloads
   useEffect(() => {
     const savedApp = sessionStorage.getItem('ab_quiz_current_app');
-    const savedLobby = sessionStorage.getItem('ab_quiz_active_lobby');
     const savedPending = sessionStorage.getItem('ab_quiz_pending_game');
 
     if (savedApp) {
-      if (savedLobby) setActiveLobbyId(savedLobby);
       if (savedPending) {
         try {
           setPendingGame(JSON.parse(savedPending));
@@ -975,18 +1035,11 @@ const MainRouter = () => {
       if (savedApp === 'portal_menu' || savedApp === 'portal_lobby') {
         setCurrentApp('portal');
         sessionStorage.setItem('ab_quiz_current_app', 'portal'); // premaz stare state
-        if (savedLobby) setShowLobbyModal(true); // Zapni modal, len ak naozaj bol v lobby
       } else {
         setCurrentApp(savedApp);
       }
     }
   }, []);
-
-  // Sync states to session storage to survive refresh
-  useEffect(() => {
-    if (activeLobbyId) sessionStorage.setItem('ab_quiz_active_lobby', activeLobbyId);
-    else sessionStorage.removeItem('ab_quiz_active_lobby');
-  }, [activeLobbyId]);
 
   useEffect(() => {
     if (pendingGame) sessionStorage.setItem('ab_quiz_pending_game', JSON.stringify(pendingGame));
@@ -1038,16 +1091,9 @@ const MainRouter = () => {
   };
 
   const handleTerminateLobby = async () => {
-    if (!activeLobbyId) return;
-
-    // Delete the lobby from DB (this will trigger onLeaveLobby for everyone else)
-    await supabase.from('platform_lobbies').delete().eq('id', activeLobbyId);
-
-    // Clean up local state
-    setActiveLobbyId(null);
-    setShowLobbyModal(false);
-    sessionStorage.removeItem('ab_quiz_active_lobby');
-    console.log("Lobby terminated.");
+    if (leaveLobby) {
+      await leaveLobby();
+    }
   };
 
   const handleDeclineInvite = async (gameId) => {
@@ -1072,17 +1118,45 @@ const MainRouter = () => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+        <h2 style={{ animation: 'pulse 1.5s infinite' }}>Obnovujem reláciu...</h2>
+      </div>
+    );
+  }
+
   return (
     <>
       {currentApp === 'portal' && (
         <GamePortal
-          onSelectGame={(gameId) => {
-            // Direct game launch without lobby (1vCPU, or direct matchmaking)
-            if (gameId === 'ab_quiz') { handleSetApp('ab_quiz'); setShowLobbyModal(false); }
-            if (gameId === 'bilionar_battle') { handleSetApp('bilionar_battle'); setShowLobbyModal(false); }
-            if (gameId === 'higher_lower') { handleSetApp('higher_lower'); setShowLobbyModal(false); }
+          onSelectGame={async (gameId) => {
+            // Because all games now require a platform match, clicking a game directly
+            // should either create a new lobby for that game, or switch the active lobby to that game.
+            let targetGameType = 'quiz';
+            if (gameId === 'bilionar_battle') targetGameType = 'bilionar';
+            if (gameId === 'higher_lower') targetGameType = 'higher_lower';
+
+            if (lobby) {
+              if (lobby.selected_game !== targetGameType && lobby.host_id === user?.id) {
+                // We have a lobby and we are host, just switch the game
+                await supabase.from('platform_lobbies').update({ selected_game: targetGameType }).eq('id', lobby.id);
+              }
+              // It's going to show because showLobbyModal is derived
+            } else {
+              // Create a new lobby, but we don't have createLobby in App scope easily without getting it from context.
+              // Wait, I didn't destructure createLobby in MainRouter! I should add it.
+              if (createLobby) {
+                await createLobby(targetGameType);
+              }
+            }
           }}
-          onOpenLobby={() => setShowLobbyModal(true)}
+          onOpenLobby={async () => {
+            if (!lobby && createLobby) {
+              await createLobby('quiz'); // default
+            }
+            // if lobby exists, showLobbyModal will be true automatically
+          }}
         />
       )}
 
@@ -1184,7 +1258,9 @@ const MainRouter = () => {
 const App = () => {
   return (
     <AuthProvider>
-      <MainRouter />
+      <PlatformSessionProvider>
+        <MainRouter />
+      </PlatformSessionProvider>
     </AuthProvider>
   );
 };

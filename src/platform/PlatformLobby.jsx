@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { FriendsList } from '../components/auth/FriendsList';
-import { generateInitialBoard } from '../game-engine/board';
+import { usePlatformSession } from '../context/PlatformSessionContext';
 
 const GAMES = [
     { id: 'quiz', name: 'Kvíz Duel (AZ Kvíz)', max: 2, icon: '🧠', color: '#3b82f6' },
@@ -12,22 +12,13 @@ const GAMES = [
 
 const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f97316', '#06b6d4', '#ec4899'];
 
-export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onStartGameFlow }) => {
+export const PlatformLobby = ({ onlineUserIds }) => {
     const { user } = useAuth();
-    const [lobbyId, setLobbyId] = useState(initialLobbyId);
-    const [lobby, setLobby] = useState(null);
-    const [players, setPlayers] = useState([]);
-    const playersRef = React.useRef([]);
-    const [loading, setLoading] = useState(true);
-    const [countdown, setCountdown] = useState(null);
+    const { lobby, members, isHost, updateLobbySettings, setLobbyGame, startMatch, leaveLobby } = usePlatformSession();
 
-    // -- GAME SETTINGS STATE --
-    const [gameRules, setGameRules] = useState('hex'); // 'hex' vs 'points'
-    const [difficulty, setDifficulty] = useState([2]);
-    const [botDifficulty, setBotDifficulty] = useState(2);
-    const [selectedCategories, setSelectedCategories] = useState([]);
     const [availableQuizCategories, setAvailableQuizCategories] = useState([]);
     const [availableBilionarCategories, setAvailableBilionarCategories] = useState([]);
+    const [countdown, setCountdown] = useState(null);
 
     // Fetch categories on mount
     useEffect(() => {
@@ -46,387 +37,104 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
         fetchCategories();
     }, []);
 
-    // Initializácia domovskej permanentnej Lobby
-    useEffect(() => {
-        if (initialLobbyId || !user?.id) return;
-
-        const initHomeLobby = async () => {
-            const { data } = await supabase.from('platform_lobbies').select('id').eq('host_id', user.id).single();
-            if (data) {
-                setLobbyId(data.id);
-            } else {
-                const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-                const { data: newLobby } = await supabase.from('platform_lobbies').insert([{
-                    host_id: user.id,
-                    join_code: code,
-                    status: 'waiting',
-                    selected_game: 'bilionar',
-                    settings: {}
-                }]).select().single();
-
-                if (newLobby) {
-                    const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single();
-                    await supabase.from('platform_players').insert([{
-                        lobby_id: newLobby.id,
-                        user_id: user.id,
-                        player_name: profile?.username || 'Host',
-                        avatar_url: profile?.avatar_url || '',
-                        is_bot: false,
-                        color: '#eab308'
-                    }]);
-                    setLobbyId(newLobby.id);
-                }
-            }
-        };
-        initHomeLobby();
-    }, [initialLobbyId, user]);
-
-    // Keep ref updated for the postgres_changes closure
-    useEffect(() => {
-        playersRef.current = players;
-    }, [players]);
-
-    const isHost = lobby?.host_id === user?.id;
-
-    useEffect(() => {
-        if (!lobbyId) return;
-
-        const fetchLobby = async () => {
-            const { data, error } = await supabase.from('platform_lobbies').select('*').eq('id', lobbyId).single();
-            if (error || !data) {
-                // Ak sa načítanie nepodarí, a ide o našu vlastnú home lobby, mali by sme ju recreatenúť?
-                // Nateraz len opustíme
-                onLeaveLobby();
-                return;
-            }
-            // Ak sa vrátime z hry (a sme host) a status je stále playing, resetneme ho na waiting
-            if (data.host_id === user?.id && data.status === 'playing') {
-                await supabase.from('platform_lobbies').update({ status: 'waiting', active_game_id: null }).eq('id', lobbyId);
-                data.status = 'waiting';
-                data.active_game_id = null;
-            } else if (data.host_id !== user?.id && data.status === 'playing' && data.active_game_id) {
-                // Pre zúčastnených hráčov, ak sa načítajú neskoro, pošleme ich rovno do hry
-                let subMode = null;
-                if (data.selected_game === 'quiz') {
-                    // Nemáme tu hneď "players" refs, tak skúsime z databázy zistiť pocty 
-                }
-                setTimeout(() => onStartGameFlow(data.selected_game, data.active_game_id, subMode, {
-                    rules: data.selected_game === 'quiz' ? 'hex' : null,
-                    cat: [],
-                    diff: [1]
-                }), 1000);
-            }
-            setLobby(data);
-            fetchPlayers(); // Fetch players only after lobby is found
-        };
-        const fetchPlayers = async () => {
-            const { data } = await supabase.from('platform_players').select('*').eq('lobby_id', lobbyId).order('joined_at', { ascending: true });
-            if (data) setPlayers(data);
-            setLoading(false);
-        };
-
-        fetchLobby();
-
-        const channel = supabase.channel(`platform_lobby_${lobbyId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_lobbies', filter: `id=eq.${lobbyId}` }, (payload) => {
-                if (payload.eventType === 'DELETE') {
-                    onLeaveLobby(); // Host zmazal lobby
-                    return;
-                }
-                if (payload.new) {
-                    setLobby(payload.new);
-                    if (payload.new.status === 'playing' && payload.new.active_game_id) {
-                        let subMode = null;
-                        if (payload.new.selected_game === 'quiz') {
-                            const pList = playersRef.current;
-                            const isBot = pList.length === 2 && pList[1].is_bot;
-                            subMode = isBot ? '1vbot' : '1v1_online';
-                        }
-                        // Launch actual game view
-                        // Launch actual game view
-                        onStartGameFlow(payload.new.selected_game, payload.new.active_game_id, subMode, {
-                            rules: gameRules,
-                            cat: selectedCategories,
-                            diff: difficulty
-                        });
-                    }
-                }
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_players', filter: `lobby_id=eq.${lobbyId}` }, () => {
-                fetchPlayers();
-            })
-            .on('broadcast', { event: 'countdown' }, (msg) => {
-                setCountdown(msg.payload.timer);
-            })
-            .subscribe();
-
-        return () => supabase.removeChannel(channel);
-    }, [lobbyId, onLeaveLobby, onStartGameFlow]);
-
     const handleSelectGame = async (gameId) => {
         if (!isHost) return;
-        setLobby(prev => ({ ...prev, selected_game: gameId }));
-        // Reset categories when switching games
-        setSelectedCategories([]);
-        await supabase.from('platform_lobbies').update({ selected_game: gameId }).eq('id', lobbyId);
+        setLobbyGame(gameId);
+        updateLobbySettings({ ...lobby.settings, cat: [] }); // Reset categories
     };
 
     const handleToggleCategory = (cat) => {
         if (!isHost) return;
-        setSelectedCategories(prev => {
-            if (prev.includes(cat)) return prev.filter(c => c !== cat);
-            return [...prev, cat];
-        });
+        const currentCats = lobby?.settings?.cat || [];
+        const newCats = currentCats.includes(cat)
+            ? currentCats.filter(c => c !== cat)
+            : [...currentCats, cat];
+        updateLobbySettings({ ...lobby.settings, cat: newCats });
     };
 
-    const handleAddBot = async () => {
-        if (!isHost || players.length >= 8) return;
-        const botNum = players.filter(p => p.is_bot).length + 1;
-        const botAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random()}`;
-        const usedColors = new Set(players.map(p => p.color));
-        const assignedColor = COLOR_PALETTE.find(c => !usedColors.has(c)) || COLOR_PALETTE[players.length % COLOR_PALETTE.length];
-
-        await supabase.from('platform_players').insert([{
-            lobby_id: lobbyId,
-            is_bot: true,
-            player_name: `Bot ${botNum}`,
-            avatar_url: botAvatar,
-            color: assignedColor
-        }]);
-    };
-
-    const handleRemovePlayer = async (playerId) => {
+    const handleChangeDifficulty = (diffLevel) => {
         if (!isHost) return;
-        await supabase.from('platform_players').delete().eq('id', playerId);
-    };
-
-    const handleLeave = async () => {
-        if (isHost) {
-            // Host cleans up the entire lobby
-            await supabase.from('platform_lobbies').delete().eq('id', lobbyId);
+        const currentDiffs = lobby?.settings?.diff || [2];
+        let newDiffs;
+        if (currentDiffs.includes(diffLevel)) {
+            newDiffs = currentDiffs.length === 1 ? currentDiffs : currentDiffs.filter(d => d !== diffLevel);
         } else {
-            // Guest just leaves the player list
-            await supabase.from('platform_players').delete().eq('lobby_id', lobbyId).eq('user_id', user.id);
+            newDiffs = [...currentDiffs, diffLevel];
         }
-        onLeaveLobby();
+        updateLobbySettings({ ...lobby.settings, diff: newDiffs });
     };
 
     const handleInvite = async (partner) => {
-        if (!isHost) return;
-        const usedColors = new Set(players.map(p => p.color));
-        const assignedColor = COLOR_PALETTE.find(c => !usedColors.has(c)) || COLOR_PALETTE[players.length % COLOR_PALETTE.length];
+        if (!isHost || !lobby) return;
 
-        const { error } = await supabase.from('platform_players').insert([{
-            lobby_id: lobbyId,
-            user_id: partner.id,
-            player_name: partner.username,
-            avatar_url: partner.avatar_url,
-            is_bot: false,
-            color: assignedColor
+        // V skutočnej implementácii zrejme pošleme notifikáciu užívateľovi (game_invites tabuľka).
+        // Na zjednodušenie a pretože 'friends' logika bola pôvodne závislá od starej lobby,
+        // prekopírujeme správanie z pôvodnej App (ak sa používalo supabase.from('games'...)).
+        // Nateraz funkčné posielanie pozvánok do platform_lobby typu:
+
+        const { error } = await supabase.from('game_invites').insert([{
+            from_user_id: user.id,
+            to_user_id: partner.id,
+            game_type: 'platform_lobby', // špecialny typ ktorý indikuje vstup do lobby
+            game_id: lobby.id,
+            rules: 'custom'
         }]);
 
         if (error) {
-            if (error.code === '23505') alert(`${partner.username} už je pozvaný alebo v lobby!`);
-            else alert(`Chyba pri pozývaní: ${error.message}`);
+            alert(`Chyba pri pozývaní: ${error.message}`);
         }
     };
 
-    const handleStartGame = async () => {
+    const handleRemovePlayer = async (playerId) => {
         if (!isHost || !lobby) return;
-        const selectedGameInfo = GAMES.find(g => g.id === lobby.selected_game);
-
-        if (players.length > selectedGameInfo.max) {
-            alert(`Táto hra podporuje len max ${selectedGameInfo.max} hráčov! Zmeň hru alebo vyhoď AI botov.`);
-            return;
-        }
-
-        // Vytvorenie hry PRED odpočítavaním, aby sme predišli zlyhaniu po štarte
-        let targetGameId = null;
-
-        if (lobby.selected_game === 'bilionar') {
-            const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const { data: bGame, error: bError } = await supabase.from('bilionar_games').insert([{
-                host_id: user.id,
-                join_code: joinCode,
-                status: 'playing',
-                is_public: false,
-                settings: {
-                    questions_count: 10,
-                    difficulty: difficulty[0] || 2,
-                    categories: selectedCategories,
-                    difficulty_levels: difficulty && difficulty.length > 0 ? difficulty : [2],
-                    bot_difficulty: botDifficulty
-                },
-                state: { phase: 'init' }
-            }]).select().single();
-
-            if (bError) {
-                alert('Chyba pri vytváraní hry (Bilionár): ' + bError.message);
-                return;
-            }
-            if (bGame) {
-                targetGameId = bGame.id;
-                const bPlayers = players.map(p => ({
-                    game_id: bGame.id,
-                    user_id: p.user_id,
-                    player_name: p.player_name,
-                    avatar_url: p.avatar_url,
-                    is_bot: p.is_bot,
-                    color: p.color
-                }));
-                await supabase.from('bilionar_players').insert(bPlayers);
-            }
-        }
-        else if (lobby.selected_game === 'quiz') {
-            const isBot = players.length === 2 && players[1].is_bot;
-
-            if (isBot) {
-                targetGameId = 'localbot_' + lobbyId;
-            } else {
-                // Pre Kvíz Duel - create `games` record
-                const { data: qGame, error: qError } = await supabase.from('games').insert([{
-                    player1_id: players[0]?.user_id || user.id,
-                    player2_id: players[1]?.user_id || null,
-                    game_type: gameRules,
-                    status: 'active',
-                    board_state: generateInitialBoard(gameRules),
-                    current_turn: players[0]?.user_id || user.id,
-                    category: JSON.stringify({ cats: selectedCategories, diffs: difficulty && difficulty.length > 0 ? difficulty : [1] }),
-                    difficulty: difficulty[0] || 1
-                }]).select().single();
-
-                if (qError) {
-                    alert('Chyba pri vytváraní hry (Kvíz Duel): ' + qError.message);
-                    return;
-                }
-                if (qGame) {
-                    targetGameId = qGame.id;
-                }
-            }
-        }
-        else if (lobby.selected_game === 'higher_lower') {
-            const { data: hlGame, error: hlError } = await supabase.from('higher_lower_games').insert([{
-                host_id: user.id,
-                status: 'playing',
-                state: { phase: 'init', current_round: 1 }
-            }]).select().single();
-
-            if (hlError) {
-                alert('Chyba pri vytváraní hry (Higher Lower): ' + hlError.message);
-                return;
-            }
-            if (hlGame) {
-                targetGameId = hlGame.id;
-                const hlPlayers = players.map(p => ({
-                    game_id: hlGame.id,
-                    user_id: p.user_id,
-                    player_name: p.player_name,
-                    avatar_url: p.avatar_url,
-                    is_bot: p.is_bot,
-                    color: p.color
-                }));
-                await supabase.from('higher_lower_players').insert(hlPlayers);
-            }
-        }
-
-        if (!targetGameId) {
-            alert('Nastala neočakávaná chyba pri vytváraní hry.');
-            return;
-        }
-
-        // Host spustí odpočítavanie (broadcast pre všetkých naraz na plynulý sync)
-        for (let i = 3; i >= 1; i--) {
-            setCountdown(i); // Nastaviť lokálne pre Hosta
-            await supabase.channel(`platform_lobby_${lobbyId}`).send({
-                type: 'broadcast',
-                event: 'countdown',
-                payload: { timer: i }
-            });
-            await new Promise(r => setTimeout(r, 1000));
-        }
-
-        setCountdown('ŠTART!'); // Nastaviť lokálne pre Hosta
-        await supabase.channel(`platform_lobby_${lobbyId}`).send({
-            type: 'broadcast',
-            event: 'countdown',
-            payload: { timer: 'ŠTART!' }
-        });
-
-        await new Promise(r => setTimeout(r, 800)); // malá pauza pre efekt
-        setCountdown(null); // Reset pre Hosta pred zavretím lobby
-
-        let subMode = null;
-        if (lobby.selected_game === 'quiz') {
-            const isBot = players.length === 2 && players[1].is_bot;
-            subMode = isBot ? '1vbot' : '1v1_online';
-        }
-
-        await supabase.from('platform_lobbies').update({ status: 'playing', active_game_id: targetGameId }).eq('id', lobbyId);
-
-        // Launch actual game view pre Hosta
-        onStartGameFlow(lobby.selected_game, targetGameId, subMode, {
-            rules: gameRules,
-            cat: selectedCategories,
-            diff: difficulty,
-            botDiff: botDifficulty
-        });
+        // Host môž vykopnúť hráča zmenou jeho stavu na 'left'
+        await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', lobby.id).eq('user_id', playerId);
     };
 
-    if (loading || !lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
+    const handleStartMatch = async () => {
+        if (!isHost || !lobby) return;
+
+        // Host spustí odpočítavanie na DB urovni alebo len lokálne pre efekt, 
+        // potom vytvori 'match'. Pre jednoduchosť urobíme lokálny vizuál
+        setCountdown("3");
+        await new Promise(r => setTimeout(r, 1000));
+        setCountdown("2");
+        await new Promise(r => setTimeout(r, 1000));
+        setCountdown("1");
+        await new Promise(r => setTimeout(r, 1000));
+        setCountdown("ŠTART!");
+        await new Promise(r => setTimeout(r, 500));
+
+        setCountdown(null);
+        await startMatch();
+    };
+
+    if (!lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
 
     const gameInfo = GAMES.find(g => g.id === lobby.selected_game) || GAMES[1];
+
+    // Extrakcia nastavení
+    const selectedCategories = lobby?.settings?.cat || [];
+    const difficulty = lobby?.settings?.diff || [2];
+    const gameRules = lobby?.settings?.rules || 'hex';
 
     if (countdown !== null) {
         return (
             <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                zIndex: 20000,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(5, 10, 20, 0.4)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                color: 'white',
-                fontFamily: '"Outfit", sans-serif'
+                position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 20000,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(5, 10, 20, 0.4)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                color: 'white', fontFamily: '"Outfit", sans-serif'
             }}>
-                <div style={{
-                    fontSize: 'clamp(5rem, 15vw, 15rem)',
-                    fontWeight: '900',
-                    color: '#facc15',
-                    textShadow: '0 0 60px rgba(250, 204, 21, 0.8), 0 0 20px rgba(255, 255, 255, 0.4)',
-                    animation: 'countdownPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
+                <div style={{ fontSize: 'clamp(5rem, 15vw, 15rem)', fontWeight: '900', color: '#facc15', textShadow: '0 0 60px rgba(250, 204, 21, 0.8), 0 0 20px rgba(255, 255, 255, 0.4)', animation: 'countdownPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {countdown}
                 </div>
-                <div style={{
-                    marginTop: '2rem',
-                    fontSize: '1.5rem',
-                    color: 'rgba(255,255,255,0.6)',
-                    letterSpacing: '4px',
-                    textTransform: 'uppercase',
-                    animation: 'fadeIn 1s ease-out'
-                }}>
+                <div style={{ marginTop: '2rem', fontSize: '1.5rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '4px', textTransform: 'uppercase', animation: 'fadeIn 1s ease-out' }}>
                     Priprav sa na hru
                 </div>
                 <style>{`
-                    @keyframes countdownPop {
-                        0% { opacity: 0; transform: scale(0.3) rotate(-10deg); filter: blur(10px); }
-                        20% { opacity: 1; transform: scale(1.1) rotate(0deg); filter: blur(0px); }
-                        100% { opacity: 1; transform: scale(1) rotate(0deg); }
-                    }
-                    @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
+                    @keyframes countdownPop { 0% { opacity: 0; transform: scale(0.3) rotate(-10deg); filter: blur(10px); } 20% { opacity: 1; transform: scale(1.1) rotate(0deg); filter: blur(0px); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
+                    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 `}</style>
             </div>
         );
@@ -451,7 +159,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                         </div>
                     </div>
 
-                    <button className="neutral" onClick={handleLeave} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
+                    <button className="neutral" onClick={() => leaveLobby()} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
                         {isHost ? 'Zavrieť Lobby' : 'Opustiť Lobby'}
                     </button>
                 </div>
@@ -505,10 +213,10 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                                 <div>
                                     <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Herné Pravidlá</label>
                                     <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <button disabled={!isHost} className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => setGameRules('hex')}>
+                                        <button disabled={!isHost} className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'hex' })}>
                                             Hex (Cesta)
                                         </button>
-                                        <button disabled={!isHost} className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => setGameRules('points')}>
+                                        <button disabled={!isHost} className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'points' })}>
                                             Body (Rýchlosť)
                                         </button>
                                     </div>
@@ -528,14 +236,7 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                                             <button
                                                 key={diff.level}
                                                 disabled={!isHost}
-                                                onClick={() => setDifficulty(prev => {
-                                                    if (prev.includes(diff.level)) {
-                                                        if (prev.length === 1) return prev;
-                                                        return prev.filter(d => d !== diff.level);
-                                                    } else {
-                                                        return [...prev, diff.level];
-                                                    }
-                                                })}
+                                                onClick={() => handleChangeDifficulty(diff.level)}
                                                 style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default', transition: 'all 0.2s', opacity: isHost ? 1 : (isSelected ? 1 : 0.5) }}>
                                                 {diff.label}
                                             </button>
@@ -544,28 +245,10 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                                 </div>
                             </div>
 
-                            {/* Sila bota, len ak je aspon jeden hrac bot */}
-                            {players.some(p => p.is_bot) && (
-                                <div>
-                                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Sila BOTa (Nervozita, IQ a postreh)</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
-                                        {[
-                                            { level: 1, label: 'Ľahký', color: '#4ade80' },
-                                            { level: 2, label: 'Stredný', color: '#fbbf24' },
-                                            { level: 3, label: 'Ťažký', color: '#ef4444' }
-                                        ].map(diff => (
-                                            <button key={diff.level} disabled={!isHost} onClick={() => setBotDifficulty(diff.level)} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', background: botDifficulty === diff.level ? diff.color : 'transparent', color: botDifficulty === diff.level ? '#0f172a' : '#cbd5e1', border: 'none', cursor: isHost ? 'pointer' : 'default', transition: 'all 0.2s', opacity: isHost ? 1 : (botDifficulty === diff.level ? 1 : 0.5) }}>
-                                                {diff.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
                             <div>
                                 <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Kategórie</label>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                    <button disabled={!isHost} onClick={() => setSelectedCategories([])} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: selectedCategories.length === 0 ? 'bold' : 'normal', background: selectedCategories.length === 0 ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#0f172a' : '#cbd5e1', border: `1px solid ${selectedCategories.length === 0 ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default' }}>
+                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: selectedCategories.length === 0 ? 'bold' : 'normal', background: selectedCategories.length === 0 ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#0f172a' : '#cbd5e1', border: `1px solid ${selectedCategories.length === 0 ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default' }}>
                                         ✨ Všetky
                                     </button>
                                     {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
@@ -585,63 +268,70 @@ export const PlatformLobby = ({ initialLobbyId, onlineUserIds, onLeaveLobby, onS
                 {/* Hráči v Míestnosti */}
                 <div>
                     <h3 style={{ color: '#f8fafc', fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Hráči v Miestnosti ({players.length}/8)</span>
-                        {isHost && players.length < 8 && (
-                            <button className="secondary" onClick={handleAddBot} style={{ fontSize: '0.9rem', padding: '0.6rem 1.2rem', borderColor: '#38bdf8', color: '#38bdf8' }}>
-                                + Pridať BOTa
-                            </button>
-                        )}
+                        <span>Hráči v Miestnosti ({members.length}/{gameInfo.max})</span>
                     </h3>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
-                        {players.map(p => (
-                            <div key={p.id} style={{
-                                background: 'rgba(255,255,255,0.05)', border: `2px solid ${p.color}50`, padding: '1.5rem 1rem', borderRadius: '16px',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', position: 'relative'
-                            }}>
-                                {isHost && p.user_id !== user.id && (
-                                    <button onClick={() => handleRemovePlayer(p.id)} style={{ position: 'absolute', top: '5px', right: '5px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem' }}>✖</button>
-                                )}
-                                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: `2px solid ${p.color}`, overflow: 'hidden' }}>
-                                    {p.avatar_url ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2rem' }}>👤</span>}
+                        {members.map((p, idx) => {
+                            const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+                            return (
+                                <div key={p.user_id} style={{
+                                    background: 'rgba(255,255,255,0.05)', border: `2px solid ${color}50`, padding: '1.5rem 1rem', borderRadius: '16px',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', position: 'relative'
+                                }}>
+                                    {p.role === 'host' && (
+                                        <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#eab308', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                            HOST
+                                        </div>
+                                    )}
+                                    <div style={{ position: 'relative' }}>
+                                        <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${p.user_id}`} alt={p.user_id} style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                                    </div>
+                                    <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1rem', textAlign: 'center' }}>Hráč {idx + 1} <br /><small style={{ color: '#64748b', fontSize: '0.7rem' }}>{p.state}</small></span>
+                                    {isHost && user.id !== p.user_id && (
+                                        <button onClick={() => handleRemovePlayer(p.user_id)} style={{ position: 'absolute', top: 5, right: 5, background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem' }}>
+                                            &times;
+                                        </button>
+                                    )}
                                 </div>
-                                <span style={{ color: 'white', fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', width: '100%' }}>
-                                    {p.player_name}
-                                </span>
-                                {p.is_bot && <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '-10px' }}>BOT</span>}
-                                {p.user_id === lobby.host_id && <span style={{ fontSize: '0.75rem', color: '#facc15', marginTop: '-10px', fontWeight: 'bold' }}>HOSTITEL</span>}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {isHost && (
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <button
-                            className="primary"
-                            onClick={handleStartGame}
-                            disabled={players.length > gameInfo.max}
-                            style={{
-                                padding: '1.5rem 4rem', fontSize: '1.5rem', background: gameInfo.color, color: '#0f172a', fontWeight: '900',
-                                border: 'none', borderRadius: '24px', boxShadow: `0 10px 30px ${gameInfo.color}60`, opacity: players.length > gameInfo.max ? 0.5 : 1
+                            )
+                        })}
+                        {isHost && members.length < gameInfo.max && (
+                            <div style={{
+                                border: '2px dashed rgba(255,255,255,0.1)', padding: '1.5rem 1rem', borderRadius: '16px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem',
+                                color: '#64748b'
                             }}>
-                            SPUSTIŤ ({gameInfo.name})
-                        </button>
+                                <span style={{ fontSize: '2rem' }}>+</span>
+                                <span style={{ fontSize: '0.9rem', textAlign: 'center' }}>Čaká sa na pripojenie</span>
+                            </div>
+                        )}
                     </div>
-                )}
+
+                    {isHost && (
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                            <button
+                                className="primary"
+                                onClick={handleStartMatch}
+                                disabled={members.length < 1 || countdown !== null}
+                                style={{ flex: 1, padding: '1.5rem', fontSize: '1.2rem', fontWeight: 'bold', boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' }}
+                            >
+                                SPUSTIŤ ({gameInfo.name})
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
-            {/* LOBBY COLUMN END */}
 
             {/* FRIENDS COLUMN */}
-            <div style={{ flex: '1 1 300px', maxWidth: '450px', background: 'rgba(15, 23, 42, 0.9)', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <h3 style={{ color: 'white', marginBottom: '1.5rem', fontSize: '1.5rem' }}>Priatelia</h3>
-                <FriendsList
-                    isHost={isHost}
-                    onInvite={handleInvite}
-                    onlineUserIds={onlineUserIds}
-                />
-            </div>
-
+            {isHost && (
+                <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
+                    <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem', paddingLeft: '1rem' }}>Priatelia</h3>
+                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                        <FriendsList onInvite={handleInvite} currentLobbyPlayers={members} onlineUserIds={onlineUserIds} />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

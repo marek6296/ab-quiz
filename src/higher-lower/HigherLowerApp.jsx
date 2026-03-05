@@ -1,19 +1,66 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { HigherLowerGame } from './HigherLowerGame';
-import { HigherLowerLobby } from './HigherLowerLobby';
+import { usePlatformSession } from '../context/PlatformSessionContext';
 
-export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
+export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby }) => {
     const { user } = useAuth();
-    const [view, setView] = useState('lobby');
-    const viewRef = useRef(view);
-
-    useEffect(() => { viewRef.current = view; }, [view]);
+    const { match, isHost, members, leaveGame } = usePlatformSession();
 
     const [activeGame, setActiveGame] = useState(null);
     const [players, setPlayers] = useState([]);
     const [gameChannel, setGameChannel] = useState(null);
+
+    // Initializácia higher_lower_games
+    useEffect(() => {
+        if (!match) {
+            onBackToPortal();
+            return;
+        }
+
+        const initGame = async () => {
+            const { data: existingGame } = await supabase.from('higher_lower_games').select('*').eq('id', match.id).single();
+
+            if (existingGame) {
+                setActiveGame(existingGame);
+            } else if (isHost) {
+                // Host vytvára row
+                const { data: newGame, error: err } = await supabase.from('higher_lower_games').insert([{
+                    id: match.id, // prepájame s platform_matches
+                    host_id: user.id,
+                    status: 'playing',
+                    state: { phase: 'init', current_round: 1 }
+                }]).select().single();
+
+                if (err) {
+                    console.error("Error creating HL game DB row", err);
+                    return;
+                }
+
+                const activeMembers = members.filter(m => m.state === 'in_game');
+                const hlPlayers = activeMembers.map(m => ({
+                    game_id: match.id,
+                    user_id: m.user_id,
+                    player_name: m.metadata?.player_name || 'Hráč',
+                    avatar_url: m.metadata?.avatar_url || '',
+                    is_bot: m.role === 'bot',
+                    color: m.metadata?.color || '#10b981'
+                }));
+
+                if (hlPlayers.length > 0) {
+                    await supabase.from('higher_lower_players').insert(hlPlayers);
+                }
+
+                setActiveGame(newGame);
+                await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
+            }
+        };
+
+        if (match.id) {
+            initGame();
+        }
+    }, [match?.id, isHost]);
 
     const fetchPlayers = async (gameId) => {
         if (!gameId) return;
@@ -24,43 +71,21 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
         if (data) setPlayers(data);
     };
 
-    // Game sync logic
-
-    // HigherLowerApp main logic
-
-    // Autoboot
     useEffect(() => {
-        if (pendingGameId && view === 'lobby') {
-            const bootGame = async () => {
-                const { data } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).single();
-                if (data) {
-                    setActiveGame(data);
-                    setView('game');
-                    fetchPlayers(pendingGameId);
-                    if (onClearPending) onClearPending();
-                }
-            };
-            bootGame();
+        if (!activeGame?.id) {
+            setPlayers([]);
+            return;
         }
-    }, [pendingGameId, view, onClearPending]);
-
-    useEffect(() => {
-        if (!activeGame?.id) return;
 
         const channelId = `hl_game_state_${activeGame.id}`;
         const channel = supabase.channel(channelId)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'higher_lower_games', filter: `id=eq.${activeGame.id}` }, (payload) => {
                 if (payload.eventType === 'DELETE') {
-                    setActiveGame(null);
-                    setView('lobby');
-                    onBackToPortal();
+                    leaveGame();
                     return;
                 }
                 if (payload.new) {
                     setActiveGame(payload.new);
-                    if (payload.new.status === 'playing' && viewRef.current === 'lobby') {
-                        setView('game');
-                    }
                 }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'higher_lower_players', filter: `game_id=eq.${activeGame.id}` }, () => {
@@ -75,53 +100,41 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
             .subscribe();
 
         setGameChannel(channel);
+        fetchPlayers(activeGame.id);
+
         return () => {
             supabase.removeChannel(channel);
             setGameChannel(null);
         };
-    }, [activeGame?.id, onBackToPortal]);
+    }, [activeGame?.id, leaveGame]);
 
-    useEffect(() => {
-        if (activeGame?.status === 'playing' && view === 'lobby') {
-            setView('game');
+    const handleLeave = async () => {
+        if (user?.id && activeGame) {
+            await supabase.from('higher_lower_players').delete().eq('user_id', user.id);
         }
-    }, [activeGame?.status, view]);
+        await leaveGame();
+        onBackToPortal();
+    };
+
+    if (!match) return null;
+
+    if (!activeGame) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+                <h2 style={{ animation: 'pulse 1.5s infinite' }}>Inicializácia hry...</h2>
+            </div>
+        );
+    }
 
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
-            {view === 'lobby' ? (
-                <HigherLowerLobby
-                    activeGame={activeGame}
-                    players={players}
-                    onlineUserIds={onlineUserIds}
-                    pendingGameId={pendingGameId}
-                    onClearPending={onClearPending}
-                    onSetGame={setActiveGame}
-                    onBackToPortal={onBackToPortal}
-                    onStartGame={(game) => {
-                        setActiveGame(game);
-                        setView('game');
-                    }}
-                />
-            ) : (
-                <HigherLowerGame
-                    activeGame={activeGame}
-                    players={players}
-                    gameChannel={gameChannel}
-                    onSetGame={setActiveGame}
-                    onLeave={async () => {
-                        if (user?.id) {
-                            await supabase.from('higher_lower_players').delete().eq('user_id', user.id);
-                        }
-                        if (onTerminateLobby) {
-                            await onTerminateLobby();
-                        }
-                        setActiveGame(null);
-                        setPlayers([]);
-                        onBackToPortal();
-                    }}
-                />
-            )}
+            <HigherLowerGame
+                activeGame={activeGame}
+                players={players}
+                gameChannel={gameChannel}
+                onSetGame={setActiveGame}
+                onLeave={handleLeave}
+            />
         </div>
     );
 };
