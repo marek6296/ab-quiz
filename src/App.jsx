@@ -737,7 +737,10 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     // 1. GUARANTEE DB UPDATE FIRES BEFORE UNMOUNT:
     // We MUST await this so the browser doesn't cancel the outgoing request when the component unmounts.
     if (isOnline && gameId) {
-      await supabase.from('games').update({ status: 'finished' }).eq('id', gameId);
+      const opponentId = localPlayerNum === 1 ? gameData?.player2_id : gameData?.player1_id;
+      // We set the status to finished and explicitly hand the win to the opponent ID
+      // so their client can unconditionally trigger the victory modal regardless of timeouts
+      await supabase.from('games').update({ status: 'finished', winner_id: opponentId }).eq('id', gameId);
       await supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id);
     }
 

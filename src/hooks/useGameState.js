@@ -153,14 +153,24 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setP1Combo(newData.p1_combo || 0);
                     setP2Combo(newData.p2_combo || 0);
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
-                    if (newData.status === 'finished' && !newData.winner_id) {
-                        if (manualExitRef?.current) return; // Silent for the leaver
-                        const pNum = userId === newData.player1_id ? 1 : 2;
-                        setWinner(pNum);
-                        setWinReason('opponent_abandoned');
-                        return;
+
+                    // Always guarantee the winner assignment correctly handles opponent abandonments signaled by status 'finished'
+                    if (newData.status === 'finished' && !manualExitRef?.current) {
+                        // Determine winner: if winner_id exists, use it. Else, local user wins by default due to abandonment.
+                        if (newData.winner_id) {
+                            setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
+                            if (newData.winner_id !== userId) {
+                                // Real game over, not abandoned by opponent
+                                // (Unless the user forced forfeit, but usually they'd be abandoning, not getting assigned a win_reason falsely)
+                            }
+                        } else {
+                            const pNum = userId === newData.player1_id ? 1 : 2;
+                            setWinner(pNum);
+                            setWinReason('opponent_abandoned');
+                        }
+                    } else if (newData.winner_id && !manualExitRef?.current) {
+                        setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
                     }
-                    if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
                 }
             })
             .subscribe(async (status) => {

@@ -17,14 +17,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const [showExitConfirm, setShowExitConfirm] = useState(false);
 
     // Auto-leave if opponent abandoned
-    useEffect(() => {
-        if (gameState.phase === 'finished' && gameState.win_reason === 'opponent_abandoned') {
-            const t = setTimeout(() => {
-                onLeave();
-            }, 5000);
-            return () => clearTimeout(t);
-        }
-    }, [gameState.phase, gameState.win_reason, onLeave]);
+    // useEffect(() => {
+    //     if (gameState.phase === 'finished' && gameState.win_reason === 'opponent_abandoned') {
+    //         const t = setTimeout(() => {
+    //             onLeave();
+    //         }, 5000);
+    //         return () => clearTimeout(t);
+    //     }
+    // }, [gameState.phase, gameState.win_reason, onLeave]);
 
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
