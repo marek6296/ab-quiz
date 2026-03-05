@@ -307,6 +307,22 @@ export const PlatformSessionProvider = ({ children }) => {
         }
     };
 
+    const refreshLobby = async () => {
+        if (!user || !lobby || !isHost) return;
+        try {
+            const currentSelectedGame = lobby.selected_game;
+            // Zavri aktuálne lobby
+            await supabase.from('platform_lobbies').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', lobby.id);
+            setLobby(null);
+            setMembers([]);
+
+            // Vytvor novú
+            await createLobby(currentSelectedGame);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const leaveGame = async () => {
         if (!user || !lobby || !match) return;
         try {
@@ -432,6 +448,7 @@ export const PlatformSessionProvider = ({ children }) => {
             joinLobby,
             joinLobbyById,
             leaveLobby,
+            refreshLobby,
             leaveGame,
             updateLobbySettings,
             setLobbyGame,

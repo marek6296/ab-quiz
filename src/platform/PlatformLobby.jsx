@@ -14,7 +14,7 @@ const COLOR_PALETTE = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#
 
 export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const { user } = useAuth();
-    const { lobby, members, isHost, updateLobbySettings, setLobbyGame, startMatch, leaveLobby } = usePlatformSession();
+    const { lobby, members, isHost, updateLobbySettings, setLobbyGame, startMatch, leaveLobby, refreshLobby } = usePlatformSession();
 
     const hasStartedRef = React.useRef(false);
 
@@ -186,9 +186,16 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                         </div>
                     </div>
 
-                    <button className="neutral" onClick={() => leaveLobby()} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
-                        {isHost ? 'Zavrieť Lobby' : 'Opustiť Lobby'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {isHost && (
+                            <button className="neutral" onClick={() => refreshLobby()} style={{ padding: '1rem', border: '1px solid rgba(250, 204, 21, 0.5)', color: '#facc15', background: 'rgba(250, 204, 21, 0.1)' }}>
+                                🔄 Refreshnúť Lobby
+                            </button>
+                        )}
+                        <button className="neutral" onClick={() => leaveLobby()} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
+                            {isHost ? 'Zavrieť Lobby' : 'Opustiť Lobby'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Vybratá Hra */}
