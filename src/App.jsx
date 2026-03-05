@@ -23,6 +23,7 @@ import { useBlockNavigation } from './hooks/useBlockNavigation';
 import { useGameInvites } from './hooks/useGameInvites';
 import { useModalSync } from './hooks/useModalSync';
 import { useBotTurn } from './hooks/useBotTurn';
+import { generateInitialBoard } from './game-engine/board';
 
 const ConfirmExitModal = ({ isOpen, onConfirm, onCancel }) => {
   if (!isOpen) return null;
