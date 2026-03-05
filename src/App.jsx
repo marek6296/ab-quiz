@@ -1143,8 +1143,26 @@ const MainRouter = () => {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
-        <h2 style={{ animation: 'pulse 1.5s infinite' }}>Obnovujem reláciu...</h2>
+      <div className="game-container start-screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* CSS workaround to only show the loading text if it takes longer than 600ms */}
+        <h2 style={{
+          animation: 'pulse 1.5s infinite',
+          opacity: 0,
+          animationName: 'fadeInAndPulse',
+          animationDuration: '1.5s',
+          animationDelay: '0.6s',
+          animationFillMode: 'forwards'
+        }}>
+          Obnovujem reláciu...
+        </h2>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes fadeInAndPulse {
+            0% { opacity: 0; transform: scale(0.98); }
+            50% { opacity: 0.8; transform: scale(1); }
+            100% { opacity: 0.4; transform: scale(0.98); }
+          }
+        `}} />
       </div>
     );
   }
