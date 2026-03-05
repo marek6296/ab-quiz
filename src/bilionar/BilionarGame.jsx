@@ -114,14 +114,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
                 switch (current.phase) {
                     case 'big_intro':
+                        newState.phase = 'intro_pause';
+                        newState.phase_end = now + 2000;
+                        break;
+                    case 'intro_pause':
                         newState.phase = 'welcome';
-                        newState.phase_end = now + 6000;
+                        newState.phase_end = now + 4000;
                         break;
                     case 'welcome':
-                        newState.phase = 'prepare_first';
-                        newState.phase_end = now + 6000;
-                        break;
-                    case 'prepare_first':
                     case 'prepare_next':
                     case 'post_question_pause':
                         newState.phase = 'showing_question_only';
@@ -171,7 +171,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
                 if (current.phase === 'post_question_pause' && current.current_index > 0) {
                     newState.phase = 'prepare_next';
-                    newState.phase_end = now + 6000;
+                    newState.phase_end = now + 4000;
                 }
 
                 // Auto-victory condition: If game started with > 1 real player and now <= 1 remains
