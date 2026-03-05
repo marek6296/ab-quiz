@@ -1203,72 +1203,26 @@ const MainRouter = () => {
 
   return (
     <>
-      {currentApp === 'portal' && (
-        <GamePortal
-          onSelectGame={(gameId) => {
-            // Direct game launch without forced platform lobby (1vCPU, or direct matchmaking)
-            if (gameId === 'ab_quiz') { handleSetApp('ab_quiz'); }
-            if (gameId === 'bilionar_battle') { handleSetApp('bilionar_battle'); }
-            if (gameId === 'higher_lower') { handleSetApp('higher_lower'); }
-          }}
-          onOpenLobby={async () => {
-            if (!lobby) {
-              if (createLobby) await createLobby('quiz');
-            } else {
-              // Derived showLobbyModal will take over
-            }
-          }}
+      <div key={currentApp} className="app-transition-wrapper">
+        {currentApp === 'portal' && (
+          <GamePortal
+            onSelectGame={(gameId) => {
+              // Direct game launch without forced platform lobby (1vCPU, or direct matchmaking)
+              if (gameId === 'ab_quiz') { handleSetApp('ab_quiz'); }
+              if (gameId === 'bilionar_battle') { handleSetApp('bilionar_battle'); }
+              if (gameId === 'higher_lower') { handleSetApp('higher_lower'); }
+            }}
+            onOpenLobby={async () => {
+              if (!lobby) {
+                if (createLobby) await createLobby('quiz');
+              } else {
+                // Derived showLobbyModal will take over
+              }
+            }}
+          />
+        )}
 
-        />
-      )}
-
-      {
-        renderLobby && (
-          <div className={`modal-overlay ${lobbyIsClosing ? 'lobby-closing-overlay' : 'lobby-opening-overlay'}`} style={{
-            zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch'
-          }}>
-            <div className={lobbyIsClosing ? 'lobby-closing-content' : 'lobby-opening-content'} style={{
-              position: 'relative', width: '100%', height: '100%', overflow: 'hidden'
-            }}>
-
-              <PlatformLobby
-                initialLobbyId={activeLobbyId}
-                onlineUserIds={onlineUserIds}
-                onLeaveLobby={() => {
-                  leaveLobby();
-                }}
-                onStartGameFlow={(gameType, gameId, subMode, extra = {}) => {
-                  // Destructure extra settings if provided
-                  const { rules = 'hex', cat = [], diff = [1], botDiff = 2 } = extra;
-
-                  if (gameType === 'quiz') {
-                    setPendingGame({
-                      mode: subMode || '1v1_online',
-                      rules: rules,
-                      gameId: gameId,
-                      cat: cat,
-                      diff: diff,
-                      botDiff: botDiff
-                    });
-                    handleSetApp('ab_quiz');
-                  }
-                  else if (gameType === 'bilionar') {
-                    setPendingGame({ mode: 'bilionar', gameId: gameId });
-                    handleSetApp('bilionar_battle');
-                  }
-                  else if (gameType === 'higher_lower') {
-                    setPendingGame({ mode: 'higher_lower', gameId: gameId });
-                    handleSetApp('higher_lower');
-                  }
-                }}
-              />
-            </div>
-          </div>
-        )
-      }
-
-      {
-        currentApp === 'ab_quiz' && (
+        {currentApp === 'ab_quiz' && (
           <ABQuizApp
             onBackToPortal={() => { handleSetApp('portal'); }}
             onTerminateLobby={handleTerminateLobby}
@@ -1276,11 +1230,9 @@ const MainRouter = () => {
             onClearPending={() => setPendingGame(null)}
             onlineUserIds={onlineUserIds}
           />
-        )
-      }
+        )}
 
-      {
-        currentApp === 'bilionar_battle' && (
+        {currentApp === 'bilionar_battle' && (
           <BilionarApp
             activePlatformLobbyId={activeLobbyId}
             onBackToPortal={() => { handleSetApp('portal'); }}
@@ -1289,11 +1241,9 @@ const MainRouter = () => {
             pendingGameId={pendingGame?.mode === 'bilionar' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
           />
-        )
-      }
+        )}
 
-      {
-        currentApp === 'higher_lower' && (
+        {currentApp === 'higher_lower' && (
           <HigherLowerApp
             onBackToPortal={() => { handleSetApp('portal'); }}
             onTerminateLobby={handleTerminateLobby}
@@ -1301,15 +1251,56 @@ const MainRouter = () => {
             pendingGameId={pendingGame?.mode === 'higher_lower' ? pendingGame.gameId : null}
             onClearPending={() => setPendingGame(null)}
           />
-        )
-      }
+        )}
+      </div>
+
+      {renderLobby && (
+        <div className={`modal-overlay ${lobbyIsClosing ? 'lobby-closing-overlay' : 'lobby-opening-overlay'}`} style={{
+          zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch'
+        }}>
+          <div className={lobbyIsClosing ? 'lobby-closing-content' : 'lobby-opening-content'} style={{
+            position: 'relative', width: '100%', height: '100%', overflow: 'hidden'
+          }}>
+
+            <PlatformLobby
+              initialLobbyId={activeLobbyId}
+              onlineUserIds={onlineUserIds}
+              onLeaveLobby={() => leaveLobby()}
+              onStartGameFlow={(gameType, gameId, subMode, extra = {}) => {
+                const { rules = 'hex', cat = [], diff = [1], botDiff = 2 } = extra;
+
+                if (gameType === 'quiz') {
+                  setPendingGame({
+                    mode: subMode || '1v1_online',
+                    rules: rules,
+                    gameId: gameId,
+                    cat: cat,
+                    diff: diff,
+                    botDiff: botDiff
+                  });
+                  handleSetApp('ab_quiz');
+                }
+                else if (gameType === 'bilionar') {
+                  setPendingGame({ mode: 'bilionar', gameId: gameId });
+                  handleSetApp('bilionar_battle');
+                }
+                else if (gameType === 'higher_lower') {
+                  setPendingGame({ mode: 'higher_lower', gameId: gameId });
+                  handleSetApp('higher_lower');
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <GameInviteModal
         invite={incomingInvite}
         onAccept={(gameId, rules) => handleAcceptInvite(gameId, rules)}
         onDecline={handleDeclineInvite}
       />
-    </>);
+    </>
+  );
 };
 
 const App = () => {
