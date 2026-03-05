@@ -482,11 +482,13 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     </div>
                 )}
 
-                {gameState.phase === 'question' && (
-                    <div style={{ marginTop: '3rem', width: '100%', maxWidth: '800px', height: '10px', background: 'rgba(255,255,255,0.1)', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', background: timeLeft > 30 ? '#10b981' : '#ef4444', width: `${timeLeft}%`, transition: 'width 0.05s linear' }}></div>
-                    </div>
-                )}
+                <div style={{
+                    marginTop: '3rem', width: '100%', maxWidth: '800px', height: '10px',
+                    background: 'rgba(255,255,255,0.1)', borderRadius: '5px', overflow: 'hidden',
+                    opacity: gameState.phase === 'question' ? 1 : 0, transition: 'opacity 0.3s'
+                }}>
+                    <div style={{ height: '100%', background: timeLeft > 30 ? '#10b981' : '#ef4444', width: `${gameState.phase === 'question' ? timeLeft : 0}%`, transition: 'width 0.05s linear' }}></div>
+                </div>
 
                 {gameState.phase === 'finished' && (
                     <motion.div
