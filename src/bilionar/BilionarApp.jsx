@@ -95,7 +95,7 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, p
                     return;
                 }
 
-                const activeMembers = members.filter(m => m.state === 'in_game');
+                const activeMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
                 const bPlayers = activeMembers.map(m => ({
                     game_id: match.id,
                     user_id: m.user_id,
@@ -112,6 +112,11 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, p
                 setActiveGame(newGame);
                 setView('game');
                 await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
+            } else {
+                // Non-host polling for the host to initialize the game row
+                if (view !== 'game') {
+                    setTimeout(initBilionarGame, 1000);
+                }
             }
         };
 
@@ -119,6 +124,14 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, p
             initBilionarGame();
         }
     }, [match?.id, isHost]);
+
+    // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
+    useEffect(() => {
+        if (!match && view === 'game' && activePlatformLobbyId) {
+            onBackToPortal();
+            setActiveGame(null);
+        }
+    }, [match, view, activePlatformLobbyId, onBackToPortal]);
 
     // Autoboot game from platform lobby
     useEffect(() => {
