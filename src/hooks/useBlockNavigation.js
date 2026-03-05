@@ -1,6 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const useBlockNavigation = (isActive, onExitAttempt) => {
+    const onExitAttemptRef = useRef(onExitAttempt);
+    useEffect(() => {
+        onExitAttemptRef.current = onExitAttempt;
+    }, [onExitAttempt]);
+
     useEffect(() => {
         if (!isActive) return;
 
@@ -12,8 +17,8 @@ export const useBlockNavigation = (isActive, onExitAttempt) => {
         const handlePopState = (e) => {
             // Zabráni reálne vráteniu späť vložením "fake" histórie
             window.history.pushState(null, '', window.location.href);
-            if (onExitAttempt) {
-                onExitAttempt();
+            if (onExitAttemptRef.current) {
+                onExitAttemptRef.current();
             }
         };
 
@@ -27,5 +32,5 @@ export const useBlockNavigation = (isActive, onExitAttempt) => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [isActive, onExitAttempt]);
+    }, [isActive]);
 };
