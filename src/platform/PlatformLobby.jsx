@@ -148,14 +148,19 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
         await supabase.from('platform_lobbies').update({ status: 'starting' }).eq('id', lobby.id);
     };
 
-    if (!lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
+    // Pre udržanie vizuálu počas zatváracej animácie
+    const prevLobby = React.useRef(null);
+    if (lobby) prevLobby.current = lobby;
+    const currentLobby = lobby || prevLobby.current;
 
-    const gameInfo = GAMES.find(g => g.id === lobby.selected_game) || GAMES[1];
+    if (!currentLobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
+
+    const gameInfo = GAMES.find(g => g.id === currentLobby.selected_game) || GAMES[1];
 
     // Extrakcia nastavení
-    const selectedCategories = lobby?.settings?.cat || [];
-    const difficulty = lobby?.settings?.diff || [2];
-    const gameRules = lobby?.settings?.rules || 'hex';
+    const selectedCategories = currentLobby?.settings?.cat || [];
+    const difficulty = currentLobby?.settings?.diff || [2];
+    const gameRules = currentLobby?.settings?.rules || 'hex';
 
     if (countdown !== null) {
         const isPreparing = countdown === 'Pripravujem zápas...';
@@ -205,8 +210,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     <h2 style={{ fontSize: '1.5rem', margin: 0 }}>{isHost ? 'Tvoja Lobby' : 'Lobby'}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.3rem 0.8rem', borderRadius: '8px' }}>
                         <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Kód:</span>
-                        <strong style={{ fontSize: '1.2rem', letterSpacing: '2px', color: '#facc15' }}>{lobby.join_code}</strong>
-                        <button onClick={() => navigator.clipboard.writeText(lobby.join_code)} style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 0.5rem' }}>📋</button>
+                        <strong style={{ fontSize: '1.2rem', letterSpacing: '2px', color: '#facc15' }}>{currentLobby.join_code}</strong>
+                        <button onClick={() => navigator.clipboard.writeText(currentLobby.join_code)} style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 0.5rem' }}>📋</button>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.8rem' }}>
@@ -254,12 +259,12 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                                 {GAMES.map(g => (
                                     <div key={g.id} className="game-option" onClick={() => handleSelectGame(g.id)} style={{
                                         padding: '0.8rem', borderRadius: '12px', cursor: 'pointer',
-                                        border: `2px solid ${lobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.05)'}`,
-                                        background: lobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.02)',
+                                        border: `2px solid ${currentLobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.05)'}`,
+                                        background: currentLobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.02)',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s'
                                     }}>
                                         <span className="game-icon" style={{ fontSize: '2rem' }}>{g.icon}</span>
-                                        <span className="game-name" style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>{g.name}</span>
+                                        <span className="game-name" style={{ color: currentLobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>{g.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -275,16 +280,16 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     </div>
 
                     {/* Nastavenia */}
-                    {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
+                    {(currentLobby.selected_game === 'quiz' || currentLobby.selected_game === 'bilionar') && (
                         <div className={`panel-settings ${mobileTab === 'settings' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <h3 className="hide-mobile" style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
 
-                            {lobby.selected_game === 'quiz' && (
+                            {currentLobby.selected_game === 'quiz' && (
                                 <div>
                                     <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Pravidlá hry</div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'hex' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'hex' ? '1px solid #38bdf8' : '1px solid transparent', background: gameRules === 'hex' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'hex' ? '#38bdf8' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Cesta (Hex)</button>
-                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'points' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'points' ? '1px solid #f97316' : '1px solid transparent', background: gameRules === 'points' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'points' ? '#f97316' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Body (Rýchlosť)</button>
+                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...currentLobby.settings, rules: 'hex' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'hex' ? '1px solid #38bdf8' : '1px solid transparent', background: gameRules === 'hex' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'hex' ? '#38bdf8' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Cesta (Hex)</button>
+                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...currentLobby.settings, rules: 'points' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'points' ? '1px solid #f97316' : '1px solid transparent', background: gameRules === 'points' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'points' ? '#f97316' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Body (Rýchlosť)</button>
                                     </div>
                                 </div>
                             )}
@@ -306,10 +311,10 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                                 <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginBottom: '0.4rem', flexShrink: 0 }}>Kategórie</div>
                                 <div className="categories-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '120px', overflowY: 'auto', alignContent: 'flex-start' }}>
-                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default', flexShrink: 0 }}>
+                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...currentLobby.settings, cat: [] })} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default', flexShrink: 0 }}>
                                         Všetky
                                     </button>
-                                    {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
+                                    {(currentLobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
                                         const isSel = selectedCategories.includes(c);
                                         return (
                                             <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default', flexShrink: 0 }}>

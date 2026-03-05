@@ -1021,7 +1021,23 @@ const MainRouter = () => {
 
   // Derive lobby UI state from DB context instead of local state
   const activeLobbyId = lobby?.id || null;
-  const showLobbyModal = !!lobby && !match;
+  const actualLobbyModal = !!lobby && !match;
+  const [renderLobby, setRenderLobby] = useState(false);
+  const [lobbyIsClosing, setLobbyIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (actualLobbyModal && !renderLobby) {
+      setRenderLobby(true);
+      setLobbyIsClosing(false);
+    } else if (!actualLobbyModal && renderLobby) {
+      setLobbyIsClosing(true);
+      const timer = setTimeout(() => {
+        setRenderLobby(false);
+        setLobbyIsClosing(false);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [actualLobbyModal, renderLobby]);
 
   // Auto-route to the active game when match starts
   useEffect(() => {
@@ -1207,9 +1223,15 @@ const MainRouter = () => {
       )}
 
       {
-        showLobbyModal && (
-          <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch' }}>
-            <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+        renderLobby && (
+          <div className="modal-overlay" style={{
+            zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)', padding: 0, alignItems: 'stretch',
+            animation: lobbyIsClosing ? 'lobbyFadeOut 0.35s ease forwards' : 'lobbyFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          }}>
+            <div style={{
+              position: 'relative', width: '100%', height: '100%', overflow: 'hidden',
+              animation: lobbyIsClosing ? 'lobbySlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'lobbySlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}>
 
               <PlatformLobby
                 initialLobbyId={activeLobbyId}
