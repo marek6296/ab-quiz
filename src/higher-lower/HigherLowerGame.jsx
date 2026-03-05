@@ -22,7 +22,7 @@ const CountUp = ({ value, isRevealing }) => {
     return <motion.span>{rounded}</motion.span>;
 };
 
-export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onSetGame }) => {
+export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayerGuess, onLeave, onSetGame }) => {
     const { user } = useAuth();
     const { playSound } = useAudio();
     const isHost = activeGame?.host_id === user?.id;
@@ -259,37 +259,35 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
         }
     }, [gameState.phase, gameState.round_index]);
 
-    // Receive guesses
+    // Receive guesses from HigherLowerApp's persistent channel listener
     useEffect(() => {
-        if (!gameChannel) return;
-        const sub = gameChannel.on('broadcast', { event: 'player_guess' }, (msg) => {
-            if (isHost && activeGameRef.current) {
-                const { playerId, guess } = msg.payload;
+        if (!latestPlayerGuess) return;
+        if (isHost && activeGameRef.current) {
+            const { playerId, guess } = latestPlayerGuess;
 
-                // Read from the live ref to avoid closure staleness
-                const currentState = gameStateRef.current || {};
-                const currentAnswers = currentState.answers || {};
+            // Read from the live ref to avoid closure staleness
+            const currentState = gameStateRef.current || {};
+            const currentAnswers = currentState.answers || {};
 
-                // Skip if already recorded
-                if (currentAnswers[playerId] && currentAnswers[playerId].value === guess.value) return;
+            // Skip if already recorded
+            if (currentAnswers[playerId] && currentAnswers[playerId].value === guess.value) return;
 
-                const newAnswers = { ...currentAnswers, [playerId]: guess };
-                const newState = { ...currentState, answers: newAnswers };
+            const newAnswers = { ...currentAnswers, [playerId]: guess };
+            const newState = { ...currentState, answers: newAnswers };
 
-                // Immediately apply to global ref to prevent the loop from overwriting it!
-                gameStateRef.current = newState;
+            // Immediately apply to global ref to prevent the loop from overwriting it
+            gameStateRef.current = newState;
 
-                if (onSetGame) {
-                    onSetGame(prev => prev ? { ...prev, state: newState } : prev);
-                }
-
-                supabase.from('higher_lower_games').update({
-                    state: newState
-                }).eq('id', activeGameRef.current.id);
+            if (onSetGame) {
+                onSetGame(prev => prev ? { ...prev, state: newState } : prev);
             }
-        });
-        return () => { sub.unsubscribe(); };
-    }, [gameChannel, isHost, onSetGame]);
+
+            // Sync to DB for persistence and state mirroring
+            supabase.from('higher_lower_games').update({
+                state: newState
+            }).eq('id', activeGameRef.current.id);
+        }
+    }, [latestPlayerGuess, isHost, onSetGame]);
 
     const handleGuess = (guess) => {
         if (myGuess || !['question', 'reveal_buttons'].includes(gameState.phase)) return;

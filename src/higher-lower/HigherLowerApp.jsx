@@ -20,6 +20,7 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
     const [activeGame, setActiveGame] = useState(null);
     const [players, setPlayers] = useState([]);
     const [gameChannel, setGameChannel] = useState(null);
+    const [latestPlayerGuess, setLatestPlayerGuess] = useState(null);
 
     const fetchPlayers = async (gameId) => {
         if (!gameId) return;
@@ -127,6 +128,9 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     setActiveGame(prev => ({ ...prev, state: newState }));
                 }
             })
+            .on('broadcast', { event: 'player_guess' }, (msg) => {
+                setLatestPlayerGuess({ ...msg.payload, _receivedAt: Date.now() });
+            })
             .subscribe();
 
         setGameChannel(channel);
@@ -184,6 +188,7 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     activeGame={activeGame}
                     players={players}
                     gameChannel={gameChannel}
+                    latestPlayerGuess={latestPlayerGuess}
                     onSetGame={setActiveGame}
                     onLeave={async () => {
                         if (user?.id) {
