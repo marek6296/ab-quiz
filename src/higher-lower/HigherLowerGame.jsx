@@ -66,6 +66,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
             async function broadcastState(updates) {
                 const newState = { ...state, ...updates };
+                gameStateRef.current = newState; // Optimistic update prevents recursive host spam
+
                 try {
                     await gameChannel?.send({
                         type: 'broadcast',
@@ -75,7 +77,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 } catch (err) {
                     console.log("Channel not ready for broadcast");
                 }
-                await supabase.from('higher_lower_games').update({ state: newState }).eq('id', currentGame.id);
+                const { error } = await supabase.from('higher_lower_games').update({ state: newState }).eq('id', currentGame.id);
+                if (error) console.error("Host state update error:", error);
             }
 
             async function evaluatePlayer(player, guess, firstItem, secondItem) {
