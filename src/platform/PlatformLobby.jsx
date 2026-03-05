@@ -190,111 +190,94 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     }
 
     return (
-        <div style={{ padding: '2rem', width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '2rem', justifyContent: 'center', alignItems: 'flex-start' }}>
-
-            {/* LOBBY COLUMN */}
-            <div style={{ flex: '1 1 500px', maxWidth: '800px', background: 'rgba(15, 23, 42, 0.9)', padding: '2.5rem', borderRadius: '24px', border: `2px solid ${gameInfo.color}50` }}>
-
-                {/* Header Lobby */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <h2 style={{ fontSize: '2.5rem', margin: 0, color: 'white' }}>{isHost ? 'Tvoja Lobby' : 'Lobby'}</h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                            <span style={{ color: '#94a3b8' }}>Pozývací kód: </span>
-                            <strong style={{ fontSize: '1.8rem', letterSpacing: '4px', background: 'rgba(255,255,255,0.1)', padding: '0.2rem 1rem', borderRadius: '8px', border: '1px dashed #cbd5e1', color: 'white' }}>
-                                {lobby.join_code}
-                            </strong>
-                            <button className="neutral" onClick={() => navigator.clipboard.writeText(lobby.join_code)} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Kopírovať</button>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        {isHost && (
-                            <button className="neutral" onClick={() => refreshLobby()} style={{ padding: '1rem', border: '1px solid rgba(250, 204, 21, 0.5)', color: '#facc15', background: 'rgba(250, 204, 21, 0.1)' }}>
-                                🔄 Refreshnúť Lobby
-                            </button>
-                        )}
-                        <button className="neutral" onClick={() => leaveLobby()} style={{ padding: '1rem 2rem', border: '2px solid rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
-                            {isHost ? 'Zavrieť Lobby' : 'Opustiť Lobby'}
-                        </button>
+        <div style={{
+            display: 'flex', flexDirection: 'column', height: '100vh', padding: '1rem',
+            background: 'var(--bg-gradient, radial-gradient(circle at top, #0f172a, #020617))', color: 'white', boxSizing: 'border-box'
+        }}>
+            {/* Header NavBar */}
+            <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem',
+                background: 'rgba(255, 255, 255, 0.05)', borderRadius: '16px', border: `1px solid ${gameInfo.color}40`,
+                marginBottom: '1rem', flexShrink: 0, gap: '1rem', flexWrap: 'wrap'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: '1.5rem', margin: 0 }}>{isHost ? 'Tvoja Lobby' : 'Lobby'}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.3rem 0.8rem', borderRadius: '8px' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Kód:</span>
+                        <strong style={{ fontSize: '1.2rem', letterSpacing: '2px', color: '#facc15' }}>{lobby.join_code}</strong>
+                        <button onClick={() => navigator.clipboard.writeText(lobby.join_code)} style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 0.5rem' }}>📋</button>
                     </div>
                 </div>
+                <div style={{ display: 'flex', gap: '0.8rem' }}>
+                    {isHost && (
+                        <button onClick={() => refreshLobby()} style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #facc15', background: 'rgba(250, 204, 21, 0.1)', color: '#facc15', cursor: 'pointer', fontWeight: 'bold' }}>
+                            🔄 <span className="hide-mobile">Refresh</span>
+                        </button>
+                    )}
+                    <button onClick={() => leaveLobby()} style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: 'none', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        ✖ {isHost ? 'Zavrieť' : 'Opustiť'}
+                    </button>
+                </div>
+            </div>
 
-                {/* Vybratá Hra */}
-                <div style={{ marginBottom: '3rem', padding: '1.5rem', background: 'rgba(0,0,0,0.4)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <h3 style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Aktuálne Zvolená Hra</h3>
+            {/* Main Content Area */}
+            <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', flex: 1, overflow: 'hidden'
+            }}>
+                {/* LAVA STRANA: Vyber hry a Nastavenia */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Hry */}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flexShrink: 0 }}>
+                        <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 1rem 0' }}>Herný Režim</h3>
                         {isHost ? (
-                            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                                 {GAMES.map(g => (
-                                    <div
-                                        key={g.id}
-                                        onClick={() => handleSelectGame(g.id)}
-                                        style={{
-                                            minWidth: '200px', padding: '1.5rem', borderRadius: '16px', cursor: 'pointer',
-                                            border: `2px solid ${lobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.1)'}`,
-                                            background: lobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.05)',
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
+                                    <div key={g.id} onClick={() => handleSelectGame(g.id)} style={{
+                                        flex: '0 0 auto', padding: '1rem', borderRadius: '12px', cursor: 'pointer', minWidth: '120px',
+                                        border: `2px solid ${lobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.05)'}`,
+                                        background: lobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.02)',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s'
+                                    }}>
                                         <span style={{ fontSize: '2.5rem' }}>{g.icon}</span>
-                                        <span style={{ color: lobby.selected_game === g.id ? g.color : '#cbd5e1', fontWeight: 'bold', textAlign: 'center' }}>{g.name}</span>
-                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Max {g.max} hráčov</span>
+                                        <span style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>{g.name}</span>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                <div style={{ fontSize: '4rem' }}>{gameInfo.icon}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ fontSize: '2.5rem' }}>{gameInfo.icon}</span>
                                 <div>
-                                    <div style={{ fontSize: '2rem', color: gameInfo.color, fontWeight: 'bold' }}>{gameInfo.name}</div>
-                                    <div style={{ color: '#cbd5e1', fontSize: '1.1rem' }}>Čaká sa na hostiteľa na spustenie hry (Max {gameInfo.max} hráčov).</div>
+                                    <div style={{ color: gameInfo.color, fontSize: '1.2rem', fontWeight: 'bold' }}>{gameInfo.name}</div>
+                                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Hostiteľ vyberá hru...</div>
                                 </div>
                             </div>
                         )}
                     </div>
-                </div>
 
-                {/* NASTAVENIA HRY */}
-                {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '1.5rem', marginBottom: '2rem' }}>
-                        <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            ⚙️ Nastavenia Hry {!isHost && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(Upravuje Hostiteľ)</span>}
-                        </h3>
+                    {/* Nastavenia */}
+                    {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
+                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             {lobby.selected_game === 'quiz' && (
                                 <div>
-                                    <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Herné Pravidlá</label>
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
-                                        <button disabled={!isHost} className={`secondary ${gameRules === 'hex' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'hex' ? 1 : 0.4, border: gameRules === 'hex' ? '1px solid #38bdf8' : 'none' }} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'hex' })}>
-                                            Hex (Cesta)
-                                        </button>
-                                        <button disabled={!isHost} className={`secondary ${gameRules === 'points' ? 'active' : ''}`} style={{ flex: 1, padding: '0.8rem', opacity: gameRules === 'points' ? 1 : 0.4, border: gameRules === 'points' ? '1px solid #f97316' : 'none' }} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'points' })}>
-                                            Body (Rýchlosť)
-                                        </button>
+                                    <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Pravidlá hry</div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'hex' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'hex' ? '1px solid #38bdf8' : '1px solid transparent', background: gameRules === 'hex' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'hex' ? '#38bdf8' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Cesta (Hex)</button>
+                                        <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, rules: 'points' })} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: gameRules === 'points' ? '1px solid #f97316' : '1px solid transparent', background: gameRules === 'points' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: gameRules === 'points' ? '#f97316' : '#64748b', cursor: isHost ? 'pointer' : 'default', fontWeight: 'bold' }}>Body (Rýchlosť)</button>
                                     </div>
                                 </div>
                             )}
 
                             <div>
-                                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Náročnosť Otázok</label>
-                                <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '12px' }}>
-                                    {[
-                                        { level: 1, label: 'Ľahké', color: '#4ade80' },
-                                        { level: 2, label: 'Stredné', color: '#fbbf24' },
-                                        { level: 3, label: 'Ťažké', color: '#ef4444' }
-                                    ].map(diff => {
-                                        const isSelected = difficulty.includes(diff.level);
+                                <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Náročnosť otázok</div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    {[{ l: 1, t: 'Ľahké', c: '#4ade80' }, { l: 2, t: 'Stredné', c: '#fbbf24' }, { l: 3, t: 'Ťažké', c: '#ef4444' }].map(d => {
+                                        const isSel = difficulty.includes(d.l);
                                         return (
-                                            <button
-                                                key={diff.level}
-                                                disabled={!isHost}
-                                                onClick={() => handleChangeDifficulty(diff.level)}
-                                                style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', background: isSelected ? diff.color : 'transparent', color: isSelected ? '#0f172a' : '#cbd5e1', border: `1px solid ${isSelected ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default', transition: 'all 0.2s', opacity: isHost ? 1 : (isSelected ? 1 : 0.5) }}>
-                                                {diff.label}
+                                            <button key={d.l} disabled={!isHost} onClick={() => handleChangeDifficulty(d.l)} style={{ flex: 1, padding: '0.6rem', minWidth: '80px', borderRadius: '8px', border: isSel ? `1px solid ${d.c}` : '1px solid transparent', background: isSel ? `${d.c}15` : 'rgba(255,255,255,0.05)', color: isSel ? d.c : '#64748b', cursor: isHost ? 'pointer' : 'default', opacity: isHost || isSel ? 1 : 0.4 }}>
+                                                {d.t}
                                             </button>
                                         )
                                     })}
@@ -302,92 +285,104 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Kategórie</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: selectedCategories.length === 0 ? 'bold' : 'normal', background: selectedCategories.length === 0 ? '#38bdf8' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#0f172a' : '#cbd5e1', border: `1px solid ${selectedCategories.length === 0 ? 'transparent' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default' }}>
-                                        ✨ Všetky
+                                <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Kategórie</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '150px', overflowY: 'auto' }}>
+                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.4rem 0.8rem', borderRadius: '16px', fontSize: '0.8rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default' }}>
+                                        Všetky
                                     </button>
                                     {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
-                                        const isSelected = selectedCategories.includes(c);
+                                        const isSel = selectedCategories.includes(c);
                                         return (
-                                            <button disabled={!isHost} key={c} onClick={() => handleToggleCategory(c)} style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#38bdf8' : '#94a3b8', border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, cursor: isHost ? 'pointer' : 'default', opacity: isHost ? 1 : (isSelected ? 1 : 0.5) }}>
+                                            <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.4rem 0.8rem', borderRadius: '16px', fontSize: '0.8rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default' }}>
                                                 {c}
                                             </button>
-                                        );
+                                        )
                                     })}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                {/* Hráči v Míestnosti */}
-                <div>
-                    <h3 style={{ color: '#f8fafc', fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Hráči v Miestnosti ({members.length}/{gameInfo.max})</span>
-                    </h3>
+                {/* PRAVA STRANA: Hráči, Priatelia a Založenie */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
-                        {members.map((p, idx) => {
-                            const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
-                            return (
-                                <div key={p.user_id} style={{
-                                    background: 'rgba(255,255,255,0.05)', border: `2px solid ${color}50`, padding: '1.5rem 1rem', borderRadius: '16px',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', position: 'relative'
-                                }}>
-                                    {p.role === 'host' && (
-                                        <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#eab308', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                            HOST
+                    {/* Hráči list */}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Hráči v miestnosti</h3>
+                            <span style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem' }}>{members.length}/{gameInfo.max}</span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.8rem' }}>
+                            {members.map((p, idx) => {
+                                const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+                                return (
+                                    <div key={p.user_id} style={{
+                                        position: 'relative', background: 'rgba(0,0,0,0.3)', border: `1px solid ${color}40`, padding: '1rem 0.5rem', borderRadius: '12px',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem'
+                                    }}>
+                                        {p.role === 'host' && (
+                                            <span style={{ position: 'absolute', top: -8, background: '#facc15', color: '#000', fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '8px', fontWeight: 'bold' }}>HOST</span>
+                                        )}
+                                        <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${p.user_id}`} alt="avatar" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ color: 'white', fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '90px' }}>Hráč {idx + 1}</div>
+                                            <div style={{ color: '#64748b', fontSize: '0.65rem' }}>{p.state}</div>
                                         </div>
-                                    )}
-                                    <div style={{ position: 'relative' }}>
-                                        <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${p.user_id}`} alt={p.user_id} style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                                        {isHost && user.id !== p.user_id && (
+                                            <button onClick={() => handleRemovePlayer(p.user_id)} style={{ position: 'absolute', top: 4, right: 4, padding: '0', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button>
+                                        )}
                                     </div>
-                                    <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1rem', textAlign: 'center' }}>Hráč {idx + 1} <br /><small style={{ color: '#64748b', fontSize: '0.7rem' }}>{p.state}</small></span>
-                                    {isHost && user.id !== p.user_id && (
-                                        <button onClick={() => handleRemovePlayer(p.user_id)} style={{ position: 'absolute', top: 5, right: 5, background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem' }}>
-                                            &times;
-                                        </button>
-                                    )}
+                                )
+                            })}
+                            {isHost && members.length < gameInfo.max && (
+                                <div style={{ border: '1px dashed rgba(255,255,255,0.2)', padding: '1rem 0.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b', minHeight: '100px' }}>
+                                    <span style={{ fontSize: '1.5rem', marginBottom: '0.2rem' }}>+</span>
+                                    <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>Voľné miesto</span>
                                 </div>
-                            )
-                        })}
-                        {isHost && members.length < gameInfo.max && (
-                            <div style={{
-                                border: '2px dashed rgba(255,255,255,0.1)', padding: '1.5rem 1rem', borderRadius: '16px',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem',
-                                color: '#64748b'
-                            }}>
-                                <span style={{ fontSize: '2rem' }}>+</span>
-                                <span style={{ fontSize: '0.9rem', textAlign: 'center' }}>Čaká sa na pripojenie</span>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
+                    {/* Friends List (Iba Host) */}
                     {isHost && (
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                            <button
-                                className="primary"
-                                onClick={handleStartMatch}
-                                disabled={members.length < 1 || countdown !== null}
-                                style={{ flex: 1, padding: '1.5rem', fontSize: '1.2rem', fontWeight: 'bold', boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' }}
-                            >
-                                SPUSTIŤ ({gameInfo.name})
-                            </button>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 1rem 0' }}>Pozvi Priateľov</h3>
+                            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                <FriendsList onInvite={handleInvite} currentLobbyPlayers={members} onlineUserIds={onlineUserIds} />
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* FRIENDS COLUMN */}
+            {/* SPUSTIT BTN (Spodna lista) */}
             {isHost && (
-                <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
-                    <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem', paddingLeft: '1rem' }}>Priatelia</h3>
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                        <FriendsList onInvite={handleInvite} currentLobbyPlayers={members} onlineUserIds={onlineUserIds} />
-                    </div>
+                <div style={{ flexShrink: 0, marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <button
+                        onClick={handleStartMatch}
+                        disabled={members.length < 1 || countdown !== null}
+                        style={{
+                            width: '100%', padding: '1.2rem', fontSize: '1.4rem', fontWeight: 'bold', borderRadius: '16px', border: 'none',
+                            background: members.length >= 1 ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.1)',
+                            color: members.length >= 1 ? 'white' : 'rgba(255,255,255,0.3)',
+                            boxShadow: members.length >= 1 ? '0 10px 25px rgba(59, 130, 246, 0.4)' : 'none',
+                            cursor: members.length >= 1 ? 'pointer' : 'not-allowed',
+                            transition: 'all 0.2s',
+                            textTransform: 'uppercase', letterSpacing: '2px'
+                        }}
+                    >
+                        SPUSTIŤ HRU
+                    </button>
                 </div>
             )}
+
+            <style>{`
+                @media (max-width: 600px) {
+                    .hide-mobile { display: none; }
+                }
+            `}</style>
         </div>
     );
 };

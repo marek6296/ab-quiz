@@ -1211,13 +1211,6 @@ const MainRouter = () => {
           <div className="modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 10, 20, 0.85)', backdropFilter: 'blur(8px)' }}>
             <div style={{ position: 'relative', width: '100%', height: '100%', overflowY: 'auto' }}>
 
-              {/* Zavieracie tlacidlo pre overlay */}
-              <button
-                onClick={() => leaveLobby()}
-                style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10000, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '0.8rem 1.5rem', borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                Zavrieť Lobby ✖
-              </button>
-
               <PlatformLobby
                 initialLobbyId={activeLobbyId}
                 onlineUserIds={onlineUserIds}
