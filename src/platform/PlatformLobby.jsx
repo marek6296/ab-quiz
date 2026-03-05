@@ -47,7 +47,7 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
     // Globálny odpočet a presun do hry pre VŠETKÝCH hráčov
     useEffect(() => {
-        if (lobby?.status === 'countdown' && !hasStartedRef.current) {
+        if (lobby?.status === 'starting' && !hasStartedRef.current) {
             hasStartedRef.current = true;
 
             const doCountdown = async () => {
@@ -135,8 +135,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const handleStartMatch = async () => {
         if (!isHost || !lobby) return;
 
-        // Zmení stav Lobby na countdown, čo u všetkých zapne UI odpočet
-        await supabase.from('platform_lobbies').update({ status: 'countdown' }).eq('id', lobby.id);
+        // Zmení stav Lobby na starting, čo u všetkých zapne UI odpočet
+        await supabase.from('platform_lobbies').update({ status: 'starting' }).eq('id', lobby.id);
     };
 
     if (!lobby) return <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>Načítavam dáta Lobby...</div>;
