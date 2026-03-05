@@ -225,30 +225,30 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', flex: 1, overflow: 'hidden'
             }}>
                 {/* LAVA STRANA: Vyber hry a Nastavenia */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
 
                     {/* Hry */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flexShrink: 0 }}>
-                        <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 1rem 0' }}>Herný Režim</h3>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1rem', flexShrink: 0 }}>
+                        <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 0.8rem 0' }}>Herný Režim</h3>
                         {isHost ? (
                             <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                                 {GAMES.map(g => (
                                     <div key={g.id} onClick={() => handleSelectGame(g.id)} style={{
-                                        flex: '0 0 auto', padding: '1rem', borderRadius: '12px', cursor: 'pointer', minWidth: '120px',
+                                        flex: '0 0 auto', padding: '0.8rem', borderRadius: '12px', cursor: 'pointer', minWidth: '100px',
                                         border: `2px solid ${lobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.05)'}`,
                                         background: lobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.02)',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s'
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s'
                                     }}>
-                                        <span style={{ fontSize: '2.5rem' }}>{g.icon}</span>
-                                        <span style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.9rem', fontWeight: 'bold' }}>{g.name}</span>
+                                        <span style={{ fontSize: '2rem' }}>{g.icon}</span>
+                                        <span style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>{g.name}</span>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <span style={{ fontSize: '2.5rem' }}>{gameInfo.icon}</span>
+                                <span style={{ fontSize: '2rem' }}>{gameInfo.icon}</span>
                                 <div>
-                                    <div style={{ color: gameInfo.color, fontSize: '1.2rem', fontWeight: 'bold' }}>{gameInfo.name}</div>
+                                    <div style={{ color: gameInfo.color, fontSize: '1.1rem', fontWeight: 'bold' }}>{gameInfo.name}</div>
                                     <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Hostiteľ vyberá hru...</div>
                                 </div>
                             </div>
@@ -257,8 +257,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
                     {/* Nastavenia */}
                     {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
-                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
 
                             {lobby.selected_game === 'quiz' && (
                                 <div>
@@ -285,15 +285,15 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                             </div>
 
                             <div>
-                                <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Kategórie</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '150px', overflowY: 'auto' }}>
-                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.4rem 0.8rem', borderRadius: '16px', fontSize: '0.8rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default' }}>
+                                <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginBottom: '0.4rem' }}>Kategórie</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '110px', overflowY: 'auto' }}>
+                                    <button disabled={!isHost} onClick={() => updateLobbySettings({ ...lobby.settings, cat: [] })} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: selectedCategories.length === 0 ? '1px solid #38bdf8' : 'none', background: selectedCategories.length === 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)', color: selectedCategories.length === 0 ? '#38bdf8' : '#94a3b8', cursor: isHost ? 'pointer' : 'default' }}>
                                         Všetky
                                     </button>
                                     {(lobby.selected_game === 'quiz' ? availableQuizCategories : availableBilionarCategories).map(c => {
                                         const isSel = selectedCategories.includes(c);
                                         return (
-                                            <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.4rem 0.8rem', borderRadius: '16px', fontSize: '0.8rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default' }}>
+                                            <button key={c} disabled={!isHost} onClick={() => handleToggleCategory(c)} style={{ padding: '0.3rem 0.6rem', borderRadius: '16px', fontSize: '0.75rem', border: isSel ? '1px solid #38bdf8' : 'none', background: isSel ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)', color: isSel ? 'white' : '#64748b', cursor: isHost ? 'pointer' : 'default' }}>
                                                 {c}
                                             </button>
                                         )
