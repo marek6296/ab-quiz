@@ -67,17 +67,20 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
     useEffect(() => {
         if (!match) return;
 
-        const initBilionarGame = async () => {
-            const { data: existingGame } = await supabase.from('bilionar_games').select('*').eq('id', match.id).single();
+        const initBilionarGame = async (retries = 7) => {
+            const { data: existingGame } = await supabase.from('bilionar_games').select('*').eq('id', match.id).maybeSingle();
 
             if (existingGame) {
                 setActiveGame(existingGame);
                 setView('game');
+                if (onClearPending) onClearPending();
             } else if (isHost) {
+                // Generate a random join code to prevent duplicate primary key restrictions if they play multiple games
+                const joinCode = 'B' + Math.random().toString(36).substring(2, 7).toUpperCase();
                 const { data: newGame, error: err } = await supabase.from('bilionar_games').insert([{
                     id: match.id,
                     host_id: user.id,
-                    join_code: 'MATCH',
+                    join_code: joinCode,
                     status: 'playing',
                     is_public: false,
                     settings: {
@@ -92,6 +95,7 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
 
                 if (err) {
                     console.error("Error creating bilionar DB row", err);
+                    if (retries > 0) setTimeout(() => initBilionarGame(retries - 1), 1000);
                     return;
                 }
 
@@ -111,12 +115,15 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
 
                 setActiveGame(newGame);
                 setView('game');
+                if (onClearPending) onClearPending();
                 await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
-            } else {
+            } else if (retries > 0) {
                 // Non-host polling for the host to initialize the game row
                 if (view !== 'game') {
-                    setTimeout(initBilionarGame, 1000);
+                    setTimeout(() => initBilionarGame(retries - 1), 1000);
                 }
+            } else {
+                console.error("Non-host failed to boot bilionar game because host took too long");
             }
         };
 
@@ -133,53 +140,7 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
         }
     }, [match, view, activePlatformLobbyId, onBackToPortal]);
 
-    // Autoboot game from platform lobby
-    useEffect(() => {
-        if (pendingGameId && view === 'lobby') {
-            const bootGame = async (retries = 5) => {
-                const { data, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).maybeSingle();
-
-                if (data) {
-                    setActiveGame(data);
-                    setView('game');
-                    if (onClearPending) onClearPending();
-                } else if (!data && isHost) {
-                    // Host initializes the game row
-                    const { data: newGame, error: insertErr } = await supabase.from('bilionar_games').insert([{
-                        id: pendingGameId,
-                        host_id: user.id,
-                        status: 'playing',
-                        settings: match?.snapshot_settings || {}
-                    }]).select().single();
-
-                    if (!insertErr && newGame) {
-                        setActiveGame(newGame);
-                        setView('game');
-                        if (onClearPending) onClearPending();
-
-                        // Prep players
-                        const realMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
-                        for (const m of realMembers) {
-                            const { data: prof } = await supabase.from('profiles').select('username, avatar_url').eq('id', m.user_id).single();
-                            await supabase.from('bilionar_players').insert({
-                                game_id: pendingGameId,
-                                user_id: m.user_id,
-                                player_name: prof?.username || 'Hráč',
-                                avatar_url: prof?.avatar_url || null
-                            });
-                        }
-                    } else {
-                        console.error("Failed to initialize bilionar game as host:", insertErr);
-                    }
-                } else if (retries > 0) {
-                    setTimeout(() => bootGame(retries - 1), 800);
-                } else if (error) {
-                    console.error("Failed to boot bilionar game:", error);
-                }
-            };
-            bootGame();
-        }
-    }, [pendingGameId, view, onClearPending, isHost, user?.id, members, match]);
+    // Autoboot from Platform Match is now handled completely by the unified effect above.
 
     // Central Subscription for Bilionár Game Cycle
     useEffect(() => {
@@ -299,7 +260,10 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                         setView('game');
                     }}
                     onSetGame={setActiveGame}
-                    onBackToPortal={onBackToPortal}
+                    onBackToPortal={() => {
+                        if (match) { leaveGame(); }
+                        onBackToPortal();
+                    }}
                     onShowAdmin={() => setShowAdmin(true)}
                     onlineUserIds={onlineUserIds}
                     pendingGameId={pendingGameId}
