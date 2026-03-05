@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetGame }) => {
     const { user } = useAuth();
@@ -523,79 +524,87 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
             <div className="bilionar-main-content">
 
                 {/* PHASE: Big Intro, Welcome, Preparations (Full Overlays over game board) */}
-                {gameState.phase === 'big_intro' && (
-                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
-                        <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
-                    </div>
-                )}
+                <AnimatePresence>
+                    {gameState.phase === 'big_intro' && (
+                        <motion.div key="intro" exit={{ opacity: 0, scale: 1.1, filter: 'blur(5px)' }} transition={{ duration: 0.3 }} className="fullscreen-flex" style={{ zIndex: 100 }}>
+                            <h1 className="logo-brutal massive-entrance">Bilionár Battle</h1>
+                        </motion.div>
+                    )}
 
-                {gameState.phase === 'welcome' && (
-                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
-                        <div className="message-modal slide-in-scale">
-                            <h2>Vitajte</h2>
-                        </div>
-                    </div>
-                )}
-
-                {gameState.phase === 'prepare_next' && (
-                    <div className="fullscreen-flex" style={{ zIndex: 100 }}>
-                        <div className="message-modal slide-in-scale">
-                            <h2>Ideme na ďalšiu otázku</h2>
-                        </div>
-                    </div>
-                )}
-
-                {/* PHASE: Recap Answers */}
-                {gameState.phase === 'recap_answers' && (
-                    <div className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
-                        <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
-                            <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
-                                {[...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99)).map((p, i) => (
-                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
-                                            <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                            <span style={{ fontWeight: 'bold', color: '#facc15' }}>{p.selected_answer}</span>
-                                            <span style={{ fontWeight: '900' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
-                                        </div>
-                                    </div>
-                                ))}
+                    {gameState.phase === 'welcome' && (
+                        <motion.div key="welcome" exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }} className="fullscreen-flex" style={{ zIndex: 100 }}>
+                            <div className="message-modal slide-in-scale">
+                                <h2>Vitajte</h2>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        </motion.div>
+                    )}
 
-                {/* PHASE: Recap Scores */}
-                {gameState.phase === 'recap_scores' && (
-                    <div className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
-                        <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
-                            <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {[...players].sort((a, b) => b.score - a.score).map((p, i) => (
-                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
-                                            <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                            {p.last_score_gained > 0 && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>+{p.last_score_gained}</span>}
-                                            <span style={{ fontSize: '2rem', fontWeight: '900' }}>{p.score}</span>
-                                        </div>
-                                    </div>
-                                ))}
+                    {gameState.phase === 'prepare_next' && (
+                        <motion.div key="prepare" exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }} className="fullscreen-flex" style={{ zIndex: 100 }}>
+                            <div className="message-modal slide-in-scale">
+                                <h2>Ideme na ďalšiu otázku</h2>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        </motion.div>
+                    )}
 
-                {/* ACTIVE GAME BOARD (Hidden cleanly during intro/recap phases) */}
-                <div style={{ display: isBoardVisible ? 'contents' : 'none' }}>
+                    {/* PHASE: Recap Answers */}
+                    {gameState.phase === 'recap_answers' && (
+                        <motion.div key="recap_ans" exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
+                            <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
+                                <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Rýchlosť odpovedí</h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+                                    {[...players].filter(p => p.has_answered).sort((a, b) => (a.last_answer_time || 99) - (b.last_answer_time || 99)).map((p, i) => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                                <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                                <span style={{ fontWeight: 'bold', color: '#facc15' }}>{p.selected_answer}</span>
+                                                <span style={{ fontWeight: '900' }}>{(p.last_answer_time || 0).toFixed(2)}s</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* PHASE: Recap Scores */}
+                    {gameState.phase === 'recap_scores' && (
+                        <motion.div key="recap_score" exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fullscreen-flex" style={{ zIndex: 105, background: 'rgba(2, 6, 23, 0.9)' }}>
+                            <div className="message-modal slide-in-scale" style={{ width: '90%', maxWidth: '800px' }}>
+                                <h2 style={{ marginBottom: '2rem', fontSize: '2.5rem', color: '#facc15' }}>Priebežné skóre</h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {[...players].sort((a, b) => b.score - a.score).map((p, i) => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '1rem 1.5rem', borderRadius: '12px', borderLeft: i === 0 ? '6px solid #facc15' : '6px solid transparent' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <span style={{ fontWeight: '900', fontSize: '1.5rem', color: i === 0 ? '#facc15' : '#94a3b8' }}>{i + 1}.</span>
+                                                <span style={{ fontWeight: 'bold' }}>{p.player_name}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                                {p.last_score_gained > 0 && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>+{p.last_score_gained}</span>}
+                                                <span style={{ fontSize: '2rem', fontWeight: '900' }}>{p.score}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* ACTIVE GAME BOARD (Pre-mounted for ZERO layout-shift, hidden cleanly during intros) */}
+                <div style={{
+                    opacity: isBoardVisible ? 1 : 0,
+                    pointerEvents: isBoardVisible ? 'auto' : 'none',
+                    transition: 'opacity 0.4s ease-out',
+                    visibility: isBoardVisible ? 'visible' : 'hidden',
+                    display: 'flex', flexDirection: 'column', flex: 1, width: '100%', gap: '1rem'
+                }}>
                     <div
-                        className={`bilionar-timer-wrapper ${isQuestionOnly ? 'opacity-0' : 'animate-fade-in'}`}
-                        style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
+                        className={`bilionar-timer-wrapper ${isQuestionOnly ? '' : 'animate-fade-in'}`}
+                        style={{ opacity: isQuestionOnly ? 0 : 1 }}
                     >
                         <div className="bilionar-timer-circle" style={{
                             background: `conic-gradient(#ef4444 ${((gameState.phase === 'answering' ? visualTime : 0) / 10) * 360}deg, transparent 0deg)`
@@ -607,15 +616,15 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                     </div>
 
                     <div className="bilionar-question-container">
-                        <div className="bilionar-question-box animate-slide-down">
+                        <div className={`bilionar-question-box ${isQuestionOnly ? 'animate-slide-down' : ''}`}>
                             <span className="question-number">Otázka {gameState.current_index + 1}/{totalQ}</span>
                             <h2>{currentQ?.question_text || 'Načítavam otázku...'}</h2>
                         </div>
                     </div>
 
                     <div
-                        className={`bilionar-options-grid ${isQuestionOnly ? 'opacity-0' : 'animate-fade-up'}`}
-                        style={{ visibility: isQuestionOnly ? 'hidden' : 'visible', opacity: isQuestionOnly ? 0 : 1 }}
+                        className={`bilionar-options-grid ${isQuestionOnly ? '' : 'animate-fade-up'}`}
+                        style={{ opacity: isQuestionOnly ? 0 : 1 }}
                     >
                         {['A', 'B', 'C', 'D'].map((key) => {
                             const optionText = currentQ?.[`option_${key.toLowerCase()}`];
