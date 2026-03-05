@@ -721,15 +721,37 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
-  // If no match is active, do not render local lobby/matchmaking. Portal handles this now.
-  if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY || appState === APP_STATES.MATCHMAKING) {
+  // If match exists, we bypass the local lobby for a seamless start
+  if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
+    if (match) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
+          <h2 style={{ animation: 'pulse 1.5s infinite' }}>Pripravujem hru...</h2>
+        </div>
+      );
+    }
+
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
-        <h2 style={{ animation: 'pulse 1.5s infinite' }}>
-          {!match ? "Návrat do portálu..." : "Pripravujem hru..."}
-        </h2>
-      </div>
+      <>
+        <Lobby
+          onStart1vBot={(rules, cat, diff, botDiff) => handleStartGame('1vbot', rules, null, cat, diff, botDiff)}
+          onStartMatchmaking={(mode, rules, cat, diff) => handleStartGame(mode, rules, null, cat, diff)}
+          onShowAdmin={() => setShowAdmin(true)}
+          onBackToPortal={onBackToPortal}
+          onlineUserIds={onlineUserIds}
+        />
+      </>
     );
+  }
+
+  if (appState === APP_STATES.MATCHMAKING) {
+    return <Matchmaking
+      user={user}
+      gameRules={gameRules}
+      categories={localCategory}
+      difficulty={localDifficulty}
+      onMatchFound={(gameId, rules, cat, diff) => handleStartGame('1v1_online', rules, gameId, cat, diff)}
+    />;
   }
 
   if (appState === APP_STATES.IN_GAME) {
@@ -1129,33 +1151,20 @@ const MainRouter = () => {
     <>
       {currentApp === 'portal' && (
         <GamePortal
-          onSelectGame={async (gameId) => {
-            // Because all games now require a platform match, clicking a game directly
-            // should either create a new lobby for that game, or switch the active lobby to that game.
-            let targetGameType = 'quiz';
-            if (gameId === 'bilionar_battle') targetGameType = 'bilionar';
-            if (gameId === 'higher_lower') targetGameType = 'higher_lower';
-
-            if (lobby) {
-              if (lobby.selected_game !== targetGameType && lobby.host_id === user?.id) {
-                // We have a lobby and we are host, just switch the game
-                await supabase.from('platform_lobbies').update({ selected_game: targetGameType }).eq('id', lobby.id);
-              }
-              // It's going to show because showLobbyModal is derived
-            } else {
-              // Create a new lobby, but we don't have createLobby in App scope easily without getting it from context.
-              // Wait, I didn't destructure createLobby in MainRouter! I should add it.
-              if (createLobby) {
-                await createLobby(targetGameType);
-              }
-            }
+          onSelectGame={(gameId) => {
+            // Direct game launch without forced platform lobby (1vCPU, or direct matchmaking)
+            if (gameId === 'ab_quiz') { handleSetApp('ab_quiz'); }
+            if (gameId === 'bilionar_battle') { handleSetApp('bilionar_battle'); }
+            if (gameId === 'higher_lower') { handleSetApp('higher_lower'); }
           }}
           onOpenLobby={async () => {
-            if (!lobby && createLobby) {
-              await createLobby('quiz'); // default
+            if (!lobby) {
+              if (createLobby) await createLobby('quiz');
+            } else {
+              // Derived showLobbyModal will take over
             }
-            // if lobby exists, showLobbyModal will be true automatically
           }}
+
         />
       )}
 

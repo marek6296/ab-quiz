@@ -2,21 +2,59 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BilionarAdmin } from './BilionarAdmin';
+import { BilionarLobby } from './BilionarLobby';
 import { BilionarGame } from './BilionarGame';
 import { usePlatformSession } from '../context/PlatformSessionContext';
 
-export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
+export const BilionarApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const { match, isHost, members, leaveGame } = usePlatformSession();
     const [profile, setProfile] = useState(null);
     const [showAdmin, setShowAdmin] = useState(false);
+    const [view, setView] = useState('lobby'); // 'lobby', 'game'
+    const viewRef = useRef(view);
 
-    // Game State
+    useEffect(() => {
+        viewRef.current = view;
+    }, [view]);
+
     const [activeGame, setActiveGame] = useState(null);
     const [players, setPlayers] = useState([]);
     const [gameChannel, setGameChannel] = useState(null);
 
-    // Načítanie profilu pre prístup k admin sekcii
+    const fetchPlayers = async (gameId) => {
+        if (!gameId) return;
+        const { data } = await supabase.from('bilionar_players')
+            .select('*')
+            .eq('game_id', gameId)
+            .order('joined_at', { ascending: true });
+        if (data) setPlayers(data);
+    };
+
+    const syncGame = async (gameId) => {
+        if (!gameId) return;
+        const { data, error } = await supabase.from('bilionar_games')
+            .select('*')
+            .eq('id', gameId)
+            .single();
+
+        if (data) {
+            setActiveGame(data);
+            // Crucial: Fallback trigger for view transition if real-time event was missed
+            if (data.status === 'playing' && viewRef.current === 'lobby') {
+                console.log("Fallback sync triggered view transition to game");
+                setView('game');
+            }
+        } else if (error && error.code === 'PGRST116') {
+            // PGRST116 means zero rows returned (Game was deleted)
+            console.log("Game deleted by host, leaving lobby.");
+            setActiveGame(null);
+            setView('lobby'); // The lobby component itself will revert to 'menu'
+            return;
+        }
+        fetchPlayers(gameId);
+    };
+
     useEffect(() => {
         if (user?.id) {
             supabase.from('profiles').select('username, is_admin, avatar_url').eq('id', user.id).single()
@@ -24,25 +62,22 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
         }
     }, [user]);
 
-    // Inicializácia bilio_games
+
+    // Platform Match Initialization
     useEffect(() => {
-        if (!match) {
-            onBackToPortal();
-            return;
-        }
+        if (!match) return;
 
         const initBilionarGame = async () => {
-            // Skús nájsť už vytvorenú bilionar hru
             const { data: existingGame } = await supabase.from('bilionar_games').select('*').eq('id', match.id).single();
 
             if (existingGame) {
                 setActiveGame(existingGame);
+                setView('game');
             } else if (isHost) {
-                // Host vytvára bilionar row s rovnakým match.id
                 const { data: newGame, error: err } = await supabase.from('bilionar_games').insert([{
                     id: match.id,
                     host_id: user.id,
-                    join_code: 'MATCH', // not used anymore for platform matches
+                    join_code: 'MATCH',
                     status: 'playing',
                     is_public: false,
                     settings: {
@@ -60,7 +95,6 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
                     return;
                 }
 
-                // Pridá hráčov z lobby_members
                 const activeMembers = members.filter(m => m.state === 'in_game');
                 const bPlayers = activeMembers.map(m => ({
                     game_id: match.id,
@@ -76,6 +110,7 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
                 }
 
                 setActiveGame(newGame);
+                setView('game');
                 await supabase.from('platform_matches').update({ status: 'playing' }).eq('id', match.id);
             }
         };
@@ -85,14 +120,24 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
         }
     }, [match?.id, isHost]);
 
-    const fetchPlayers = async (gameId) => {
-        if (!gameId) return;
-        const { data } = await supabase.from('bilionar_players')
-            .select('*')
-            .eq('game_id', gameId)
-            .order('joined_at', { ascending: true });
-        if (data) setPlayers(data);
-    };
+    // Autoboot game from platform lobby
+    useEffect(() => {
+        if (pendingGameId && view === 'lobby') {
+            const bootGame = async (retries = 3) => {
+                const { data, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
+                if (data) {
+                    setActiveGame(data);
+                    setView('game');
+                    if (onClearPending) onClearPending();
+                } else if (error && error.code === 'PGRST116' && retries > 0) {
+                    setTimeout(() => bootGame(retries - 1), 800);
+                } else if (error) {
+                    console.error("Failed to boot bilionar game:", error);
+                }
+            };
+            bootGame();
+        }
+    }, [pendingGameId, view, onClearPending]);
 
     // Central Subscription for Bilionár Game Cycle
     useEffect(() => {
@@ -111,11 +156,17 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
             }, (payload) => {
                 if (payload.eventType === 'DELETE') {
                     console.log("Realtime: Game deleted by host");
-                    leaveGame();
+                    setActiveGame(null);
+                    setView('lobby');
                     return;
                 }
                 if (payload.new) {
                     setActiveGame(payload.new);
+                    // Auto-transition to game view if status changes to playing
+                    if (payload.new.status === 'playing' && viewRef.current === 'lobby') {
+                        console.log("Realtime: Auto-transition to game view");
+                        setView('game');
+                    }
                 }
             })
             .on('postgres_changes', {
@@ -127,9 +178,14 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
                 fetchPlayers(activeGame.id);
             })
             .on('broadcast', { event: 'phase_change' }, (msg) => {
+                // High-speed sync for animations
+                // Compatible with both {state: s} and {payload: {state: s}} formats
                 const newState = msg.payload?.state || msg.state;
                 if (newState) {
                     setActiveGame(prev => ({ ...prev, state: newState }));
+                    if (prevActiveGameStatus.current !== 'playing' && viewRef.current === 'lobby') {
+                        setView('game');
+                    }
                 }
             })
             .subscribe();
@@ -143,26 +199,26 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
             supabase.removeChannel(channel);
             setGameChannel(null);
         };
-    }, [activeGame?.id, leaveGame]);
+    }, [activeGame?.id]);
 
-    const handleLeave = async () => {
-        if (user?.id && activeGame) {
-            // Remove from specific game DB if needed, though leaveGame marks match_players 'left'
-            await supabase.from('bilionar_players').delete().eq('game_id', activeGame.id).eq('user_id', user.id);
+    const prevActiveGameStatus = useRef(activeGame?.status);
+    useEffect(() => {
+        prevActiveGameStatus.current = activeGame?.status;
+        if (activeGame?.status === 'playing' && view === 'lobby') {
+            setView('game');
         }
-        await leaveGame();
-        onBackToPortal();
-    };
+    }, [activeGame?.status, view]);
 
-    if (!match) return null;
+    // Fallback sync (periodically check if game state has changed)
+    useEffect(() => {
+        if (!activeGame?.id) return;
 
-    if (!activeGame) {
-        return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
-                <h2 style={{ animation: 'pulse 1.5s infinite' }}>Inicializácia hry...</h2>
-            </div>
-        );
-    }
+        const timer = setInterval(() => {
+            syncGame(activeGame.id);
+        }, 2000);
+
+        return () => clearInterval(timer);
+    }, [activeGame?.id]);
 
     return (
         <div className="bilionar-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -170,21 +226,43 @@ export const BilionarApp = ({ onBackToPortal, onTerminateLobby }) => {
                 <BilionarAdmin onBack={() => setShowAdmin(false)} />
             )}
 
-            {!showAdmin && (
+            {!showAdmin && view === 'game' && (
                 <BilionarGame
                     activeGame={activeGame}
                     players={players}
                     gameChannel={gameChannel}
                     onSetGame={setActiveGame}
-                    onLeave={handleLeave}
+                    onLeave={async () => {
+                        if (user?.id) {
+                            // Remove player from all games to completely leave and prevent ghost reconnects
+                            await supabase.from('bilionar_players').delete().eq('user_id', user.id);
+                        }
+                        if (match) { leaveGame(); }
+                        if (onTerminateLobby) {
+                            await onTerminateLobby();
+                        }
+                        setActiveGame(null);
+                        setPlayers([]);
+                        setView('lobby');
+                    }}
                 />
             )}
 
-            {/* Show Admin button loosely absolute if admin */}
-            {profile?.is_admin && !showAdmin && (
-                <button onClick={() => setShowAdmin(true)} style={{ position: 'absolute', top: 20, left: 20, zIndex: 9000 }}>
-                    Admin Test Mode
-                </button>
+            {!showAdmin && view === 'lobby' && (
+                <BilionarLobby
+                    activeGame={activeGame}
+                    players={players}
+                    onStartGame={(startedGame) => {
+                        setActiveGame(startedGame);
+                        setView('game');
+                    }}
+                    onSetGame={setActiveGame}
+                    onBackToPortal={onBackToPortal}
+                    onShowAdmin={() => setShowAdmin(true)}
+                    onlineUserIds={onlineUserIds}
+                    pendingGameId={pendingGameId}
+                    onClearPending={onClearPending}
+                />
             )}
         </div>
     );
