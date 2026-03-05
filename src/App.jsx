@@ -159,7 +159,7 @@ const TurnAnnouncement = ({ announcement }) => {
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onClearPending, onlineUserIds }) => {
   const { user } = useAuth();
-  const { match, isHost, members, leaveGame } = usePlatformSession();
+  const { match, myMatchState, isHost, members, leaveGame } = usePlatformSession();
   const {
     appState, setAppState,
     gameMode, setGameMode,
@@ -235,7 +235,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
   // Platform Match Synchronization & DB Game Initialization
   useEffect(() => {
-    if (!match || match.game_type !== 'quiz') return;
+    if (!match || match.game_type !== 'quiz' || myMatchState?.state === 'left') return;
 
     const initQuizMatch = async () => {
       try {
@@ -730,9 +730,9 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     return <Admin onBack={() => setShowAdmin(false)} />;
   }
 
-  // If match exists, we bypass the local lobby for a seamless start
+  // If match exists and we haven't left it, we bypass the local lobby for a seamless start
   if (appState === APP_STATES.HOME || appState === APP_STATES.LOBBY) {
-    if (match) {
+    if (match && myMatchState?.state !== 'left') {
       return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>
           <h2 style={{ animation: 'pulse 1.5s infinite' }}>Pripravujem hru...</h2>

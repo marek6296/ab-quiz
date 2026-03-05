@@ -311,8 +311,10 @@ export const PlatformSessionProvider = ({ children }) => {
             await supabase.from('match_players').update({ state: 'left', left_at: new Date().toISOString(), forfeit: true }).eq('match_id', match.id).eq('user_id', user.id);
             await supabase.from('lobby_members').update({ state: 'in_lobby' }).eq('lobby_id', lobby.id).eq('user_id', user.id);
 
-            // Note: 1v1 forfeit logic will be handled by a DB trigger or separate game controller
-            // Here we just mark our local state as 'not in game' but keep the lobby
+            // IF HOST is leaving the game, the game is officially over or canceled, reset the lobby so we don't start it again automatically
+            if (isHost) {
+                await supabase.from('platform_lobbies').update({ status: 'waiting', active_match_id: null }).eq('id', lobby.id);
+            }
         } catch (e) {
             console.error(e);
         }

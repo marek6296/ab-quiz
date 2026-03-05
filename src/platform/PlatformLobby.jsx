@@ -47,8 +47,16 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
     // Globálny odpočet a presun do hry pre VŠETKÝCH hráčov
     useEffect(() => {
+        const playedLockId = `played_m_${lobby?.active_match_id}`;
+
         if (lobby?.status === 'starting' && lobby?.active_match_id && !hasStartedRef.current) {
+            if (sessionStorage.getItem(playedLockId)) {
+                // Ak sme túto konkrétnu inštanciu matche už hrali, ignorujeme opätovné odpálenie ak DB nestihla vrátiť lobby.status naspäť na 'waiting'
+                return;
+            }
             hasStartedRef.current = true;
+            sessionStorage.setItem(playedLockId, 'true');
+
             const doCountdown = async () => {
                 setCountdown("3");
                 await new Promise(r => setTimeout(r, 1000));
