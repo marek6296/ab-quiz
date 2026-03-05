@@ -728,17 +728,17 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     await supabase.from('games').update({ paused_by: newPausedBy }).eq('id', activeGameId);
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
     manualExitRef.current = true;
     const gameId = activeGameId;
     const activeMatch = match;
     const isOnline = gameMode === '1v1_online' && activeMatch;
 
     // 1. GUARANTEE DB UPDATE FIRES BEFORE UNMOUNT:
-    // Do not use setTimeout here; fire the request immediately so the browser doesn't cancel it when navigating away.
+    // We MUST await this so the browser doesn't cancel the outgoing request when the component unmounts.
     if (isOnline && gameId) {
-      supabase.from('games').update({ status: 'finished' }).eq('id', gameId).then();
-      supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
+      await supabase.from('games').update({ status: 'finished' }).eq('id', gameId);
+      await supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id);
     }
 
     // 2. Instantly clear local UI and navigate player to portal

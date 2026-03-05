@@ -66,11 +66,15 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
             async function broadcastState(updates) {
                 const newState = { ...state, ...updates };
-                await gameChannel?.send({
-                    type: 'broadcast',
-                    event: 'phase_change',
-                    payload: { state: newState }
-                });
+                try {
+                    await gameChannel?.send({
+                        type: 'broadcast',
+                        event: 'phase_change',
+                        payload: { state: newState }
+                    });
+                } catch (err) {
+                    console.log("Channel not ready for broadcast");
+                }
                 await supabase.from('higher_lower_games').update({ state: newState }).eq('id', currentGame.id);
             }
 
@@ -85,95 +89,98 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 }).eq('id', player.id);
             }
 
-            if (phase === 'init') {
-                if (!state.phase_start_time) {
-                    const seqData = getRandomGameSequence(50);
-                    await broadcastState({
-                        phase: 'spawning_clear',
-                        round_index: 0,
-                        sequence: seqData.sequence,
-                        topic: seqData.topic,
-                        metric: seqData.metric,
-                        phase_start_time: now,
-                        answers: {}
-                    });
-                }
-            } else if (phase === 'spawning_clear') {
-                if (now - (state.phase_start_time || now) >= 400) {
-                    const nextIndex = state.is_next_round ? state.round_index + 1 : state.round_index;
-                    await broadcastState({
-                        phase: 'spawning_left',
-                        phase_start_time: now,
-                        round_index: nextIndex,
-                        is_next_round: false,
-                        answers: {}
-                    });
-                }
-            } else if (phase === 'spawning_left') {
-                if (now - (state.phase_start_time || now) >= 600) {
-                    await broadcastState({ phase: 'spawning_right', phase_start_time: now });
-                }
-            } else if (phase === 'spawning_right') {
-                if (now - (state.phase_start_time || now) >= 600) {
-                    await broadcastState({ phase: 'stabilize', phase_start_time: now });
-                }
-            } else if (phase === 'stabilize') {
-                if (now - (state.phase_start_time || now) >= 600) {
-                    await broadcastState({ phase: 'question', phase_start_time: now });
-                }
-            } else if (phase === 'question') {
-                const activePlayers = currentPlayers.filter(p => !p.eliminated);
-                const elapsed = now - (state.phase_start_time || now);
+            try {
+                if (phase === 'init') {
+                    if (!state.phase_start_time) {
+                        const seqData = getRandomGameSequence(50);
+                        await broadcastState({
+                            phase: 'spawning_clear',
+                            round_index: 0,
+                            sequence: seqData.sequence,
+                            topic: seqData.topic,
+                            metric: seqData.metric,
+                            phase_start_time: now,
+                            answers: {}
+                        });
+                    }
+                } else if (phase === 'spawning_clear') {
+                    if (now - (state.phase_start_time || now) >= 400) {
+                        const nextIndex = state.is_next_round ? state.round_index + 1 : state.round_index;
+                        await broadcastState({
+                            phase: 'spawning_left',
+                            phase_start_time: now,
+                            round_index: nextIndex,
+                            is_next_round: false,
+                            answers: {}
+                        });
+                    }
+                } else if (phase === 'spawning_left') {
+                    if (now - (state.phase_start_time || now) >= 600) {
+                        await broadcastState({ phase: 'spawning_right', phase_start_time: now });
+                    }
+                } else if (phase === 'spawning_right') {
+                    if (now - (state.phase_start_time || now) >= 600) {
+                        await broadcastState({ phase: 'stabilize', phase_start_time: now });
+                    }
+                } else if (phase === 'stabilize') {
+                    if (now - (state.phase_start_time || now) >= 600) {
+                        await broadcastState({ phase: 'question', phase_start_time: now });
+                    }
+                } else if (phase === 'question') {
+                    const activePlayers = currentPlayers.filter(p => !p.eliminated);
+                    const elapsed = now - (state.phase_start_time || now);
 
-                // Bot logic
-                const currentAnswers = { ...(state.answers || {}) };
-                let answersChanged = false;
-                currentPlayers.forEach(p => {
-                    if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
-                        if (elapsed > 1000 + Math.random() * 2000) {
-                            const botD = currentGame.settings?.bot_difficulty || 2;
-                            const accuracy = botD === 1 ? 0.5 : botD === 2 ? 0.65 : 0.8;
-                            const firstItem = state.sequence[state.round_index];
-                            const secondItem = state.sequence[state.round_index + 1];
-                            const isHigher = secondItem.value >= firstItem.value;
-                            const isCorrectGuess = Math.random() < accuracy;
-                            currentAnswers[p.id] = isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher');
-                            answersChanged = true;
+                    // Bot logic
+                    const currentAnswers = { ...(state.answers || {}) };
+                    let answersChanged = false;
+                    currentPlayers.forEach(p => {
+                        if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
+                            if (elapsed > 1000 + Math.random() * 2000) {
+                                const botD = currentGame.settings?.bot_difficulty || 2;
+                                const accuracy = botD === 1 ? 0.5 : botD === 2 ? 0.65 : 0.8;
+                                const firstItem = state.sequence[state.round_index];
+                                const secondItem = state.sequence[state.round_index + 1];
+                                const isHigher = secondItem.value >= firstItem.value;
+                                const isCorrectGuess = Math.random() < accuracy;
+                                currentAnswers[p.id] = isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher');
+                                answersChanged = true;
+                            }
+                        }
+                    });
+
+                    if (answersChanged) await broadcastState({ answers: currentAnswers });
+
+                    const allAnswered = activePlayers.every(p => currentAnswers[p.id]);
+                    if (elapsed >= 8000 || allAnswered) {
+                        await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
+                    }
+                } else if (phase === 'reveal_value') {
+                    if (now - (state.phase_start_time || now) >= 1000) {
+                        const firstItem = state.sequence[state.round_index];
+                        const secondItem = state.sequence[state.round_index + 1];
+                        const activePlayers = currentPlayers.filter(p => !p.eliminated);
+                        for (const p of activePlayers) {
+                            const guess = state.answers?.[p.id];
+                            await evaluatePlayer(p, guess || 'timeout', firstItem, secondItem);
+                        }
+                        await broadcastState({ phase: 'reveal_result', phase_start_time: now });
+                    }
+                } else if (phase === 'reveal_result') {
+                    if (now - (state.phase_start_time || now) >= 800) {
+                        const latestPlayers = playersRef.current;
+                        const activePlayers = latestPlayers.filter(p => !p.eliminated);
+                        const isGameOver = activePlayers.length <= 1 || state.round_index >= (state.sequence?.length || 0) - 2;
+
+                        if (isGameOver) {
+                            await broadcastState({ phase: 'finished', phase_start_time: now });
+                            await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', currentGame.id);
+                        } else {
+                            await broadcastState({ phase: 'spawning_clear', phase_start_time: now, is_next_round: true });
                         }
                     }
-                });
-
-                if (answersChanged) await broadcastState({ answers: currentAnswers });
-
-                const allAnswered = activePlayers.every(p => currentAnswers[p.id]);
-                if (elapsed >= 8000 || allAnswered) {
-                    await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
                 }
-            } else if (phase === 'reveal_value') {
-                if (now - (state.phase_start_time || now) >= 1000) {
-                    const firstItem = state.sequence[state.round_index];
-                    const secondItem = state.sequence[state.round_index + 1];
-                    const activePlayers = currentPlayers.filter(p => !p.eliminated);
-                    for (const p of activePlayers) {
-                        const guess = state.answers?.[p.id];
-                        await evaluatePlayer(p, guess || 'timeout', firstItem, secondItem);
-                    }
-                    await broadcastState({ phase: 'reveal_result', phase_start_time: now });
-                }
-            } else if (phase === 'reveal_result') {
-                if (now - (state.phase_start_time || now) >= 800) {
-                    // Re-fetch players from ref to guarantee we have the latest elimination status applied in reveal_value
-                    const latestPlayers = playersRef.current;
-                    const activePlayers = latestPlayers.filter(p => !p.eliminated);
-                    const isGameOver = activePlayers.length <= 1 || state.round_index >= (state.sequence?.length || 0) - 2;
-
-                    if (isGameOver) {
-                        await broadcastState({ phase: 'finished', phase_start_time: now });
-                        await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', currentGame.id);
-                    } else {
-                        await broadcastState({ phase: 'spawning_clear', phase_start_time: now, is_next_round: true });
-                    }
-                }
+            } catch (err) {
+                console.error("Host loop error:", err);
             }
 
             if (active) {

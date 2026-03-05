@@ -230,19 +230,16 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                     players={players}
                     gameChannel={gameChannel}
                     onSetGame={setActiveGame}
-                    onLeave={() => {
-                        // 1. Instantly navigate the leaving player out to avoid showing them their own "opponent_abandoned" broadcast
+                    onLeave={async () => {
+                        // 1. Await DB cleanup to prevent browser from cancelling the network request on unmount
+                        if (user?.id) {
+                            await supabase.from('bilionar_players').delete().eq('user_id', user.id);
+                        }
+
+                        // 2. Instantly navigate the leaving player out to avoid showing them their own "opponent_abandoned" broadcast
                         setActiveGame(null);
                         setPlayers([]);
                         onBackToPortal();
-
-                        // 2. Perform DB cleanup detached in the background
-                        setTimeout(async () => {
-                            if (user?.id) {
-                                // Remove player from all games to completely leave and prevent ghost reconnects
-                                await supabase.from('bilionar_players').delete().eq('user_id', user.id);
-                            }
-                        }, 50);
 
                         // 3. Purge the remote match lobby after a 5 second grace period
                         setTimeout(async () => {
