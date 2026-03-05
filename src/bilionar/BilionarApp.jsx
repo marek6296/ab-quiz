@@ -273,10 +273,7 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
             )}
 
             {!showAdmin && view === 'lobby' && match && (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 1s ease-out' }}>
-                    <div style={{ fontSize: '2rem', color: '#facc15', letterSpacing: '2px', textShadow: '0 0 20px rgba(250, 204, 21, 0.5)', animation: 'pulseSoft 2s infinite' }}>
-                        Pripája sa do arény...
-                    </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 </div>
             )}
         </div>

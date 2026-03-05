@@ -49,6 +49,8 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
     useEffect(() => {
         if (!activeGame?.id) return;
 
+        fetchPlayers(activeGame.id);
+
         const channelId = `hl_game_state_${activeGame.id}`;
         const channel = supabase.channel(channelId)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'higher_lower_games', filter: `id=eq.${activeGame.id}` }, (payload) => {

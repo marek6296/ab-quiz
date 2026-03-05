@@ -3572,7 +3572,7 @@ button.small {
 }
 
 .massive-entrance {
-  animation: massiveEntrance 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: massiveEntrance 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes massiveEntrance {
@@ -3619,7 +3619,7 @@ button.small {
 }
 
 .slide-in-scale {
-  animation: slideInScale 6s ease-in-out forwards;
+  animation: slideInScale 4s ease-in-out forwards;
 }
 
 @keyframes slideInScale {

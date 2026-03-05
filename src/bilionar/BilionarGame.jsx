@@ -389,7 +389,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
     // 1. Critical Error/Status States (Full Screen)
     if (gameState.phase === 'init') {
-        return <div className="bilionar-board fullscreen-flex"><div className="message-modal"><h2>Pripravujem otázky...</h2></div></div>;
+        return <div className="bilionar-board fullscreen-flex" style={{ background: '#020617' }}></div>;
     }
     if (gameState.phase === 'no_questions') {
         return (
