@@ -4,12 +4,16 @@ import { supabase } from '../lib/supabase';
 import { HigherLowerGame } from './HigherLowerGame';
 import { usePlatformSession } from '../context/PlatformSessionContext';
 import { HigherLowerLobby } from './HigherLowerLobby';
+import { HigherLowerAdmin } from './HigherLowerAdmin';
 
 export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds, pendingGameId, onClearPending }) => {
     const { user } = useAuth();
     const { match, isHost, members, leaveGame } = usePlatformSession();
     const [view, setView] = useState('lobby');
     const viewRef = useRef(view);
+
+    const [showAdmin, setShowAdmin] = useState(() => localStorage.getItem('hl_admin_open') === 'true');
+    useEffect(() => { localStorage.setItem('hl_admin_open', showAdmin); }, [showAdmin]);
 
     useEffect(() => { viewRef.current = view; }, [view]);
 
@@ -94,6 +98,10 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
     // Avoid kicking valid Supabase games arbitrarily if match is null.
     // The channel's DELETE event already perfectly cleans up dead games.
 
+    if (showAdmin) {
+        return <HigherLowerAdmin onBack={() => setShowAdmin(false)} />;
+    }
+
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
             {view === 'lobby' ? (
@@ -104,6 +112,7 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                     pendingGameId={pendingGameId}
                     onClearPending={onClearPending}
                     onSetGame={setActiveGame}
+                    onShowAdmin={() => setShowAdmin(true)}
                     onBackToPortal={onBackToPortal}
                     match={match}
                     members={members}
