@@ -440,14 +440,14 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     }
                     .game-option {
                         flex-direction: row !important;
-                        text-align: left !important;
-                        justify-content: flex-start !important;
+                        text-align: center !important;
+                        justify-content: center !important;
                         gap: 1.5rem !important;
                         padding: 1.2rem !important;
                     }
                     .game-icon {
                         font-size: 2.5rem !important;
-                        margin-left: 0.5rem;
+                        margin-left: 0;
                     }
                     .game-name {
                         font-size: 1.2rem !important;
