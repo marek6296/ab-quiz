@@ -89,6 +89,14 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
         }
     }, [activeGame?.status, view]);
 
+    // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
+    useEffect(() => {
+        if (!match && view === 'game' && activeGame) {
+            onBackToPortal();
+            setActiveGame(null);
+        }
+    }, [match, view, activeGame, onBackToPortal]);
+
     return (
         <div className="higher-lower-theme" style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1000 }}>
             {view === 'lobby' ? (
@@ -115,7 +123,7 @@ export const HigherLowerApp = ({ onBackToPortal, onTerminateLobby, onlineUserIds
                         if (user?.id) {
                             await supabase.from('higher_lower_players').delete().eq('user_id', user.id);
                         }
-                        if (match) { leaveGame(); }
+                        if (match) { await leaveGame(); }
                         if (onTerminateLobby) {
                             await onTerminateLobby();
                         }

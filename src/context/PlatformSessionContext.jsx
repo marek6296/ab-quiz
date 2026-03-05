@@ -67,7 +67,12 @@ export const PlatformSessionProvider = ({ children }) => {
             }
         };
 
-        initializeSession();
+        // Anti-hang protection across initial load
+        const fallbackTimer = setTimeout(() => {
+            setIsLoading(false);
+        }, 3000);
+
+        initializeSession().then(() => clearTimeout(fallbackTimer));
     }, [user?.id]);
 
     const loadLobbyData = async (lobbyId) => {
@@ -78,7 +83,7 @@ export const PlatformSessionProvider = ({ children }) => {
             .single();
 
         if (lobbyError || !lobbyData || lobbyData.status === 'closed') {
-            await leaveLobby(); // Clean up if lobby is dead
+            await forceLeaveLobbyTarget(lobbyId); // Clean up if lobby is dead
             return;
         }
 
@@ -284,6 +289,17 @@ export const PlatformSessionProvider = ({ children }) => {
             console.error("Join lobby error:", err);
             throw err;
         }
+    };
+
+    const forceLeaveLobbyTarget = async (targetId) => {
+        if (!user || !targetId) return;
+        try {
+            await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', targetId).eq('user_id', user.id);
+            setLobby(null);
+            setMembers([]);
+            setMatch(null);
+            setMatchPlayers([]);
+        } catch (e) { }
     };
 
     const leaveLobby = async () => {
