@@ -128,7 +128,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     if (manualExitRef?.current) return; // Silent for the leaver
                     setGameData(prev => {
                         if (prev && prev.player1_id) {
-                            const pNum = prev.player1_id === userId ? 1 : 2;
+                            const pNum = userId === prev.player1_id ? 1 : 2;
                             setWinner(pNum);
                             setWinReason('opponent_abandoned');
                         } else {
@@ -149,7 +149,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
                     if (newData.status === 'finished' && !newData.winner_id) {
                         if (manualExitRef?.current) return; // Silent for the leaver
-                        const pNum = newData.player1_id === userId ? 1 : 2;
+                        const pNum = userId === newData.player1_id ? 1 : 2;
                         setWinner(pNum);
                         setWinReason('opponent_abandoned');
                         return;
