@@ -145,7 +145,9 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     let answersChanged = false;
                     currentPlayers.forEach(p => {
                         if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
-                            if (elapsed > 1000 + Math.random() * 2000) {
+                            // Assign a unique thinking time for the bot for this round so it doesn't instantly snap
+                            const botThinkDelay = 3000 + (parseInt(p.id.replace(/\D/g, '') || 0) % 2000); // stable pseudo-random
+                            if (elapsed > botThinkDelay) {
                                 const botD = currentGame.settings?.bot_difficulty || 2;
                                 const accuracy = botD === 1 ? 0.5 : botD === 2 ? 0.65 : 0.8;
                                 const firstItem = state.sequence[state.round_index];
@@ -158,9 +160,12 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         }
                     });
 
-                    if (answersChanged) await broadcastState({ answers: currentAnswers });
+                    if (answersChanged) {
+                        await broadcastState({ answers: currentAnswers });
+                        return; // return to break out and avoid instantly triggering next logic in the same loop if player already answered 
+                    }
 
-                    const allAnswered = activePlayers.every(p => currentAnswers[p.id]);
+                    const allAnswered = activePlayers.length > 0 && activePlayers.every(p => currentAnswers[p.id]);
                     if (elapsed >= 8000 || allAnswered) {
                         await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
                     }
@@ -185,8 +190,15 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                             await broadcastState({ phase: 'finished', phase_start_time: now });
                             await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', currentGame.id);
                         } else {
-                            await broadcastState({ phase: 'spawning_clear', phase_start_time: now, is_next_round: true });
+                            // First, "shift" the layoutId cards (which takes 600ms)
+                            await broadcastState({ phase: 'shifting', phase_start_time: now, is_next_round: true, answers: {} });
                         }
+                    }
+                } else if (phase === 'shifting') {
+                    if (now - (state.phase_start_time || now) >= 600) {
+                        // After shift completes, bump the round index which brings in the new Right card. 
+                        const nextIndex = state.is_next_round ? state.round_index + 1 : state.round_index;
+                        await broadcastState({ phase: 'spawning_right', phase_start_time: now, round_index: nextIndex, is_next_round: false });
                     }
                 }
             } catch (err) {
