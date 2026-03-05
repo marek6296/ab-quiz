@@ -135,6 +135,9 @@ export const PlatformSessionProvider = ({ children }) => {
                     // If a new match started
                     if (payload.new.active_match_id && payload.new.active_match_id !== lobby.active_match_id) {
                         loadMatchData(payload.new.active_match_id);
+                    } else if (!payload.new.active_match_id) {
+                        setMatch(null);
+                        setMatchPlayers([]);
                     }
                 }
             })
@@ -315,6 +318,9 @@ export const PlatformSessionProvider = ({ children }) => {
             if (isHost) {
                 await supabase.from('platform_lobbies').update({ status: 'waiting', active_match_id: null }).eq('id', lobby.id);
             }
+            // Okamžite vyčistiť aj lokálne stavy
+            setMatch(null);
+            setMatchPlayers([]);
         } catch (e) {
             console.error(e);
         }
