@@ -70,7 +70,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     useEffect(() => {
         if (gameMode !== '1v1_online' || !activeGameId) return;
 
-        const fetchGame = async (retries = 3) => {
+        const fetchGame = async (retries = 10) => {
             const { data, error } = await supabase.from('games').select('*').eq('id', activeGameId).single();
             if (data) {
                 setGameData(data);
@@ -94,12 +94,12 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                 }
             } else if (error && error.code === 'PGRST116') {
                 if (retries > 0) {
-                    // Retry short delay for Supabase replication lag
-                    setTimeout(() => fetchGame(retries - 1), 800);
+                    // Retry delay for Supabase replication lag
+                    setTimeout(() => fetchGame(retries - 1), 1000);
                 } else {
-                    // Hra uz neexistuje (0 rows returned)
-                    alert('Túto hru už server neeviduje (ukončená).');
-                    useGameStore.getState().resetToLobby();
+                    // Hra uz neexistuje (0 rows returned po 10 sekundach)
+                    // We log quietly. The DB Match Watcher in App.jsx will automatically route the user out properly.
+                    console.warn(`Hru ID ${activeGameId} sa nepodarilo načítať zo servera, pravdepodobne bola ukončená skôr ako sa načítala.`);
                 }
             }
         };
