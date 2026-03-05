@@ -12,7 +12,8 @@ export const BilionarGame = ({ activeGame, players: rawPlayers, onLeave, gameCha
         const sorted = [...rawPlayers].sort((a, b) => a.id.localeCompare(b.id));
         return rawPlayers.map(p => {
             const index = sorted.findIndex(sp => sp.id === p.id);
-            return { ...p, color: p.color || colorPalette[index % colorPalette.length] };
+            const resolvedColor = (p.color && p.color !== '#eab308') ? p.color : colorPalette[index % colorPalette.length];
+            return { ...p, color: resolvedColor };
         });
     }, [rawPlayers]);
 

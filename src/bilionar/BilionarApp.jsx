@@ -99,14 +99,15 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                     return;
                 }
 
+                const colorPalette = ['#38bdf8', '#fb923c', '#a78bfa', '#f472b6', '#4ade80', '#e879f9'];
                 const activeMembers = members.filter(m => m.state === 'in_game' || m.state === 'in_lobby');
-                const bPlayers = activeMembers.map(m => ({
+                const bPlayers = activeMembers.map((m, i) => ({
                     game_id: match.id,
                     user_id: m.user_id,
                     player_name: m.metadata?.player_name || 'Hráč',
                     avatar_url: m.metadata?.avatar_url || '',
                     is_bot: m.role === 'bot',
-                    color: m.metadata?.color || '#eab308'
+                    color: m.metadata?.color || colorPalette[i % colorPalette.length]
                 }));
 
                 if (bPlayers.length > 0) {
