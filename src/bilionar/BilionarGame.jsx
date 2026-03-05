@@ -41,7 +41,9 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
 
         // Auto Victory Check (Any Real Client can trigger this if they notice they are the only one left after a true multiplayer start)
         // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
-        if (activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+        // CRITICAL: Only the REMAINING player should trigger and see this. The leaving player's client should NOT trigger its own victory.
+        const amIStillAlive = players.some(p => p.user_id === user.id);
+        if (amIStillAlive && activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
             const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999, win_reason: 'opponent_abandoned' };
             supabase.from('bilionar_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
         }
