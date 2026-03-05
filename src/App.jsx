@@ -329,12 +329,22 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
   // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
   useEffect(() => {
     // If we were playing an online game and someone killed the match DB row (e.g. host left)
+    // We strictly prevent auto-kicking if the user has ALREADY received a victory (like 'opponent_abandoned').
+    // In that case, they should stay in the victory modal with the manual exit button.
+    let timer;
     if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online' && !match) {
-      resetToLobby();
-      onBackToPortal();
-      resetGame();
+      if (!winner && !winReason) {
+        // RACE CONDITION PREVENCION: 'match' delete broadcast often arrives faster than 'games' status broadcast.
+        // Delay the kick by 2 seconds to allow winReason to be populated by useGameState.
+        timer = setTimeout(() => {
+          resetToLobby();
+          onBackToPortal();
+          resetGame();
+        }, 2000);
+      }
     }
-  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame]);
+    return () => clearTimeout(timer);
+  }, [match, appState, gameMode, resetToLobby, onBackToPortal, resetGame, winner, winReason]);
 
   // Turn Announcement Sync for Online Games
   useEffect(() => {
