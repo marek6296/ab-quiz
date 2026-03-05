@@ -250,16 +250,16 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     <div className={`panel-games ${mobileTab === 'games' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1rem', flexShrink: 0 }}>
                         <h3 className="hide-mobile" style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 0.8rem 0' }}>Herný Režim</h3>
                         {isHost ? (
-                            <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                            <div className="games-grid" style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                                 {GAMES.map(g => (
-                                    <div key={g.id} onClick={() => handleSelectGame(g.id)} style={{
-                                        flex: '0 0 auto', padding: '0.8rem', borderRadius: '12px', cursor: 'pointer', minWidth: '100px',
+                                    <div key={g.id} className="game-option" onClick={() => handleSelectGame(g.id)} style={{
+                                        padding: '0.8rem', borderRadius: '12px', cursor: 'pointer',
                                         border: `2px solid ${lobby.selected_game === g.id ? g.color : 'rgba(255,255,255,0.05)'}`,
                                         background: lobby.selected_game === g.id ? `${g.color}15` : 'rgba(255,255,255,0.02)',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s'
                                     }}>
-                                        <span style={{ fontSize: '2rem' }}>{g.icon}</span>
-                                        <span style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>{g.name}</span>
+                                        <span className="game-icon" style={{ fontSize: '2rem' }}>{g.icon}</span>
+                                        <span className="game-name" style={{ color: lobby.selected_game === g.id ? 'white' : '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>{g.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -405,6 +405,13 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 .mobile-tabs {
                     display: none !important;
                 }
+                .games-grid {
+                    flex-wrap: wrap;
+                }
+                .game-option {
+                    flex: 1 1 auto;
+                    min-width: 100px;
+                }
                 @media (max-width: 800px) {
                     .hide-mobile { display: none !important; }
                     .lobby-grid {
@@ -425,6 +432,25 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                     .categories-list {
                         max-height: none !important;
                         overflow-y: visible !important;
+                    }
+                    .games-grid {
+                        flex-direction: column !important;
+                        flex-wrap: nowrap !important;
+                        overflow-x: hidden !important;
+                    }
+                    .game-option {
+                        flex-direction: row !important;
+                        text-align: left !important;
+                        justify-content: flex-start !important;
+                        gap: 1.5rem !important;
+                        padding: 1.2rem !important;
+                    }
+                    .game-icon {
+                        font-size: 2.5rem !important;
+                        margin-left: 0.5rem;
+                    }
+                    .game-name {
+                        font-size: 1.2rem !important;
                     }
                 }
             `}</style>
