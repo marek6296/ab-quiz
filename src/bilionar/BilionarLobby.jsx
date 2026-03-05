@@ -96,26 +96,6 @@ export const BilionarLobby = ({
         checkExistingLobby();
     }, [user, activeGame, onSetGame]);
 
-    // Handle incoming pending game (invited directly while active)
-    useEffect(() => {
-        const handlePending = async () => {
-            if (pendingGameId && !activeGame) {
-                setLoading(true);
-                const { data: game, error } = await supabase.from('bilionar_games').select('*').eq('id', pendingGameId).single();
-                if (game) {
-                    onSetGame(game);
-                    setView('room');
-                    setActiveTab('play');
-                    if (onClearPending) onClearPending();
-                } else if (error) {
-                    console.error("Error loading pending game:", error);
-                }
-                setLoading(false);
-            }
-        };
-        handlePending();
-    }, [pendingGameId, activeGame, onSetGame, onClearPending]);
-
     // Update local view state based on activeGame existence
     useEffect(() => {
         if (activeGame && view !== 'room') {
