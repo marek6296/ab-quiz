@@ -18,7 +18,9 @@ export const HigherLowerLobby = ({
     onClearPending = () => { },
     activeGame,
     players = [],
-    onSetGame
+    onSetGame,
+    match,
+    members = []
 }) => {
     const { user, signOut } = useAuth();
     const [profile, setProfile] = useState(null);
@@ -81,14 +83,14 @@ export const HigherLowerLobby = ({
             if (pendingGameId && !activeGame) {
                 setLoading(true);
                 const { data: game, error } = await supabase.from('higher_lower_games').select('*').eq('id', pendingGameId).maybeSingle();
-                
+
                 if (game) {
                     onSetGame(game);
                     setView('room');
                     setActiveTab('play');
                     if (onClearPending) onClearPending();
-                } else if (!game && isHost) {
-                     // Host initializes the game row
+                } else if (!game && match && match.host_id === user?.id) {
+                    // Host initializes the game row
                     const { data: newGame, error: insertErr } = await supabase.from('higher_lower_games').insert([{
                         id: pendingGameId,
                         host_id: user.id,
@@ -125,7 +127,7 @@ export const HigherLowerLobby = ({
             }
         };
         handlePending();
-    }, [pendingGameId, activeGame, onSetGame, onClearPending, isHost, user?.id, members, match]);
+    }, [pendingGameId, activeGame, onSetGame, onClearPending, user?.id, members, match]);
 
     useEffect(() => {
         if (activeGame && view !== 'room') {

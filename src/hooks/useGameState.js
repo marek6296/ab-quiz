@@ -126,13 +126,20 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
             }, (payload) => {
                 if (payload.eventType === 'DELETE') {
                     if (manualExitRef?.current) return; // Silent for the leaver
+                    // ANTI-PATTERN FIX: Setting state inside another state's updater is unsafe in React 18+.
+                    // We queue it on the next tick so the event loop handles it after render.
                     setGameData(prev => {
                         if (prev && prev.player1_id) {
-                            const pNum = userId === prev.player1_id ? 1 : 2;
-                            setWinner(pNum);
-                            setWinReason('opponent_abandoned');
+                            const p1 = prev.player1_id;
+                            setTimeout(() => {
+                                const pNum = userId === p1 ? 1 : 2;
+                                setWinner(pNum);
+                                setWinReason('opponent_abandoned');
+                            }, 50);
                         } else {
-                            setDisconnectReason("Hra bola ukončená druhým hráčom.");
+                            setTimeout(() => {
+                                setDisconnectReason("Hra bola ukončená druhým hráčom.");
+                            }, 50);
                         }
                         return prev;
                     });
