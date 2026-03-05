@@ -364,8 +364,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', color: 'white', overflow: 'hidden' }}>
 
             {/* Top Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', background: 'rgba(0,0,0,0.3)' }}>
-                <div style={{ display: 'flex', gap: '2rem' }}>
+            <div className="hl-topbar">
+                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                     {players.map(p => (
                         <div key={p.id} style={{
                             display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative',
@@ -399,9 +399,9 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
 
             {/* Header Topic */}
             {gameState.topic && (
-                <div style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
-                    <h2 style={{ fontSize: '1.5rem', color: '#94a3b8', margin: 0 }}>Kategória</h2>
-                    <h1 style={{ fontSize: '2.5rem', color: '#facc15', margin: 0, textShadow: '0 0 10px rgba(250, 204, 21, 0.4)' }}>{gameState.topic}</h1>
+                <div className="hl-topic-container" style={{ textAlign: 'center' }}>
+                    <h2 style={{ fontSize: '1.2rem', color: '#94a3b8', margin: 0 }}>Kategória</h2>
+                    <h1 className="hl-main-title" style={{ color: '#facc15', margin: 0, textShadow: '0 0 10px rgba(250, 204, 21, 0.4)' }}>{gameState.topic}</h1>
                 </div>
             )}
 
@@ -411,7 +411,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                 {gameState.phase === 'init' && <h2 style={{ fontSize: '2rem' }}>Generujem dáta...</h2>}
 
                 {showLeftCard && firstItem && secondItem && (
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px', height: '500px' }}>
+                    <div className="hl-board">
 
                         {/* FIRST ITEM */}
                         <AnimatePresence>
@@ -423,26 +423,23 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                                     animate="visible"
                                     exit="exitLeft"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
+                                    className="hl-card hl-card-first"
                                     style={{
-                                        position: 'absolute',
-                                        left: 0,
-                                        width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                         boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
-                                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
                                         animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                     }}
                                 >
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{firstItem.image}</div>
-                                        <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{firstItem.name}"</h3>
+                                        <div className="hl-image" style={{ lineHeight: '1' }}>{firstItem.image}</div>
+                                        <h3 className="hl-title" style={{ lineHeight: '1.3', margin: 0 }}>"{firstItem.name}"</h3>
                                     </div>
-                                    <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                                        <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
+                                    <div className="hl-value-container">
+                                        <div className="hl-value-text" style={{ fontWeight: '900', color: '#38bdf8' }}>
                                             {firstItem.value.toLocaleString()}
                                         </div>
-                                        <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
+                                        <div style={{ color: '#94a3b8', fontSize: '1.1rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
                                     </div>
                                 </motion.div>
                             )}
@@ -451,11 +448,12 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                         <AnimatePresence>
                             {showRightCard && (
                                 <motion.div
+                                    className="hl-vs"
                                     initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1, x: '-50%' }}
+                                    animate={{ scale: 1, opacity: 1 }}
                                     exit={{ scale: 0, opacity: 0 }}
                                     transition={{ type: 'spring', damping: 15 }}
-                                    style={{ position: 'absolute', left: '50%', width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}
+                                    style={{ zIndex: 10 }}
                                 >
                                     VS
                                 </motion.div>
@@ -472,54 +470,51 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                                     animate="visible"
                                     exit="exitRight"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
+                                    className="hl-card hl-card-second"
                                     style={{
-                                        position: 'absolute',
-                                        right: 0,
-                                        width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                         boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
-                                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
                                         animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                     }}
                                 >
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{secondItem.image}</div>
-                                        <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{secondItem.name}"</h3>
+                                        <div className="hl-image" style={{ lineHeight: '1' }}>{secondItem.image}</div>
+                                        <h3 className="hl-title" style={{ lineHeight: '1.3', margin: 0 }}>"{secondItem.name}"</h3>
                                     </div>
 
-                                    <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
+                                    <div className="hl-value-container">
                                         {['reveal_value', 'reveal_result'].includes(gameState.phase) ? (
                                             <>
-                                                <div style={{ fontSize: '3.5rem', fontWeight: '900', color: gameState.phase === 'reveal_result' ? (isCorrect === true ? '#10b981' : '#ef4444') : '#facc15' }}>
+                                                <div className="hl-value-text" style={{ fontWeight: '900', color: gameState.phase === 'reveal_result' ? (isCorrect === true ? '#10b981' : '#ef4444') : '#facc15' }}>
                                                     {visualGuess !== 'timeout' ? (
                                                         <CountUp value={secondItem.value} isRevealing={gameState.phase === 'reveal_value'} />
                                                     ) : "ČAS VYPRŠAL!"}
                                                 </div>
-                                                <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
+                                                <div style={{ color: '#94a3b8', fontSize: '1.1rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
                                             </>
                                         ) : (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '240px', justifyContent: 'center' }}>
                                                 {['reveal_buttons', 'question'].includes(gameState.phase) && (
                                                     !myGuess ? (
-                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                                             <button
-                                                                className="primary"
+                                                                className="primary hl-btn"
                                                                 onClick={() => handleGuess('higher')}
                                                                 disabled={myRecord?.eliminated}
-                                                                style={{ padding: '1.2rem', fontSize: '1.5rem', background: '#3b82f6', border: 'none', borderRadius: '12px', minHeight: '60px' }}>
+                                                                style={{ background: '#3b82f6', border: 'none', borderRadius: '12px' }}>
                                                                 Vyššie ⬆
                                                             </button>
                                                             <button
-                                                                className="danger"
+                                                                className="danger hl-btn"
                                                                 onClick={() => handleGuess('lower')}
                                                                 disabled={myRecord?.eliminated}
-                                                                style={{ padding: '1.2rem', fontSize: '1.5rem', background: '#f97316', border: 'none', borderRadius: '12px', minHeight: '60px' }}>
+                                                                style={{ background: '#f97316', border: 'none', borderRadius: '12px' }}>
                                                                 Nižšie ⬇
                                                             </button>
                                                         </motion.div>
                                                     ) : (
-                                                        <div style={{ color: '#94a3b8', fontSize: '1.4rem', animation: 'pulse 1.5s infinite', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px' }}>
+                                                        <div style={{ color: '#94a3b8', fontSize: '1.2rem', animation: 'pulse 1.5s infinite', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40px' }}>
                                                             Čakám na súpera...
                                                         </div>
                                                     )
@@ -607,6 +602,113 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, latestPlayer
                     75% { transform: translateX(-10px); }
                     100% { transform: translateX(0); }
                 }
+
+                @media (max-width: 768px) {
+                    .hl-board {
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                        height: auto !important;
+                        width: 95% !important;
+                        gap: 1.5rem !important;
+                        margin-bottom: 2rem !important;
+                    }
+                    .hl-card {
+                        width: 100% !important;
+                        height: 250px !important;
+                        position: relative !important;
+                        left: auto !important;
+                        right: auto !important;
+                        padding: 1.5rem 1rem !important;
+                    }
+                    .hl-vs {
+                        position: absolute !important;
+                        top: 50% !important;
+                        left: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        z-index: 10 !important;
+                        width: 45px !important;
+                        height: 45px !important;
+                        font-size: 1.2rem !important;
+                    }
+                    .hl-image { font-size: 4rem !important; margin-bottom: 0.5rem !important; }
+                    .hl-title { font-size: 1.2rem !important; }
+                    .hl-value-container { height: auto !important; margin-top: 1rem !important; justify-content: center !important; }
+                    .hl-value-text { font-size: 2.2rem !important; }
+                    
+                    /* adjust header / top level layout */
+                    .hl-topbar { padding: 0.8rem 1rem !important; flex-wrap: wrap !important; gap: 0.8rem !important; justify-content: center !important;}
+                    .hl-main-title { font-size: 1.8rem !important; }
+                    
+                    /* Buttons in second card */
+                    .hl-btn { font-size: 1.2rem !important; padding: 0.8rem !important; min-height: 40px !important;}
+                    
+                    .hl-topic-container { padding: 1rem 0 0.5rem !important;}
+                }
+                
+                @media (min-width: 769px) {
+                    .hl-board {
+                        width: 100%;
+                        max-width: 900px;
+                        height: 500px;
+                        display: flex;
+                        position: relative;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .hl-card {
+                        position: absolute;
+                        width: 400px;
+                        height: 500px;
+                        padding: 3rem 2rem;
+                    }
+                    .hl-card-first { left: 0; }
+                    .hl-card-second { right: 0; }
+                    .hl-vs {
+                        position: absolute;
+                        left: 50%;
+                        top: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 60px;
+                        height: 60px;
+                        font-size: 1.5rem;
+                        z-index: 10;
+                    }
+                    .hl-image { font-size: 6rem; margin-bottom: 1.5rem; }
+                    .hl-title { font-size: 1.8rem; }
+                    .hl-value-container { height: 160px; }
+                    .hl-value-text { font-size: 3.5rem; }
+                    .hl-btn { font-size: 1.5rem; padding: 1.2rem; min-height: 60px; }
+                    .hl-topic-container { padding: 2rem 0 1rem; }
+                    .hl-main-title { font-size: 2.5rem; }
+                    .hl-topbar { padding: 1rem 2rem; justify-content: space-between; flex-wrap: nowrap; }
+                }
+
+                .hl-board {
+                    display: flex;
+                    position: relative;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                }
+                .hl-card {
+                    flex-shrink: 0;
+                    border-radius: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    text-align: center;
+                }
+                .hl-vs {
+                    border-radius: 50%;
+                    background: #facc15;
+                    color: #0f172a;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                }
+                .hl-value-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; }
+                .hl-topbar { display: flex; align-items: center; background: rgba(0,0,0,0.3); }
             `}</style>
         </div>
     );
