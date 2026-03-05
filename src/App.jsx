@@ -159,7 +159,7 @@ const TurnAnnouncement = ({ announcement }) => {
 // Wrapper component to use the Auth context
 const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onClearPending, onlineUserIds }) => {
   const { user } = useAuth();
-  const { match, myMatchState, isHost, members, leaveGame } = usePlatformSession();
+  const { match, myMatchState, isHost, members, leaveGame, lobby } = usePlatformSession();
   const {
     appState, setAppState,
     gameMode, setGameMode,
