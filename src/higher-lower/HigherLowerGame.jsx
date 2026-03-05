@@ -84,14 +84,26 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 if (error) console.error("Host state update error:", error);
             }
 
-            async function evaluatePlayer(player, guess, firstItem, secondItem) {
+            async function evaluatePlayer(player, guessRecord, firstItem, secondItem) {
+                const guess = typeof guessRecord === 'object' ? guessRecord.value : guessRecord;
+                const answeredAt = typeof guessRecord === 'object' ? guessRecord.timestamp : now;
+                const elapsed = Math.max(0, answeredAt - (state.phase_start_time || now));
+
                 const isHigher = secondItem.value >= firstItem.value;
                 const isCorrect = (guess === 'higher' && isHigher) || (guess === 'lower' && !isHigher);
-                const newScore = isCorrect ? (player.score || 0) + 1 : (player.score || 0);
-                const eliminated = player.eliminated ? true : !isCorrect;
+
+                let pointsEarned = 0;
+                if (isCorrect && guess !== 'timeout') {
+                    // 1000 points max, dropping down to minimum 200 at the end of the 8 seconds.
+                    pointsEarned = Math.floor(1000 - (elapsed / 8000) * 800);
+                    pointsEarned = Math.max(200, Math.min(1000, pointsEarned));
+                }
+
+                const newScore = (player.score || 0) + pointsEarned;
 
                 await supabase.from('higher_lower_players').update({
-                    score: newScore, eliminated
+                    score: newScore,
+                    round_points_awarded: pointsEarned
                 }).eq('id', player.id);
             }
 
@@ -144,7 +156,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     const currentAnswers = { ...(state.answers || {}) };
                     let answersChanged = false;
                     currentPlayers.forEach(p => {
-                        if (p.is_bot && !p.eliminated && !currentAnswers[p.id]) {
+                        if (p.is_bot && !currentAnswers[p.id]) {
                             // Assign a unique thinking time for the bot for this round so it doesn't instantly snap
                             const botThinkDelay = 3000 + (parseInt(p.id.replace(/\D/g, '') || 0) % 2000); // stable pseudo-random
                             if (elapsed > botThinkDelay) {
@@ -154,7 +166,10 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                 const secondItem = state.sequence[state.round_index + 1];
                                 const isHigher = secondItem.value >= firstItem.value;
                                 const isCorrectGuess = Math.random() < accuracy;
-                                currentAnswers[p.id] = isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher');
+                                currentAnswers[p.id] = {
+                                    value: isCorrectGuess ? (isHigher ? 'higher' : 'lower') : (isHigher ? 'lower' : 'higher'),
+                                    timestamp: now
+                                };
                                 answersChanged = true;
                             }
                         }
@@ -165,7 +180,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         return; // return to break out and avoid instantly triggering next logic in the same loop if player already answered 
                     }
 
-                    const allAnswered = activePlayers.length > 0 && activePlayers.every(p => currentAnswers[p.id]);
+                    const allAnswered = currentPlayers.length > 0 && currentPlayers.every(p => currentAnswers[p.id]);
                     if (elapsed >= 8000 || allAnswered) {
                         await broadcastState({ phase: 'reveal_value', phase_start_time: now, answers: currentAnswers });
                     }
@@ -173,18 +188,19 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     if (now - (state.phase_start_time || now) >= 1000) {
                         const firstItem = state.sequence[state.round_index];
                         const secondItem = state.sequence[state.round_index + 1];
-                        const activePlayers = currentPlayers.filter(p => !p.eliminated);
-                        for (const p of activePlayers) {
-                            const guess = state.answers?.[p.id];
-                            await evaluatePlayer(p, guess || 'timeout', firstItem, secondItem);
+                        for (const p of currentPlayers) {
+                            const guessRecord = state.answers?.[p.id];
+                            await evaluatePlayer(p, guessRecord || 'timeout', firstItem, secondItem);
                         }
                         await broadcastState({ phase: 'reveal_result', phase_start_time: now });
                     }
                 } else if (phase === 'reveal_result') {
                     if (now - (state.phase_start_time || now) >= 2000) {
-                        const latestPlayers = playersRef.current;
-                        const activePlayers = latestPlayers.filter(p => !p.eliminated);
-                        const isGameOver = state.round_index >= (state.sequence?.length || 0) - 2 || activePlayers.length === 0 || (activePlayers.length === 1 && latestPlayers.length > 1 && !latestPlayers.some(p => p.is_bot));
+                        await broadcastState({ phase: 'round_scoreboard', phase_start_time: now });
+                    }
+                } else if (phase === 'round_scoreboard') {
+                    if (now - (state.phase_start_time || now) >= 4000) {
+                        const isGameOver = state.round_index >= 9;
 
                         if (isGameOver) {
                             await broadcastState({ phase: 'finished', phase_start_time: now });
@@ -268,8 +284,10 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
         if (myRecord?.eliminated) return;
 
+        const guessRecord = { value: guess, timestamp: Date.now() };
+
         // Optimistic UI update instantly
-        const updatedAnswers = { ...(gameState.answers || {}), [myRecord.id]: guess };
+        const updatedAnswers = { ...(gameState.answers || {}), [myRecord.id]: guessRecord };
         if (onSetGame) {
             onSetGame(prev => ({
                 ...prev,
@@ -280,7 +298,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
         gameChannel?.send({
             type: 'broadcast',
             event: 'player_guess',
-            payload: { playerId: myRecord.id, guess }
+            payload: { playerId: myRecord.id, guess: guessRecord }
         });
     };
 
@@ -355,7 +373,6 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     </AnimatePresence>
                                 </div>
                             </div>
-                            {p.eliminated && <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.2rem' }}>X</div>}
                         </div>
                     ))}
                 </div>
@@ -489,6 +506,38 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 }}>
                     <div style={{ height: '100%', background: timeLeft > 30 ? '#10b981' : '#ef4444', width: `${gameState.phase === 'question' ? timeLeft : 0}%`, transition: 'width 0.05s linear' }}></div>
                 </div>
+
+                {gameState.phase === 'round_scoreboard' && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4 }}
+                        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 40, backdropFilter: 'blur(10px)' }}
+                    >
+                        <h2 style={{ fontSize: '3rem', color: '#facc15', marginBottom: '2rem', textShadow: '0 0 15px rgba(250, 204, 21, 0.5)' }}>
+                            Skóre po {state.round_index + 1}. kole
+                        </h2>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '500px' }}>
+                            {[...playersRef.current].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, idx) => (
+                                <div key={`board-${p.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: p.id === myRecord?.id ? '2px solid #38bdf8' : '2px solid transparent' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: idx === 0 ? '#facc15' : '#94a3b8', width: '30px' }}>#{idx + 1}</div>
+                                        <img src={p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`} alt="" style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{p.player_name}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff' }}>{p.score || 0} b</div>
+                                        <div style={{ fontSize: '1rem', color: (p.round_points_awarded || 0) > 0 ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                                            +{p.round_points_awarded || 0}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
 
                 {gameState.phase === 'finished' && (
                     <motion.div
