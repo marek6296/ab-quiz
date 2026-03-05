@@ -19,13 +19,14 @@ export const PlatformSessionProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Refs
+    const heartbeatTimer = useRef(null);
+    const isLeavingSessionRef = useRef(false);
+
     // Derived states
     const myMemberState = members.find(m => m.user_id === user?.id);
-    const myMatchState = matchPlayers.find(m => m.user_id === user?.id);
-    const isHost = myMemberState?.role === 'host';
-
-    // Heartbeat ref to avoid stale closures
-    const heartbeatTimer = useRef(null);
+    const myMatchState = matchPlayers.find(p => p.user_id === user?.id);
+    const isHost = lobby?.host_id === user?.id; // Updated based on instruction
 
     // Initial Load & Auth change
     useEffect(() => {
@@ -54,6 +55,7 @@ export const PlatformSessionProvider = ({ children }) => {
 
                 if (memberData && memberData.length > 0) {
                     const activeLobbyId = memberData[0].lobby_id;
+                    isLeavingSessionRef.current = false;
                     await loadLobbyData(activeLobbyId);
                 } else {
                     setLobby(null);
@@ -76,6 +78,8 @@ export const PlatformSessionProvider = ({ children }) => {
     }, [user?.id]);
 
     const loadLobbyData = async (lobbyId) => {
+        if (isLeavingSessionRef.current) return;
+
         const { data: lobbyData, error: lobbyError } = await supabase
             .from('platform_lobbies')
             .select('*')
@@ -226,6 +230,7 @@ export const PlatformSessionProvider = ({ children }) => {
                     state: 'in_lobby'
                 });
 
+            isLeavingSessionRef.current = false;
             await loadLobbyData(newLobby.id);
             return newLobby;
         } catch (err) {
@@ -284,6 +289,7 @@ export const PlatformSessionProvider = ({ children }) => {
                 });
             }
 
+            isLeavingSessionRef.current = false;
             await loadLobbyData(targetLobby.id);
         } catch (err) {
             console.error("Join lobby error:", err);
@@ -294,6 +300,7 @@ export const PlatformSessionProvider = ({ children }) => {
     const forceLeaveLobbyTarget = async (targetId) => {
         if (!user || !targetId) return;
         try {
+            isLeavingSessionRef.current = true;
             await supabase.from('lobby_members').update({ state: 'left', left_at: new Date().toISOString() }).eq('lobby_id', targetId).eq('user_id', user.id);
             setLobby(null);
             setMembers([]);
@@ -305,6 +312,7 @@ export const PlatformSessionProvider = ({ children }) => {
     const leaveLobby = async () => {
         if (!user || !lobby) return;
         try {
+            isLeavingSessionRef.current = true;
             const preservedLobbyId = lobby.id;
             const preservedMatchId = lobby.active_match_id;
             const hadMatch = !!lobby.active_match_id && myMatchState && myMatchState.state !== 'left';
@@ -351,6 +359,7 @@ export const PlatformSessionProvider = ({ children }) => {
     const leaveGame = async () => {
         if (!user || !lobby || !match) return;
         try {
+            isLeavingSessionRef.current = true;
             const preservedLobbyId = lobby.id;
             const preservedMatchId = match.id;
 
