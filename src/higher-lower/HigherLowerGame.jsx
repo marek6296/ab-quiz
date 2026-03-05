@@ -263,16 +263,33 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
     useEffect(() => {
         if (!gameChannel) return;
         const sub = gameChannel.on('broadcast', { event: 'player_guess' }, (msg) => {
-            if (isHost) {
+            if (isHost && activeGameRef.current) {
                 const { playerId, guess } = msg.payload;
-                const newAnswers = { ...(activeGame.state.answers || {}), [playerId]: guess };
+
+                // Read from the live ref to avoid closure staleness
+                const currentState = gameStateRef.current || {};
+                const currentAnswers = currentState.answers || {};
+
+                // Skip if already recorded
+                if (currentAnswers[playerId] && currentAnswers[playerId].value === guess.value) return;
+
+                const newAnswers = { ...currentAnswers, [playerId]: guess };
+                const newState = { ...currentState, answers: newAnswers };
+
+                // Immediately apply to global ref to prevent the loop from overwriting it!
+                gameStateRef.current = newState;
+
+                if (onSetGame) {
+                    onSetGame(prev => prev ? { ...prev, state: newState } : prev);
+                }
+
                 supabase.from('higher_lower_games').update({
-                    state: { ...activeGame.state, answers: newAnswers }
-                }).eq('id', activeGame.id);
+                    state: newState
+                }).eq('id', activeGameRef.current.id);
             }
         });
         return () => { sub.unsubscribe(); };
-    }, [gameChannel, isHost, activeGame]);
+    }, [gameChannel, isHost, onSetGame]);
 
     const handleGuess = (guess) => {
         if (myGuess || !['question', 'reveal_buttons'].includes(gameState.phase)) return;

@@ -23,19 +23,31 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const playersRef = useRef(players);
     useEffect(() => { playersRef.current = players; }, [players]);
 
-    // 1.5 Host Migration & Auto-Victory Fallback Drop-in
+    const maxLocalRealPlayersRef = useRef(0);
+
+    // 1.5 Host Migration & Local Auto-Victory
     useEffect(() => {
         if (!players.length || !user || !activeGame) return;
+
         const hostStillHere = players.some(p => p.user_id === activeGame.host_id);
         const realPlayers = players.filter(p => !p.is_bot);
         const realPlayersCount = realPlayers.length;
 
-        // Auto Victory Check (Any Real Client can trigger this if they notice they are the only one left after a true multiplayer start)
-        // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
-        // CRITICAL: Only the REMAINING player should trigger and see this. The leaving player's client should NOT trigger its own victory.
+        // Keep track locally of the maximum players seen
+        if (realPlayersCount > maxLocalRealPlayersRef.current) {
+            maxLocalRealPlayersRef.current = realPlayersCount;
+        }
+
         const amIStillAlive = players.some(p => p.user_id === user.id);
-        if (amIStillAlive && !isLeaving && activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+
+        // Auto Victory Check (If we ever saw 2+ players and now there's 1 or 0 left, end the game)
+        if (amIStillAlive && !isLeaving && maxLocalRealPlayersRef.current >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
+            console.log("Local Auto Victory triggered! Opponent abandoned the game.");
             const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999, win_reason: 'opponent_abandoned' };
+            // Update local state instantly to show the victory screen
+            onSetGame(prev => ({ ...prev, state: finishState }));
+
+            // Attempt to close out the game in DB, though local UI matters most.
             supabase.from('bilionar_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
         }
 
@@ -47,7 +59,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 supabase.from('bilionar_games').update({ host_id: user.id }).eq('id', activeGame.id).then();
             }
         }
-    }, [players, activeGame.host_id, user, activeGame.state?.max_real_players, gameState.phase, activeGame.status, activeGame.id, isLeaving]);
+    }, [players, activeGame.host_id, user, gameState, activeGame.status, activeGame.id, isLeaving, onSetGame]);
 
     // 2. HOST Server Loop - Drives the Game State across all clients
     useEffect(() => {
@@ -172,25 +184,6 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                 if (current.phase === 'post_question_pause' && current.current_index > 0) {
                     newState.phase = 'prepare_next';
                     newState.phase_end = now + 4000;
-                }
-
-                // Auto-victory condition: If game started with > 1 real player and now <= 1 remains
-                // Only trigger this if we are not already finished
-                if (newState.phase !== 'finished' && newState.phase !== 'init' && newState.phase !== 'no_questions') {
-                    const realPlayersCount = playersRef.current.filter(p => !p.is_bot).length;
-
-                    // Keep track of the maximum number of real players we have ever seen in this session
-                    if (realPlayersCount > (current.max_real_players || 0)) {
-                        newState.max_real_players = realPlayersCount;
-                    }
-
-                    // If we ever had 2+ people, and now we only have 1 (or 0), end the game
-                    if (newState.max_real_players >= 2 && realPlayersCount <= 1) {
-                        newState.phase = 'finished';
-                        newState.phase_end = now + 9999999;
-                        newState.win_reason = 'opponent_abandoned';
-                        console.log("Game over: Not enough players remaining.");
-                    }
                 }
 
                 if (newState.phase !== current.phase) {
