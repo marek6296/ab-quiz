@@ -306,7 +306,8 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
     let visualGuess = myGuess;
 
     if (['reveal_value', 'reveal_result'].includes(gameState.phase) && firstItem && secondItem) {
-        visualGuess = gameState.answers?.[myRecord?.id] || myGuess;
+        const record = gameState.answers?.[myRecord?.id];
+        visualGuess = record ? (typeof record === 'object' ? record.value : record) : myGuess;
 
         if (visualGuess && visualGuess !== 'timeout') {
             const isHigher = secondItem.value >= firstItem.value;
