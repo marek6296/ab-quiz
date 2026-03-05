@@ -206,15 +206,12 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                             await broadcastState({ phase: 'finished', phase_start_time: now });
                             await supabase.from('higher_lower_games').update({ status: 'completed' }).eq('id', currentGame.id);
                         } else {
-                            // First, "shift" the layoutId cards (which takes 600ms)
-                            await broadcastState({ phase: 'shifting', phase_start_time: now, is_next_round: true, answers: {} });
+                            await broadcastState({ phase: 'cleanup_round', phase_start_time: now, answers: {} });
                         }
                     }
-                } else if (phase === 'shifting') {
-                    if (now - (state.phase_start_time || now) >= 600) {
-                        // After shift completes, bump the round index which brings in the new Right card. 
-                        const nextIndex = state.is_next_round ? state.round_index + 1 : state.round_index;
-                        await broadcastState({ phase: 'spawning_right', phase_start_time: now, round_index: nextIndex, is_next_round: false });
+                } else if (phase === 'cleanup_round') {
+                    if (now - (state.phase_start_time || now) >= 800) {
+                        await broadcastState({ phase: 'spawning_clear', phase_start_time: now, round_index: state.round_index + 1 });
                     }
                 }
             } catch (err) {
@@ -331,15 +328,15 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
         }
     }, [gameState.phase, isCorrect, playSound]);
 
-    const isFirstClear = gameState.phase === 'spawning_clear' && gameState.round_index === 0 && Object.keys(gameState.answers || {}).length === 0;
-    const showLeftCard = gameState.phase !== 'init' && !isFirstClear;
-    const showRightCard = !isFirstClear && ['spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'spawning_clear'].includes(gameState.phase);
+    const showLeftCard = ['spawning_left', 'spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'round_scoreboard'].includes(gameState.phase);
+    const showRightCard = ['spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'round_scoreboard'].includes(gameState.phase);
 
     const cardVariants = {
-        hiddenLeft: { x: -300, opacity: 0 },
-        hiddenRight: { x: 300, opacity: 0 },
-        visible: { x: 0, opacity: 1 },
-        exitLeft: { x: -300, opacity: 0 }
+        hiddenLeft: { x: -300, opacity: 0, scale: 0.8 },
+        hiddenRight: { x: 300, opacity: 0, scale: 0.8 },
+        visible: { x: 0, opacity: 1, scale: 1 },
+        exitLeft: { x: -300, opacity: 0, scale: 0.8 },
+        exitRight: { x: 300, opacity: 0, scale: 0.8 }
     };
 
     return (
@@ -397,50 +394,62 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
                         {/* FIRST ITEM */}
                         <AnimatePresence>
-                            <motion.div
-                                key={`left-${firstItem.name}`}
-                                layoutId={`card-${firstItem.name}`}
-                                variants={cardVariants}
-                                initial="hiddenLeft"
-                                animate="visible"
-                                exit="exitLeft"
-                                transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
-                                style={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
-                                    border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
-                                    background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
-                                    boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
-                                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
-                                    animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
-                                }}
-                            >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{firstItem.image}</div>
-                                    <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{firstItem.name}"</h3>
-                                </div>
-                                <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                                    <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
-                                        {firstItem.value.toLocaleString()}
+                            {showLeftCard && (
+                                <motion.div
+                                    key={`left-${firstItem.name}-${gameState.round_index}`}
+                                    variants={cardVariants}
+                                    initial="hiddenLeft"
+                                    animate="visible"
+                                    exit="exitLeft"
+                                    transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
+                                    style={{
+                                        position: 'absolute',
+                                        left: 0,
+                                        width: '400px', height: '500px', flexShrink: 0, borderRadius: '24px',
+                                        border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
+                                        background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
+                                        boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
+                                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
+                                        animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{firstItem.image}</div>
+                                        <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{firstItem.name}"</h3>
                                     </div>
-                                    <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
-                                </div>
-                            </motion.div>
+                                    <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
+                                        <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
+                                            {firstItem.value.toLocaleString()}
+                                        </div>
+                                        <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
+                                    </div>
+                                </motion.div>
+                            )}
                         </AnimatePresence>
 
-                        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}>VS</div>
+                        <AnimatePresence>
+                            {showRightCard && (
+                                <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1, x: '-50%' }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 15 }}
+                                    style={{ position: 'absolute', left: '50%', width: '60px', height: '60px', borderRadius: '50%', background: '#facc15', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', zIndex: 10 }}
+                                >
+                                    VS
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* SECOND ITEM */}
                         <AnimatePresence>
                             {showRightCard && (
                                 <motion.div
-                                    key={`right-${secondItem.name}`}
-                                    layoutId={`card-${secondItem.name}`}
+                                    key={`right-${secondItem.name}-${gameState.round_index}`}
                                     variants={cardVariants}
                                     initial="hiddenRight"
                                     animate="visible"
-                                    exit="exitLeft"
+                                    exit="exitRight"
                                     transition={{ type: 'spring', damping: 20, stiffness: 100, duration: 0.6 }}
                                     style={{
                                         position: 'absolute',
@@ -524,7 +533,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                         </h2>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '500px' }}>
-                            {[...playersRef.current].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, idx) => (
+                            {[...players].sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, idx) => (
                                 <div key={`board-${p.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: p.id === myRecord?.id ? '2px solid #38bdf8' : '2px solid transparent' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: idx === 0 ? '#facc15' : '#94a3b8', width: '30px' }}>#{idx + 1}</div>
