@@ -71,7 +71,7 @@ export const PlatformLobby = ({ onlineUserIds }) => {
         const { error } = await supabase.from('lobby_members').insert({
             lobby_id: lobby.id,
             user_id: partner.id,
-            role: 'player',
+            role: 'member',
             state: 'invited'
         });
 
