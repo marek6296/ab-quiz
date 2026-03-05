@@ -545,7 +545,7 @@ Výstup musí byť vždy JSON { "items": [ { "name": "...", "value": 1500, "imag
                                                     );
                                                 }}
                                                 style={{
-                                                    padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                                                    padding: '0.6rem 1rem', borderRadius: '12px', cursor: 'pointer',
                                                     background: isSelected ? '#10b981' : 'rgba(255,255,255,0.05)',
                                                     color: isSelected ? 'white' : '#94a3b8',
                                                     fontWeight: 'bold', fontSize: '0.9rem',
