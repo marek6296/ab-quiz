@@ -132,13 +132,8 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
         }
     }, [match?.id, isHost]);
 
-    // Central DB Match Watcher to Force Extraneous Clients out of Dead Games
-    useEffect(() => {
-        if (!match && view === 'game' && activePlatformLobbyId) {
-            onBackToPortal();
-            setActiveGame(null);
-        }
-    }, [match, view, activePlatformLobbyId, onBackToPortal]);
+    // The extraneous DB Watcher for dead matches was removed because it prematurely 
+    // kicked out the remaining player who is supposed to see an auto-victory animation.
 
     // Autoboot from Platform Match is now handled completely by the unified effect above.
 
