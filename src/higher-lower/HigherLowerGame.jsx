@@ -393,16 +393,20 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                     border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                     background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                     boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center',
+                                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
                                     animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                 }}
                             >
-                                <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{firstItem.image}</div>
-                                <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>"{firstItem.name}"</h3>
-                                <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
-                                    {firstItem.value.toLocaleString()}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{firstItem.image}</div>
+                                    <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{firstItem.name}"</h3>
                                 </div>
-                                <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
+                                <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
+                                    <div style={{ fontSize: '3.5rem', fontWeight: '900', color: '#38bdf8' }}>
+                                        {firstItem.value.toLocaleString()}
+                                    </div>
+                                    <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
+                                </div>
                             </motion.div>
                         </AnimatePresence>
 
@@ -424,50 +428,54 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                         border: gameState.phase === 'reveal_result' ? (isCorrect === true ? '4px solid #10b981' : '4px solid #ef4444') : '2px solid rgba(255,255,255,0.1)',
                                         background: gameState.phase === 'reveal_result' ? (isCorrect === true ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.05)',
                                         boxShadow: gameState.phase === 'reveal_result' && isCorrect === true ? '0 0 40px rgba(16,185,129,0.3)' : gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? '0 0 40px rgba(239,68,68,0.3)' : 'none',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center',
+                                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '3rem 2rem', textAlign: 'center',
                                         animation: gameState.phase === 'reveal_result' && (isCorrect === false || isCorrect === null) ? 'shake 0.8s' : 'none'
                                     }}
                                 >
-                                    <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{secondItem.image}</div>
-                                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>"{secondItem.name}"</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <div style={{ fontSize: '6rem', marginBottom: '1.5rem', lineHeight: '1' }}>{secondItem.image}</div>
+                                        <h3 style={{ fontSize: '1.8rem', lineHeight: '1.3', margin: 0 }}>"{secondItem.name}"</h3>
+                                    </div>
 
-                                    {['reveal_value', 'reveal_result'].includes(gameState.phase) ? (
-                                        <>
-                                            <div style={{ fontSize: '3.5rem', fontWeight: '900', color: gameState.phase === 'reveal_result' ? (isCorrect === true ? '#10b981' : '#ef4444') : '#facc15' }}>
-                                                {visualGuess !== 'timeout' ? (
-                                                    <CountUp value={secondItem.value} isRevealing={gameState.phase === 'reveal_value'} />
-                                                ) : "ČAS VYPRŠAL!"}
+                                    <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
+                                        {['reveal_value', 'reveal_result'].includes(gameState.phase) ? (
+                                            <>
+                                                <div style={{ fontSize: '3.5rem', fontWeight: '900', color: gameState.phase === 'reveal_result' ? (isCorrect === true ? '#10b981' : '#ef4444') : '#facc15' }}>
+                                                    {visualGuess !== 'timeout' ? (
+                                                        <CountUp value={secondItem.value} isRevealing={gameState.phase === 'reveal_value'} />
+                                                    ) : "ČAS VYPRŠAL!"}
+                                                </div>
+                                                <div style={{ color: '#94a3b8', fontSize: '1.2rem', marginTop: '0.5rem' }}>{gameState.metric}</div>
+                                            </>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '240px', justifyContent: 'center' }}>
+                                                {['reveal_buttons', 'question'].includes(gameState.phase) && (
+                                                    !myGuess ? (
+                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                            <button
+                                                                className="primary"
+                                                                onClick={() => handleGuess('higher')}
+                                                                disabled={myRecord?.eliminated}
+                                                                style={{ padding: '1.2rem', fontSize: '1.5rem', background: '#3b82f6', border: 'none', borderRadius: '12px', minHeight: '60px' }}>
+                                                                Vyššie ⬆
+                                                            </button>
+                                                            <button
+                                                                className="danger"
+                                                                onClick={() => handleGuess('lower')}
+                                                                disabled={myRecord?.eliminated}
+                                                                style={{ padding: '1.2rem', fontSize: '1.5rem', background: '#f97316', border: 'none', borderRadius: '12px', minHeight: '60px' }}>
+                                                                Nižšie ⬇
+                                                            </button>
+                                                        </motion.div>
+                                                    ) : (
+                                                        <div style={{ color: '#94a3b8', fontSize: '1.4rem', animation: 'pulse 1.5s infinite', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px' }}>
+                                                            Čakám na súpera...
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
-                                            <div style={{ color: '#94a3b8', fontSize: '1.2rem' }}>{gameState.metric}</div>
-                                        </>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '240px', minHeight: '160px', justifyContent: 'center' }}>
-                                            {['reveal_buttons', 'question'].includes(gameState.phase) && (
-                                                !myGuess ? (
-                                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                                        <button
-                                                            className="primary"
-                                                            onClick={() => handleGuess('higher')}
-                                                            disabled={myRecord?.eliminated}
-                                                            style={{ padding: '1.5rem', fontSize: '1.5rem', background: '#3b82f6', border: 'none' }}>
-                                                            Vyššie ⬆
-                                                        </button>
-                                                        <button
-                                                            className="danger"
-                                                            onClick={() => handleGuess('lower')}
-                                                            disabled={myRecord?.eliminated}
-                                                            style={{ padding: '1.5rem', fontSize: '1.5rem', background: '#f97316', border: 'none' }}>
-                                                            Nižšie ⬇
-                                                        </button>
-                                                    </motion.div>
-                                                ) : (
-                                                    <div style={{ color: '#94a3b8', fontSize: '1.4rem', animation: 'pulse 1.5s infinite', fontWeight: 'bold' }}>
-                                                        Čakám na súpera...
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
