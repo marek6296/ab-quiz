@@ -313,7 +313,7 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
 
   // Pass necessary info down to the game engine
   const {
-    board, currentPlayer, winner, claimHexagon, resetGame,
+    board, currentPlayer, winner, winReason, claimHexagon, resetGame,
     localPlayerNum, p1Score, p2Score, p1Combo, p2Combo,
     gameData, presenceCount, seenIds, markQuestionAsSeen,
     disconnectReason, setDisconnectReason,
@@ -856,11 +856,37 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
           </h1>
 
           {winner && (
-            <div className="winner-banner">
-              {winner === 1
-                ? `${(localPlayerNum === 1 ? profile?.username : opponentName) || 'Hráč 1'} Vyhráva!`
-                : `${(localPlayerNum === 2 ? profile?.username : (gameMode === '1vbot' ? 'BOT' : opponentName)) || 'Hráč 2'} Vyhráva!`
-              }
+            <div style={{
+              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+              background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(10px)',
+              zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              animation: 'fadeIn 0.5s ease-out'
+            }}>
+              <div className="winner-banner" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)', marginBottom: '1.5rem' }}>
+                {winner === 1
+                  ? `${(localPlayerNum === 1 ? profile?.username : opponentName) || 'Hráč 1'} Vyhráva!`
+                  : `${(localPlayerNum === 2 ? profile?.username : (gameMode === '1vbot' ? 'BOT' : opponentName)) || 'Hráč 2'} Vyhráva!`
+                }
+              </div>
+
+              <div style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2.5rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                {winReason === 'opponent_abandoned' ? 'Súper opustil hru, vyhrávate kontumačne.' : 'Hra sa úspešne skončila.'}
+              </div>
+
+              <button
+                className="primary"
+                onClick={handleRestart}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  padding: '1.2rem 3rem',
+                  fontSize: '1.3rem',
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 25px -5px rgba(16,185,129,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                Opustiť Hru
+              </button>
             </div>
           )}
 

@@ -41,6 +41,7 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
     // Seen Questions Tracking
     const [seenIds, setSeenIds] = useState([]);
     const [disconnectReason, setDisconnectReason] = useState(null);
+    const [winReason, setWinReason] = useState(null);
 
     // For local games vs BOT, just fetch current user's seen questions once
     useEffect(() => {
@@ -125,8 +126,16 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
             }, (payload) => {
                 if (payload.eventType === 'DELETE') {
                     if (manualExitRef?.current) return; // Silent for the leaver
-                    // Game was abandoned by the other player or deleted
-                    setDisconnectReason("Hra bola ukončená druhým hráčom.");
+                    setGameData(prev => {
+                        if (prev && prev.player1_id) {
+                            const pNum = prev.player1_id === userId ? 1 : 2;
+                            setWinner(pNum);
+                            setWinReason('opponent_abandoned');
+                        } else {
+                            setDisconnectReason("Hra bola ukončená druhým hráčom.");
+                        }
+                        return prev;
+                    });
                     return;
                 }
                 if (payload.eventType === 'UPDATE') {
@@ -140,7 +149,9 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
                     setCurrentPlayer(newData.current_turn === newData.player1_id ? 1 : 2);
                     if (newData.status === 'finished' && !newData.winner_id) {
                         if (manualExitRef?.current) return; // Silent for the leaver
-                        setDisconnectReason("Súper opustil hru.");
+                        const pNum = newData.player1_id === userId ? 1 : 2;
+                        setWinner(pNum);
+                        setWinReason('opponent_abandoned');
                         return;
                     }
                     if (newData.winner_id) setWinner(newData.winner_id === newData.player1_id ? 1 : 2);
@@ -306,6 +317,8 @@ export const useGameState = ({ userId, gameMode, gameRules = 'hex', activeGameId
         board,
         currentPlayer,
         winner,
+        winReason,
+        setWinReason,
         claimHexagon,
         resetGame,
         localPlayerNum,
