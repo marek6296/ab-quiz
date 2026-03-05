@@ -21,6 +21,7 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
     const [availableQuizCategories, setAvailableQuizCategories] = useState([]);
     const [availableBilionarCategories, setAvailableBilionarCategories] = useState([]);
     const [countdown, setCountdown] = useState(null);
+    const [mobileTab, setMobileTab] = useState('players'); // 'games', 'settings', 'players', 'friends'
 
     // Fetch categories on mount
     useEffect(() => {
@@ -220,16 +221,34 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 </div>
             </div>
 
+            {/* Mobile Tabbed Navigation */}
+            <div className="mobile-tabs" style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', overflowX: 'auto', paddingBottom: '0.2rem', flexShrink: 0 }}>
+                {['games', 'settings', 'players', ...(isHost ? ['friends'] : [])].map(tab => (
+                    <button key={tab} onClick={() => setMobileTab(tab)} style={{
+                        flex: '1 0 auto', padding: '0.8rem', borderRadius: '12px', border: 'none',
+                        background: mobileTab === tab ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
+                        color: mobileTab === tab ? '#38bdf8' : '#94a3b8',
+                        fontWeight: mobileTab === tab ? 'bold' : 'normal',
+                        fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px'
+                    }}>
+                        {tab === 'games' && 'Hra'}
+                        {tab === 'settings' && 'Nastavenia'}
+                        {tab === 'players' && `Hráči (${members.length})`}
+                        {tab === 'friends' && 'Priatelia'}
+                    </button>
+                ))}
+            </div>
+
             {/* Main Content Area */}
-            <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', flex: 1, overflow: 'hidden'
+            <div className="lobby-grid" style={{
+                gap: '1rem', flex: 1, overflow: 'hidden'
             }}>
                 {/* LAVA STRANA: Vyber hry a Nastavenia */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                <div className={`col-left ${['games', 'settings'].includes(mobileTab) ? 'mobile-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
 
                     {/* Hry */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1rem', flexShrink: 0 }}>
-                        <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 0.8rem 0' }}>Herný Režim</h3>
+                    <div className={`panel-games ${mobileTab === 'games' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1rem', flexShrink: 0 }}>
+                        <h3 className="hide-mobile" style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 0.8rem 0' }}>Herný Režim</h3>
                         {isHost ? (
                             <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                                 {GAMES.map(g => (
@@ -257,8 +276,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
                     {/* Nastavenia */}
                     {(lobby.selected_game === 'quiz' || lobby.selected_game === 'bilionar') && (
-                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <h3 style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
+                        <div className={`panel-settings ${mobileTab === 'settings' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <h3 className="hide-mobile" style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Nastavenia {!isHost && <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'none' }}>(Upravuje hostiteľ)</span>}</h3>
 
                             {lobby.selected_game === 'quiz' && (
                                 <div>
@@ -305,11 +324,11 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 </div>
 
                 {/* PRAVA STRANA: Hráči, Priatelia a Založenie */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+                <div className={`col-right ${['players', 'friends'].includes(mobileTab) ? 'mobile-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
 
                     {/* Hráči list */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div className={`panel-players ${mobileTab === 'players' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flexShrink: 0 }}>
+                        <div className="hide-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Hráči v miestnosti</h3>
                             <span style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem' }}>{members.length}/{gameInfo.max}</span>
                         </div>
@@ -347,8 +366,8 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
 
                     {/* Friends List (Iba Host) */}
                     {isHost && (
-                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 1rem 0' }}>Pozvi Priateľov</h3>
+                        <div className={`panel-friends ${mobileTab === 'friends' ? 'mobile-active' : ''}`} style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <h3 className="hide-mobile" style={{ color: '#94a3b8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', margin: '0 0 1rem 0' }}>Pozvi Priateľov</h3>
                             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
                                 <FriendsList onInvite={handleInvite} currentLobbyPlayers={members} onlineUserIds={onlineUserIds} />
                             </div>
@@ -379,8 +398,29 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
             )}
 
             <style>{`
-                @media (max-width: 600px) {
-                    .hide-mobile { display: none; }
+                .lobby-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                }
+                .mobile-tabs {
+                    display: none !important;
+                }
+                @media (max-width: 800px) {
+                    .hide-mobile { display: none !important; }
+                    .lobby-grid {
+                        display: flex !important;
+                        flex-direction: column;
+                    }
+                    .mobile-tabs {
+                        display: flex !important;
+                    }
+                    .col-left, .col-right, .panel-games, .panel-settings, .panel-players, .panel-friends {
+                        display: none !important;
+                    }
+                    .mobile-active {
+                        display: flex !important;
+                        flex: 1;
+                    }
                 }
             `}</style>
         </div>
