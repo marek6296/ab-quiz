@@ -14,17 +14,6 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [scoreGained, setScoreGained] = useState(null);
     const awardedIndex = useRef(-1);
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
-
-    // Auto-leave if opponent abandoned
-    useEffect(() => {
-        if (gameState.phase === 'finished' && gameState.win_reason === 'opponent_abandoned') {
-            const t = setTimeout(() => {
-                onLeave();
-            }, 5000);
-            return () => clearTimeout(t);
-        }
-    }, [gameState.phase, gameState.win_reason, onLeave]);
 
     const gameStateRef = useRef(gameState);
     useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
@@ -39,7 +28,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
         // Auto Victory Check (Any Real Client can trigger this if they notice they are the only one left after a true multiplayer start)
         // We look at activeGame.state.max_real_players which the host updates as long as they are alive.
         if (activeGame.state?.max_real_players >= 2 && realPlayersCount <= 1 && gameState.phase !== 'finished') {
-            const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999, win_reason: 'opponent_abandoned' };
+            const finishState = { ...gameState, phase: 'finished', phase_end: Date.now() + 9999999 };
             supabase.from('bilionar_games').update({ status: 'completed', state: finishState }).eq('id', activeGame.id).then();
         }
 
@@ -192,7 +181,6 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
                     if (newState.max_real_players >= 2 && realPlayersCount <= 1) {
                         newState.phase = 'finished';
                         newState.phase_end = now + 9999999;
-                        newState.win_reason = 'opponent_abandoned';
                         console.log("Game over: Not enough players remaining.");
                     }
                 }
@@ -410,11 +398,7 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     if (gameState.phase === 'finished') {
         return (
             <div className="bilionar-board fullscreen-flex" style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #020617 100%)' }}>
-                {gameState.win_reason === 'opponent_abandoned' ? (
-                    <h2 className="animate-fade-in slide-in-scale" style={{ color: '#4ade80', fontSize: '2rem', marginBottom: '1rem', textAlign: 'center' }}>Súper opustil hru! Vyhrávate kontumačne.</h2>
-                ) : (
-                    <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
-                )}
+                <h1 className="logo-brutal animate-fade-in" style={{ fontSize: '4rem', marginBottom: '2rem' }}>KONIEC HRY</h1>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
                     {players.map((p, i) => (
                         <div key={p.id} className="animate-fade-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.2rem', background: i === 0 ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.05)', border: i === 0 ? '2px solid #facc15' : '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', alignItems: 'center', animationDelay: `${i * 0.1}s` }}>
@@ -442,31 +426,14 @@ export const BilionarGame = ({ activeGame, players, onLeave, gameChannel, onSetG
     return (
         <div className="bilionar-board relative-board">
 
-            {/* Exit Confirm Modal */}
-            {showExitConfirm && (
-                <div className="modal-overlay" style={{ zIndex: 10001, background: 'rgba(5, 10, 20, 0.9)', backdropFilter: 'blur(8px)', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="modal-content glass-panel" style={{ textAlign: 'center', padding: '2.5rem', maxWidth: '450px', background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px' }}>
-                        <h2 style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '2rem' }}>Opustiť hru?</h2>
-                        <p style={{ fontSize: '1.2rem', margin: '0 0 2.5rem', color: '#cbd5e1', lineHeight: '1.6' }}>
-                            Ste si istý, že chcete ukončiť aktuálny súboj? <br />
-                            <strong>Váš postup bude stratený.</strong>
-                        </p>
-                        <div className="modal-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={onLeave} style={{ minWidth: '140px', background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Áno, skončiť
-                            </button>
-                            <button onClick={() => setShowExitConfirm(false)} style={{ minWidth: '140px', background: '#38bdf8', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Zostať v hre
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Abandon Game Button */}
             <div style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 200 }}>
                 <button
-                    onClick={() => setShowExitConfirm(true)}
+                    onClick={() => {
+                        if (window.confirm("Naozaj chcete opustiť hru?")) {
+                            onLeave();
+                        }
+                    }}
                     style={{
                         background: 'rgba(239, 68, 68, 0.8)',
                         color: 'white',
