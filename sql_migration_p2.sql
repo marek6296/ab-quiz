@@ -165,7 +165,7 @@ ALTER TABLE match_players ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON lobby_members;
 CREATE POLICY "Public profiles are viewable by everyone." ON lobby_members FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can insert their own lobby membership." ON lobby_members;
+DROP POLICY IF EXISTS "Enable insert access for all" ON lobby_members;
 CREATE POLICY "Users can insert their own lobby membership." ON lobby_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update their own lobby membership." ON lobby_members;
 CREATE POLICY "Users can update their own lobby membership." ON lobby_members FOR UPDATE USING (auth.uid() = user_id);
