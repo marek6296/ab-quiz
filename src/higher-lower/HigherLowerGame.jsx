@@ -68,6 +68,9 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                 const newState = { ...state, ...updates };
                 gameStateRef.current = newState; // Optimistic update prevents recursive host spam
 
+                if (onSetGame) {
+                    onSetGame(prev => prev ? { ...prev, state: newState } : prev);
+                }
                 try {
                     await gameChannel?.send({
                         type: 'broadcast',
@@ -127,6 +130,10 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                     }
                 } else if (phase === 'stabilize') {
                     if (now - (state.phase_start_time || now) >= 600) {
+                        await broadcastState({ phase: 'reveal_buttons', phase_start_time: now });
+                    }
+                } else if (phase === 'reveal_buttons') {
+                    if (now - (state.phase_start_time || now) >= 300) {
                         await broadcastState({ phase: 'question', phase_start_time: now });
                     }
                 } else if (phase === 'question') {
@@ -244,7 +251,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
     }, [gameChannel, isHost, activeGame]);
 
     const handleGuess = (guess) => {
-        if (myGuess || gameState.phase !== 'question') return;
+        if (myGuess || !['question', 'reveal_buttons'].includes(gameState.phase)) return;
         setMyGuess(guess);
 
         if (myRecord?.eliminated) return;
@@ -296,7 +303,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
 
     const isFirstClear = gameState.phase === 'spawning_clear' && gameState.round_index === 0 && Object.keys(gameState.answers || {}).length === 0;
     const showLeftCard = gameState.phase !== 'init' && !isFirstClear;
-    const showRightCard = !isFirstClear && ['spawning_right', 'stabilize', 'question', 'reveal_value', 'reveal_result', 'spawning_clear'].includes(gameState.phase);
+    const showRightCard = !isFirstClear && ['spawning_right', 'stabilize', 'reveal_buttons', 'question', 'reveal_value', 'reveal_result', 'spawning_clear'].includes(gameState.phase);
 
     const cardVariants = {
         hiddenLeft: { x: -300, opacity: 0 },
@@ -423,7 +430,7 @@ export const HigherLowerGame = ({ activeGame, players, gameChannel, onLeave, onS
                                         </>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '200px', minHeight: '130px', justifyContent: 'center' }}>
-                                            {gameState.phase === 'question' && (
+                                            {['reveal_buttons', 'question'].includes(gameState.phase) && (
                                                 !myGuess ? (
                                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                         <button

@@ -331,10 +331,10 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     let timer;
     if (appState === APP_STATES.IN_GAME && gameMode === '1v1_online') {
 
-      // 1. Check if the opponent explicitly left the session early
+      // 1. Check if the opponent is missing from the session
       // Ensures the local user gets the victory modal instantly even if DB is lagging
-      const opponent = members.find(m => m.user_id !== user?.id);
-      if (opponent && opponent.state === 'left' && !winner && !manualExitRef.current) {
+      const hasOpponent = members.some(m => m.user_id !== user?.id);
+      if (!hasOpponent && !winner && !manualExitRef.current) {
         setWinner(localPlayerNum);
         setWinReason('opponent_abandoned');
         return; // Don't proceed to null-match check
