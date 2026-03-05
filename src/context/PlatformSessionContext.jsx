@@ -197,7 +197,7 @@ export const PlatformSessionProvider = ({ children }) => {
             const { data: newLobby, error: lobbyErr } = await supabase
                 .from('platform_lobbies')
                 .insert({
-                    host_user_id: user.id,
+                    host_id: user.id,
                     join_code: joinCode,
                     selected_game: gameType || 'quiz',
                     status: 'waiting',
