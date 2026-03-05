@@ -708,30 +708,34 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     await supabase.from('games').update({ paused_by: newPausedBy }).eq('id', activeGameId);
   };
 
-  const handleRestart = async () => {
-    if (activeGameId) {
-      manualExitRef.current = true;
-      // Use both status update AND delete for maximum cross-client reliability
-      await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);
-      await supabase.from('games').delete().eq('id', activeGameId);
-      supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
-    }
-
-    if (match) {
-      await leaveGame();
-    }
-
-    // Explicitly terminate platform lobby if we were in one
-    if (onTerminateLobby && !match) {
-      await onTerminateLobby();
-    }
-
+  const handleRestart = () => {
+    // 1. Instantly clear local UI and navigate player to portal
+    manualExitRef.current = true;
     resetToLobby();
     onBackToPortal();
     setShowExitConfirm(false);
     setActiveModal(null);
     resetGame();
-    addDebugLog("Hra ukončená (Odoslaný reset do Lobby)");
+    addDebugLog("Hra ukončená (Odoslaný reset do Menu)");
+
+    // 2. Perform DB logic detached in the background
+    setTimeout(async () => {
+      if (activeGameId) {
+        // Use both status update AND delete for maximum cross-client reliability
+        await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);
+        await supabase.from('games').delete().eq('id', activeGameId);
+        supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
+      }
+
+      if (match) {
+        await leaveGame();
+      }
+
+      // Explicitly terminate platform lobby if we were in one
+      if (onTerminateLobby && !match) {
+        await onTerminateLobby();
+      }
+    }, 50);
   };
 
   if (showAdmin && profile?.is_admin) {
