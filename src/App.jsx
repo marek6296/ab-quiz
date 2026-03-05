@@ -728,24 +728,26 @@ const ABQuizApp = ({ onBackToPortal, onTerminateLobby, initialPendingGame, onCle
     resetGame();
     addDebugLog("Hra ukončená (Odoslaný reset do Menu)");
 
-    // 2. Perform DB logic detached in the background
+    // 2. Perform status update immediately so opponent gets the 'finished' broadcast
     setTimeout(async () => {
       if (activeGameId) {
-        // Use both status update AND delete for maximum cross-client reliability
         await supabase.from('games').update({ status: 'finished' }).eq('id', activeGameId);
-        await supabase.from('games').delete().eq('id', activeGameId);
         supabase.from('profiles').update({ online_status: 'online' }).eq('id', user?.id).then();
       }
+    }, 50);
 
+    // 3. Purge the DB and match after a 5 second grace period so the opponent's client has time to see the victory modal cleanly
+    setTimeout(async () => {
+      if (activeGameId) {
+        await supabase.from('games').delete().eq('id', activeGameId);
+      }
       if (match) {
         await leaveGame();
       }
-
-      // Explicitly terminate platform lobby if we were in one
       if (onTerminateLobby && !match) {
         await onTerminateLobby();
       }
-    }, 50);
+    }, 5000);
   };
 
   if (showAdmin && profile?.is_admin) {

@@ -242,11 +242,15 @@ export const BilionarApp = ({ activePlatformLobbyId, onBackToPortal, onTerminate
                                 // Remove player from all games to completely leave and prevent ghost reconnects
                                 await supabase.from('bilionar_players').delete().eq('user_id', user.id);
                             }
+                        }, 50);
+
+                        // 3. Purge the remote match lobby after a 5 second grace period
+                        setTimeout(async () => {
                             if (match) { leaveGame(); }
                             if (onTerminateLobby) {
                                 await onTerminateLobby();
                             }
-                        }, 50);
+                        }, 5000);
                     }}
                 />
             )}
