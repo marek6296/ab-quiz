@@ -58,12 +58,20 @@ export const PlatformLobby = ({ onlineUserIds, onStartGameFlow }) => {
                 setCountdown("1");
                 await new Promise(r => setTimeout(r, 1000));
                 setCountdown("ŠTART!");
-                await new Promise(r => setTimeout(r, 500));
-                setCountdown(null);
+                await new Promise(r => setTimeout(r, 600));
 
                 if (isHost) {
-                    // Host reálne odpáli hru v databáze AŽ PO SKONČENÍ odpočtu
-                    await startMatch();
+                    try {
+                        setCountdown("Pripravujem zápas...");
+                        // Host reálne odpáli hru v databáze AŽ PO SKONČENÍ odpočtu
+                        await startMatch();
+                    } catch (e) {
+                        setCountdown(null);
+                        hasStartedRef.current = false;
+                        alert("Nepodarilo sa spustiť hru: " + e.message);
+                    }
+                } else {
+                    setCountdown("Pripravujem zápas...");
                 }
             };
             doCountdown();
