@@ -315,7 +315,7 @@ export class HigherLowerGame {
       if (this._hit(p, this.hits.leave)) { if (this.onBack) this.onBack(); else this._backToMenu(); }
       if (this._hit(p, this.hits.report)) this._reportItem();
     } else if (this.state === 'gameover') {
-      if (this._hit(p, this.hits.br)) this._backToMenu();
+      if (this._hit(p, this.hits.br)) this._startGame();
       if (this._hit(p, this.hits.leave)) { if (this.onBack) this.onBack(); else this._backToMenu(); }
     }
   }
@@ -358,6 +358,7 @@ export class HigherLowerGame {
 
   async _startGame() {
     if (this.state === 'loading') return;
+    if (this.state === 'gameover') gsap.to(this.anim, { goA: 0, duration: 0.3 });
     this.state = 'loading';
     gsap.to(this.anim, { menuAlpha: 0, menuY: -50, duration: 0.4, ease: 'power2.in' });
     await new Promise(r => setTimeout(r, 450));

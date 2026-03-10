@@ -114,6 +114,7 @@ export class QuizDuelGame{
     gsap.to(this.anim,{menuA:1,menuY:0,duration:0.6,ease:'back.out(1.4)',delay:0.1})}
 
   async _startGame(){if(!this.botDiff){gsap.fromTo(this.anim,{errorFlash:1},{errorFlash:0,duration:0.8});return}
+    if(this.phase==='result')gsap.to(this.anim,{resultA:0,duration:0.3});
     const m=this.W<600,hw=m?46:70,hh=m?53:80,sy=m?70:90;
     this.cells=buildGrid(this.W/2,sy,hw,hh);this.hexSize=m?24:36;
     const allQ=await loadQ();this.questions=shuffle(allQ).slice(0,TOTAL);this.qIdx=0;

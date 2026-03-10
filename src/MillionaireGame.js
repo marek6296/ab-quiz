@@ -182,6 +182,7 @@ export class MillionaireGame {
 
   async _startGame() {
     if (!this.difficulty) return; // must select difficulty
+    if (this.phase === 'result') gsap.to(this.anim, { resultA: 0, duration: 0.3 });
     const allQ = await loadQuestions();
     let pool;
     if (this.difficulty) {
