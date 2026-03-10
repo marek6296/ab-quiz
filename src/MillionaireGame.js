@@ -1,5 +1,7 @@
 import gsap from 'gsap';
 import { supabase } from './lib/supabase';
+import { FriendsPanel } from './FriendsPanel';
+import { MillionaireOnline } from './MillionaireOnline';
 
 // ─── PALETTE ─────────────────────────────────────────────────────────────────
 const C = {
@@ -124,8 +126,10 @@ export class MillionaireGame {
       ladderA: 0,
       botMinusH: 0, botPlusH: 0,
       diffH: [0, 0, 0],
+      bfH: 0,
     };
     this.hits = {};
+    this._friendsPanel = null; this._onlineGame = null; this.gameState = 'menu'; // menu|duel
 
     this._resize = this._resize.bind(this);
     this._onMove = this._onMove.bind(this);
@@ -145,7 +149,28 @@ export class MillionaireGame {
     window.removeEventListener('resize', this._resize);
     this.canvas.removeEventListener('mousemove', this._onMove);
     this.canvas.removeEventListener('mousedown', this._onClick);
+    if (this._onlineGame) { this._onlineGame.destroy(); this._onlineGame = null; }
+    if (this._friendsPanel) { this._friendsPanel.destroy(); this._friendsPanel = null; }
     gsap.killTweensOf(this.anim);
+  }
+
+  _openFriends() {
+    if (this._friendsPanel || !this.user) return;
+    this._friendsPanel = new FriendsPanel({
+      user: this.user, profile: null, gameType: 'millionaire',
+      onStartDuel: (game, isHost) => { this._friendsPanel = null; this._startOnlineDuel(game, isHost); },
+      onClose: () => { this._friendsPanel = null },
+    });
+  }
+
+  _startOnlineDuel(game, isHost) {
+    this.gameState = 'duel';
+    if (this._onlineGame) this._onlineGame.destroy();
+    this._onlineGame = new MillionaireOnline({
+      canvas: this.canvas, user: this.user, profile: null,
+      game, isHost,
+      onEnd: () => { this._onlineGame = null; this.gameState = 'menu'; this._animateMenu(); },
+    });
   }
 
   setUser(u) { this.user = u; }
@@ -296,6 +321,7 @@ export class MillionaireGame {
     gsap.to(this.anim, { reportH: this._hit(p, this.hits.report) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { botMinusH: this._hit(p, this.hits.botMinus) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { botPlusH: this._hit(p, this.hits.botPlus) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { bfH: this._hit(p, this.hits.bf) ? 1 : 0, duration: 0.15 });
     for (let i = 0; i < 3; i++) {
       const h = this._hit(p, this.hits[`diff${i}`]);
       gsap.to(this.anim.diffH, { [i]: h ? 1 : 0, duration: 0.15 });
@@ -309,6 +335,7 @@ export class MillionaireGame {
     if (this.phase === 'menu') {
       if (this._hit(p, this.hits.back)) { this.onBack(); return; }
       if (this._hit(p, this.hits.play)) this._startGame();
+      if (this._hit(p, this.hits.bf)) this._openFriends();
       if (this._hit(p, this.hits.botMinus) && this.botCount > 1) this.botCount--;
       if (this._hit(p, this.hits.botPlus) && this.botCount < 7) this.botCount++;
       for (let i = 0; i < 3; i++) {
@@ -340,6 +367,7 @@ export class MillionaireGame {
   }
 
   _draw() {
+    if (this.gameState === 'duel') return;
     const { ctx, W, H } = this;
     // Dark blue gradient
     const mg = ctx.createLinearGradient(0, 0, 0, H);
@@ -463,6 +491,20 @@ export class MillionaireGame {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = canPlay ? '#fff' : '#555';
     ctx.fillText('💎 HRAŤ', cx, pb.y + pbh/2);
+    ctx.restore();
+
+    // ONLINE DUEL button
+    const bfw = 260, bfh = 58;
+    const bf = { x: cx - bfw/2, y: pb.y + pbh + 14, w: bfw, h: bfh };
+    this.hits.bf = bf;
+    ctx.save();
+    ctx.shadowColor = C.purple; ctx.shadowBlur = anim.bfH * 16;
+    rr(ctx, bf.x, bf.y, bfw, bfh, 16);
+    ctx.fillStyle = anim.bfH ? hex2rgba(C.purple, 0.12) : 'rgba(255,255,255,0.03)'; ctx.fill();
+    ctx.strokeStyle = anim.bfH ? C.purpleL : hex2rgba(C.purple, 0.5); ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.font = '700 18px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = anim.bfH ? '#fff' : hex2rgba(C.purple, 0.8);
+    ctx.fillText('⚔️  ONLINE DUEL', cx, bf.y + bfh/2);
     ctx.restore();
 
     ctx.restore();

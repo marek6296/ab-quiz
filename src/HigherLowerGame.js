@@ -324,6 +324,7 @@ export class HigherLowerGame {
     if (this._friendsPanel) return;
     this._friendsPanel = new FriendsPanel({
       user: this.user, profile: this.profile,
+      gameType: 'higher_lower',
       onStartDuel: (game, isHost) => { this._friendsPanel = null; this._startDuelGame(game, isHost); },
       onClose: () => { this._friendsPanel = null; },
     });

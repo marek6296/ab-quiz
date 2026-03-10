@@ -41,7 +41,7 @@ const TOTAL_ROUNDS = 10;
 /**
  * DuelGame – manages a 1v1 Higher or Lower match on the same canvas.
  * Both players share the same sequence (stored in game.state.sequence).
- * Communication is via Supabase Realtime on higher_lower_games + higher_lower_players.
+ * Communication is via Supabase Realtime on game_sessions + game_players.
  */
 export class DuelGame {
   constructor({ canvas, user, profile, game, isHost, onEnd }) {
@@ -50,7 +50,7 @@ export class DuelGame {
     this.dpr = window.devicePixelRatio || 1;
     this.user = user;
     this.profile = profile;
-    this.game = game; // DB row from higher_lower_games
+    this.game = game; // DB row from game_sessions
     this.isHost = isHost;
     this.onEnd = onEnd; // callback when duel ends
 
@@ -114,7 +114,7 @@ export class DuelGame {
       this.metric = data.metric;
 
       // Store sequence in game state
-      await supabase.from('higher_lower_games').update({
+      await supabase.from('game_sessions').update({
         state: {
           sequence: this.sequence.map(s => ({ name: s.name, value: s.value, image: s.image })),
           topic: this.topic, metric: this.metric, round: 0,
@@ -123,14 +123,14 @@ export class DuelGame {
       }).eq('id', this.game.id);
 
       // Add self as player
-      const { data: myP } = await supabase.from('higher_lower_players').insert({
-        game_id: this.game.id, user_id: this.user.id,
+      const { data: myP } = await supabase.from('game_players').insert({
+        session_id: this.game.id, user_id: this.user.id,
         player_name: this.myName, score: 0,
       }).select().single();
       this.myPlayerId = myP?.id;
     } else {
       // Joiner: fetch game state
-      const { data: g } = await supabase.from('higher_lower_games')
+      const { data: g } = await supabase.from('game_sessions')
         .select('*').eq('id', this.game.id).single();
       if (g?.state?.sequence) {
         this.sequence = g.state.sequence;
@@ -139,14 +139,14 @@ export class DuelGame {
       }
 
       // Add self as player
-      const { data: myP } = await supabase.from('higher_lower_players').insert({
-        game_id: this.game.id, user_id: this.user.id,
+      const { data: myP } = await supabase.from('game_players').insert({
+        session_id: this.game.id, user_id: this.user.id,
         player_name: this.myName, score: 0,
       }).select().single();
       this.myPlayerId = myP?.id;
 
       // Signal: game is now playing
-      await supabase.from('higher_lower_games').update({
+      await supabase.from('game_sessions').update({
         status: 'playing',
       }).eq('id', this.game.id);
     }
@@ -159,8 +159,8 @@ export class DuelGame {
   }
 
   async _checkPlayers() {
-    const { data: players } = await supabase.from('higher_lower_players')
-      .select('*').eq('game_id', this.game.id);
+    const { data: players } = await supabase.from('game_players')
+      .select('*').eq('session_id', this.game.id);
     if (players && players.length >= 2) {
       const opp = players.find(p => p.user_id !== this.user.id);
       if (opp) {
@@ -176,7 +176,7 @@ export class DuelGame {
     // Listen for game status changes (player joined, game updates)
     this._gameCh = supabase.channel(`duel-game-${this.game.id}`)
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'higher_lower_games',
+        event: 'UPDATE', schema: 'public', table: 'game_sessions',
         filter: `id=eq.${this.game.id}`,
       }, (payload) => {
         const g = payload.new;
@@ -188,8 +188,8 @@ export class DuelGame {
         }
       })
       .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'higher_lower_players',
-        filter: `game_id=eq.${this.game.id}`,
+        event: '*', schema: 'public', table: 'game_players',
+        filter: `session_id=eq.${this.game.id}`,
       }, (payload) => {
         const p = payload.new;
         if (!p || p.user_id === this.user.id) return;
@@ -240,7 +240,7 @@ export class DuelGame {
 
     // Reset last_answer for this round
     if (this.myPlayerId) {
-      supabase.from('higher_lower_players').update({
+      supabase.from('game_players').update({
         last_answer: null, answer_time: null,
       }).eq('id', this.myPlayerId).then();
     }
@@ -282,7 +282,7 @@ export class DuelGame {
     if (correct) this.myScore++;
 
     // Save to DB
-    await supabase.from('higher_lower_players').update({
+    await supabase.from('game_players').update({
       last_answer: answer, answer_time: this.myAnswerTime, score: this.myScore,
     }).eq('id', this.myPlayerId);
 
@@ -317,7 +317,7 @@ export class DuelGame {
     gsap.fromTo(this.anim, { resultA: 0 }, { resultA: 1, duration: 0.6, ease: 'power2.out' });
 
     // Update game as finished
-    supabase.from('higher_lower_games').update({
+    supabase.from('game_sessions').update({
       status: 'finished',
       state: {
         ...(this.game.state || {}),

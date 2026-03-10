@@ -1,5 +1,7 @@
 import gsap from 'gsap';
 import { supabase } from './lib/supabase';
+import { FriendsPanel } from './FriendsPanel';
+import { QuizDuelOnline } from './QuizDuelOnline';
 
 const C={bg:'#020d05',green:'#22c55e',greenL:'#4ade80',greenD:'#15803d',greenDim:'#0d3320',
   blue:'#3b82f6',blueL:'#60a5fa',blueGlow:'rgba(59,130,246,0.35)',
@@ -72,8 +74,9 @@ export class QuizDuelGame{
     this.hexSize=36;
     this.anim={menuA:0,menuY:30,boardA:0,qA:0,qY:20,revealA:0,resultA:0,countdownScale:0,
       diffH:[0,0,0],playH:0,backH:0,exitH:0,leaveH:0,reportH:0,errorFlash:0,
-      stealYesH:0,stealNoH:0,selectGlow:0,inputFocus:0};
+      stealYesH:0,stealNoH:0,selectGlow:0,inputFocus:0,bfH:0};
     this.hits={};
+    this._friendsPanel=null;this._onlineGame=null;this.state='menu'; // menu|duel
     this._resize=this._resize.bind(this);this._onMove=this._onMove.bind(this);
     this._onClick=this._onClick.bind(this);this._onKey=this._onKey.bind(this);
     window.addEventListener('resize',this._resize);canvas.addEventListener('mousemove',this._onMove);
@@ -94,7 +97,17 @@ export class QuizDuelGame{
     window.removeEventListener('resize',this._resize);window.removeEventListener('keydown',this._onKey);
     this.canvas.removeEventListener('mousemove',this._onMove);this.canvas.removeEventListener('mousedown',this._onClick);
     if(this._hiddenInput?.parentNode)this._hiddenInput.remove();
+    if(this._onlineGame){this._onlineGame.destroy();this._onlineGame=null}
+    if(this._friendsPanel){this._friendsPanel.destroy();this._friendsPanel=null}
     gsap.killTweensOf(this.anim)}
+  _openFriends(){if(this._friendsPanel||!this.user)return;
+    this._friendsPanel=new FriendsPanel({user:this.user,profile:null,gameType:'quiz_duel',
+      onStartDuel:(game,isHost)=>{this._friendsPanel=null;this._startOnlineDuel(game,isHost)},
+      onClose:()=>{this._friendsPanel=null}})}
+  _startOnlineDuel(game,isHost){this.state='duel';
+    if(this._onlineGame)this._onlineGame.destroy();
+    this._onlineGame=new QuizDuelOnline({canvas:this.canvas,user:this.user,profile:null,
+      game,isHost,onEnd:()=>{this._onlineGame=null;this.state='menu';this._animateMenu()}})}
   setUser(u){this.user=u}
 
   _animateMenu(){this.phase='menu';this.anim.menuA=0;this.anim.menuY=30;
@@ -207,7 +220,7 @@ export class QuizDuelGame{
     if(this.phase==='selectHex'&&this.turn==='player')for(const c of this.cells)
       if((c.owner===null||c.owner==='black')&&hexHit(c.x,c.y,this.hexSize,p.x,p.y)){this.hoverHex=c.id;break}
     for(let i=0;i<3;i++)gsap.to(this.anim.diffH,{[i]:this._hit(p,this.hits[`d${i}`])?1:0,duration:0.15});
-    ['playH','backH','exitH','leaveH','reportH','stealYesH','stealNoH'].forEach(k=>
+    ['playH','backH','exitH','leaveH','reportH','stealYesH','stealNoH','bfH'].forEach(k=>
       gsap.to(this.anim,{[k]:this._hit(p,this.hits[k.replace('H','')])?1:0,duration:0.15}));
     const any=this.hoverHex!==null||Object.values(this.hits).some(a=>a&&this._hit(p,a));
     this.canvas.style.cursor=any?'pointer':'default'}
@@ -215,6 +228,7 @@ export class QuizDuelGame{
   _onClick(e){const p=this._pos(e);
     if(this.phase==='menu'){if(this._hit(p,this.hits.back)){this.onBack();return}
       if(this._hit(p,this.hits.play))this._startGame();
+      if(this._hit(p,this.hits.bf))this._openFriends();
       ['easy','medium','hard'].forEach((d,i)=>{if(this._hit(p,this.hits[`d${i}`]))this.botDiff=d})}
     if(this.phase==='selectHex'&&this.turn==='player')
       for(const c of this.cells)if((c.owner===null||c.owner==='black')&&hexHit(c.x,c.y,this.hexSize,p.x,p.y)){this._selectHex(c.id);break}
@@ -228,7 +242,7 @@ export class QuizDuelGame{
   _loop(){if(this._dead)return;requestAnimationFrame(()=>this._loop());this._time+=0.016;
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);this._draw()}
 
-  _draw(){const{ctx,W,H}=this;const bg=ctx.createLinearGradient(0,0,0,H);
+  _draw(){if(this.state==='duel')return;const{ctx,W,H}=this;const bg=ctx.createLinearGradient(0,0,0,H);
     bg.addColorStop(0,'#010d04');bg.addColorStop(0.5,'#031a08');bg.addColorStop(1,'#010d04');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     if(this.phase==='menu')this._drawMenu();
@@ -308,6 +322,19 @@ export class QuizDuelGame{
     ctx.font='800 20px Inter,system-ui,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillStyle=cp?'#000':'#555';ctx.fillText('⬡ HRAŤ vs BOT',cx,pb.y+pbh/2);
+    ctx.restore();
+
+    // ONLINE DUEL button
+    const bfw=260,bfh=58;
+    const bf={x:cx-bfw/2,y:pb.y+pbh+14,w:bfw,h:bfh};this.hits.bf=bf;
+    ctx.save();
+    ctx.shadowColor=C.blue;ctx.shadowBlur=anim.bfH*16;
+    rr(ctx,bf.x,bf.y,bfw,bfh,16);
+    ctx.fillStyle=anim.bfH?hex2rgba(C.blue,0.12):'rgba(255,255,255,0.03)';ctx.fill();
+    ctx.strokeStyle=anim.bfH?C.blue:hex2rgba(C.blue,0.5);ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;
+    ctx.font='700 18px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=anim.bfH?'#fff':hex2rgba(C.blue,0.8);
+    ctx.fillText('⚔️  ONLINE DUEL',cx,bf.y+bfh/2);
     ctx.restore();
 
     ctx.restore()}

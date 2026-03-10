@@ -1,24 +1,32 @@
 import { supabase } from './lib/supabase';
 
-// Beautiful HTML Friends & Online Duel panel
+const GAME_LABELS = {
+  higher_lower: 'Higher or Lower',
+  quiz_duel: 'Kvíz Duel',
+  millionaire: 'Milionár Battle',
+};
+const GAME_EMOJI = { higher_lower: '📊', quiz_duel: '⬡', millionaire: '💎' };
+
+// Beautiful HTML Friends & Online Duel panel (game-agnostic)
 export class FriendsPanel {
-  constructor({ user, profile, onStartDuel, onClose }) {
+  constructor({ user, profile, gameType, onStartDuel, onClose }) {
     this.user = user;
     this.profile = profile;
+    this.gameType = gameType || 'higher_lower';
     this.onStartDuel = onStartDuel;
     this.onClose = onClose;
 
-    this.friends = [];       // accepted friends
-    this.pending = [];       // incoming pending
-    this.invites = [];       // game invites to me
+    this.friends = [];
+    this.pending = [];
+    this.invites = [];
     this.searchResults = [];
     this.searchQuery = '';
-    this.activeTab = 'friends'; // friends | search | duel
-    this.myGame = null;         // if I'm hosting a duel
+    this.activeTab = 'friends';
+    this.myGame = null;
     this.loading = false;
 
     this._channels = [];
-    this._presenceOnline = {}; // { userId: true }
+    this._presenceOnline = {};
     this._el = null;
     this._build();
     this._load();
@@ -26,7 +34,6 @@ export class FriendsPanel {
     this._subscribePresence();
   }
 
-  // ── Build DOM ─────────────────────────────────────────────────────────────
   _build() {
     const el = document.createElement('div');
     el.id = 'friends-panel';
@@ -37,6 +44,9 @@ export class FriendsPanel {
       zIndex: 100, fontFamily: 'Inter, system-ui, sans-serif',
     });
 
+    const label = GAME_LABELS[this.gameType] || 'Duel';
+    const emoji = GAME_EMOJI[this.gameType] || '⚔️';
+
     el.innerHTML = `
       <div id="fp-card" style="
         width: min(520px, 96vw); max-height: 90vh;
@@ -45,13 +55,12 @@ export class FriendsPanel {
         display: flex; flex-direction: column; overflow: hidden;
         box-shadow: 0 30px 80px rgba(0,0,0,0.6);
       ">
-        <!-- Header -->
         <div style="
           display: flex; align-items: center; justify-content: space-between;
           padding: 20px 24px 0; flex-shrink: 0;
         ">
           <div style="font-size: 22px; font-weight: 900; color: #f8fafc;">
-            ⚔️  Online Duel
+            ${emoji} ${label} Online
           </div>
           <button id="fp-close" style="
             background: none; border: 1px solid #334155; color: #94a3b8;
@@ -60,22 +69,14 @@ export class FriendsPanel {
             transition: all 0.2s;
           ">✕</button>
         </div>
-
-        <!-- Tabs -->
-        <div id="fp-tabs" style="
-          display: flex; gap: 8px; padding: 16px 24px 0; flex-shrink: 0;
-        ">
+        <div id="fp-tabs" style="display: flex; gap: 8px; padding: 16px 24px 0; flex-shrink: 0;">
           ${this._tabBtn('friends', '👥 Priatelia')}
           ${this._tabBtn('search', '🔍 Hľadať')}
           ${this._tabBtn('duel', '⚡ Duel Lobby')}
         </div>
-
-        <!-- Body -->
         <div id="fp-body" style="flex: 1; overflow-y: auto; padding: 16px 24px 24px;">
           <div id="fp-content">Načítavam...</div>
         </div>
-
-        <!-- Invite notification bar (hidden by default) -->
         <div id="fp-invite-bar" style="
           display: none; flex-shrink: 0;
           background: linear-gradient(90deg, #4f46e5, #7c3aed);
@@ -97,7 +98,6 @@ export class FriendsPanel {
     document.body.appendChild(el);
     this._el = el;
 
-    // Bind tabs
     el.querySelectorAll('.fp-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         this.activeTab = tab.dataset.tab;
@@ -130,50 +130,41 @@ export class FriendsPanel {
     });
   }
 
-  // ── Data ──────────────────────────────────────────────────────────────────
   async _load() {
     this.loading = true;
     this._renderContent();
-
-    // Load friends
     const { data: fr } = await supabase
       .from('friends')
       .select('*, user: profiles!friends_user_id_fkey(id, username, online_status), friend: profiles!friends_friend_id_fkey(id, username, online_status)')
       .or(`user_id.eq.${this.user.id},friend_id.eq.${this.user.id}`);
-
     if (fr) {
       this.friends = fr.filter(f => f.status === 'accepted').map(f =>
         f.user_id === this.user.id ? f.friend : f.user
       );
       this.pending = fr.filter(f => f.status === 'pending' && f.friend_id === this.user.id);
     }
-
-    // Load incoming game invites
     await this._loadInvites();
-
     this.loading = false;
     this._renderContent();
   }
 
   async _loadInvites() {
     const { data } = await supabase
-      .from('hl_game_invites')
-      .select('*, from_profile: profiles!hl_game_invites_from_user_id_fkey(username)')
+      .from('game_invites')
+      .select('*, from_profile: profiles!game_invites_from_user_id_fkey(username)')
       .eq('to_user_id', this.user.id)
+      .eq('game_type', this.gameType)
       .eq('status', 'pending');
     this.invites = data || [];
     this._renderInviteBar();
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   _renderContent() {
     const body = this._el.querySelector('#fp-content');
     if (this.loading) { body.innerHTML = this._spinner(); return; }
-
     if (this.activeTab === 'friends') body.innerHTML = this._renderFriends();
     else if (this.activeTab === 'search') body.innerHTML = this._renderSearch();
     else if (this.activeTab === 'duel') body.innerHTML = this._renderDuel();
-
     this._bindContent();
   }
 
@@ -280,6 +271,7 @@ export class FriendsPanel {
   }
 
   _renderDuel() {
+    const label = GAME_LABELS[this.gameType];
     if (this.myGame) {
       return `
         <div style="text-align:center; padding: 16px 0;">
@@ -305,9 +297,9 @@ export class FriendsPanel {
     return `
       <div style="text-align:center; padding: 24px 0;">
         <div style="font-size:48px; margin-bottom:16px;">⚔️</div>
-        <div style="color:#f8fafc; font-size:18px; font-weight:700; margin-bottom:8px;">Multiplayer Duel</div>
+        <div style="color:#f8fafc; font-size:18px; font-weight:700; margin-bottom:8px;">Multiplayer ${label}</div>
         <div style="color:#94a3b8; font-size:14px; margin-bottom:32px; line-height:1.6;">
-          Zahraj si Higher or Lower proti priateľovi!<br>
+          Zahraj si ${label} proti priateľovi!<br>
           Kto nazbiera viac bodov, vyhrá.
         </div>
         <button id="fp-create-duel" style="
@@ -350,9 +342,7 @@ export class FriendsPanel {
     return `<div style="text-align:center; padding:40px; color:#475569;">Načítavam...</div>`;
   }
 
-  // ── Bind Events ───────────────────────────────────────────────────────────
   _bindContent() {
-    // Search
     const si = this._el.querySelector('#fp-search-input');
     if (si) {
       si.addEventListener('focus', () => si.style.borderColor = '#3b82f6');
@@ -365,7 +355,6 @@ export class FriendsPanel {
       si.focus();
     }
 
-    // Add friend buttons
     this._el.querySelectorAll('.fp-add-friend').forEach(btn => {
       btn.addEventListener('click', async () => {
         const uid = btn.dataset.uid;
@@ -375,7 +364,6 @@ export class FriendsPanel {
       });
     });
 
-    // Accept/Decline friend
     this._el.querySelectorAll('.fp-accept-friend').forEach(btn => {
       btn.addEventListener('click', async () => {
         await supabase.from('friends').update({ status: 'accepted' }).eq('id', btn.dataset.id);
@@ -389,19 +377,16 @@ export class FriendsPanel {
       });
     });
 
-    // Invite friend to duel
     this._el.querySelectorAll('.fp-invite-friend').forEach(btn => {
       btn.addEventListener('click', async () => {
         this.activeTab = 'duel';
         this._updateTabs();
         if (!this.myGame) await this._createDuel();
-        // Now send invite
         await this._sendGameInvite(btn.dataset.uid, btn.dataset.name);
         this._renderContent();
       });
     });
 
-    // Create duel
     const cd = this._el.querySelector('#fp-create-duel');
     if (cd) cd.addEventListener('click', async () => {
       cd.textContent = 'Vytváram...'; cd.disabled = true;
@@ -409,17 +394,15 @@ export class FriendsPanel {
       this._renderContent();
     });
 
-    // Cancel duel
     const cancel = this._el.querySelector('#fp-cancel-duel');
     if (cancel) cancel.addEventListener('click', async () => {
       if (this.myGame) {
-        await supabase.from('higher_lower_games').update({ status: 'cancelled' }).eq('id', this.myGame.id);
+        await supabase.from('game_sessions').update({ status: 'cancelled' }).eq('id', this.myGame.id);
         this.myGame = null;
         this._renderContent();
       }
     });
 
-    // Join by code
     const jd = this._el.querySelector('#fp-join-duel');
     if (jd) jd.addEventListener('click', async () => {
       const code = this._el.querySelector('#fp-join-code')?.value?.trim().toUpperCase();
@@ -428,7 +411,6 @@ export class FriendsPanel {
     });
   }
 
-  // ── Friend Actions ────────────────────────────────────────────────────────
   async _search() {
     if (!this.searchQuery.trim()) { this.searchResults = []; this._renderContent(); return; }
     const { data } = await supabase.from('profiles')
@@ -443,10 +425,10 @@ export class FriendsPanel {
     await supabase.from('friends').insert({ user_id: this.user.id, friend_id: friendId, status: 'pending' });
   }
 
-  // ── Duel Actions ──────────────────────────────────────────────────────────
   async _createDuel() {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const { data } = await supabase.from('higher_lower_games').insert({
+    const { data } = await supabase.from('game_sessions').insert({
+      game_type: this.gameType,
       host_id: this.user.id,
       join_code: code,
       status: 'waiting',
@@ -454,15 +436,13 @@ export class FriendsPanel {
     }).select().single();
     this.myGame = data;
 
-    // Subscribe to this game – when someone joins and sets status='playing', start the duel
     if (data) {
       this._gameSub = supabase.channel(`duel-host-${data.id}`)
         .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'higher_lower_games',
+          event: 'UPDATE', schema: 'public', table: 'game_sessions',
           filter: `id=eq.${data.id}`,
         }, (payload) => {
           if (payload.new.status === 'playing') {
-            // Opponent joined! Start the duel as host
             if (this._gameSub) { this._gameSub.unsubscribe(); this._gameSub = null; }
             this.destroy();
             this.onStartDuel(payload.new, true);
@@ -470,53 +450,48 @@ export class FriendsPanel {
         })
         .subscribe();
     }
-
     return data;
   }
 
   async _sendGameInvite(toUserId, toName) {
     if (!this.myGame) return;
-    await supabase.from('hl_game_invites').insert({
-      game_id: this.myGame.id,
+    await supabase.from('game_invites').insert({
+      session_id: this.myGame.id,
+      game_type: this.gameType,
       from_user_id: this.user.id,
       to_user_id: toUserId,
     });
-    // Visual confirmation
-    const bar = this._el.querySelector('#fp-invite-bar') || this._el.querySelector('#fp-content');
-    if (bar) {
-      const conf = document.createElement('div');
-      Object.assign(conf.style, {
-        position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
-        background: '#10b981', color: '#fff', padding: '12px 28px',
-        borderRadius: '14px', fontSize: '15px', fontWeight: '700',
-        zIndex: 200, boxShadow: '0 8px 24px rgba(16,185,129,0.4)',
-      });
-      conf.textContent = `✓ Pozvánka odoslaná hráčovi ${toName}!`;
-      document.body.appendChild(conf);
-      setTimeout(() => conf.remove(), 3000);
-    }
+    const conf = document.createElement('div');
+    Object.assign(conf.style, {
+      position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
+      background: '#10b981', color: '#fff', padding: '12px 28px',
+      borderRadius: '14px', fontSize: '15px', fontWeight: '700',
+      zIndex: 200, boxShadow: '0 8px 24px rgba(16,185,129,0.4)',
+    });
+    conf.textContent = `✓ Pozvánka odoslaná hráčovi ${toName}!`;
+    document.body.appendChild(conf);
+    setTimeout(() => conf.remove(), 3000);
   }
 
   async _joinDuel(code) {
-    const { data: game, error } = await supabase.from('higher_lower_games')
-      .select('*').eq('join_code', code).eq('status', 'waiting').single();
+    const { data: game, error } = await supabase.from('game_sessions')
+      .select('*').eq('join_code', code).eq('status', 'waiting')
+      .eq('game_type', this.gameType).single();
     if (error || !game) {
       alert('Kód nenájdený alebo hra už prebehla.');
       return;
     }
-    // Update game status to playing so host gets notified
-    await supabase.from('higher_lower_games').update({ status: 'playing' }).eq('id', game.id);
+    await supabase.from('game_sessions').update({ status: 'playing' }).eq('id', game.id);
     const updated = { ...game, status: 'playing' };
     this.destroy();
     this.onStartDuel(updated, false);
   }
 
   async _acceptInvite(invite) {
-    await supabase.from('hl_game_invites').update({ status: 'accepted' }).eq('id', invite.id);
-    const { data: game } = await supabase.from('higher_lower_games').select('*').eq('id', invite.game_id).single();
+    await supabase.from('game_invites').update({ status: 'accepted' }).eq('id', invite.id);
+    const { data: game } = await supabase.from('game_sessions').select('*').eq('id', invite.session_id).single();
     if (game) {
-      // Set game to playing so host is notified
-      await supabase.from('higher_lower_games').update({ status: 'playing' }).eq('id', game.id);
+      await supabase.from('game_sessions').update({ status: 'playing' }).eq('id', game.id);
       const updated = { ...game, status: 'playing' };
       this.destroy();
       this.onStartDuel(updated, false);
@@ -524,7 +499,7 @@ export class FriendsPanel {
   }
 
   async _declineInvite(invite) {
-    await supabase.from('hl_game_invites').update({ status: 'declined' }).eq('id', invite.id);
+    await supabase.from('game_invites').update({ status: 'declined' }).eq('id', invite.id);
     this.invites = this.invites.filter(i => i.id !== invite.id);
     this._renderInviteBar();
   }
@@ -535,16 +510,16 @@ export class FriendsPanel {
     if (this.invites.length === 0) { bar.style.display = 'none'; return; }
     const inv = this.invites[0];
     const fromName = inv.from_profile?.username || 'Hráč';
+    const label = GAME_LABELS[this.gameType];
     bar.style.display = 'flex';
-    this._el.querySelector('#fp-invite-text').textContent = `${fromName} ťa pozýva na Higher or Lower Duel!`;
+    this._el.querySelector('#fp-invite-text').textContent = `${fromName} ťa pozýva na ${label} Duel!`;
     this._el.querySelector('#fp-invite-accept').onclick = () => this._acceptInvite(inv);
     this._el.querySelector('#fp-invite-decline').onclick = () => this._declineInvite(inv);
   }
 
-  // ── Realtime ──────────────────────────────────────────────────────────────
   _subscribeRealtime() {
-    const ch = supabase.channel(`friends-panel-${this.user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hl_game_invites',
+    const ch = supabase.channel(`friends-panel-${this.user.id}-${this.gameType}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_invites',
         filter: `to_user_id=eq.${this.user.id}` },
         async () => { await this._loadInvites(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friends',
@@ -554,10 +529,8 @@ export class FriendsPanel {
     this._channels.push(ch);
   }
 
-  // ── Presence ──────────────────────────────────────────────────────────────
   _subscribePresence() {
-    // Track self as online, watch friends going online/offline
-    const pCh = supabase.channel('hl-presence', { config: { presence: { key: this.user.id } } });
+    const pCh = supabase.channel('game-presence', { config: { presence: { key: this.user.id } } });
     pCh
       .on('presence', { event: 'sync' }, () => {
         const state = pCh.presenceState();
@@ -573,7 +546,6 @@ export class FriendsPanel {
     this._channels.push(pCh);
   }
 
-  // ── Destroy ───────────────────────────────────────────────────────────────
   destroy() {
     this._channels.forEach(c => c.unsubscribe());
     if (this._gameSub) { this._gameSub.unsubscribe(); this._gameSub = null; }
