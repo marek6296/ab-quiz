@@ -79,7 +79,7 @@ class Particles {
 
 // ─── GAME ────────────────────────────────────────────────────────────────────
 export class HigherLowerGame {
-  constructor(canvas, user) {
+  constructor(canvas, user, opts = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.dpr = window.devicePixelRatio || 1;
@@ -87,6 +87,7 @@ export class HigherLowerGame {
     this.user = user;
     this.profile = null;
     this.particles = new Particles(35);
+    this.onBack = opts.onBack || null; // callback to return to hub
 
     // Game state
     this.state = 'menu';
@@ -457,6 +458,11 @@ export class HigherLowerGame {
   }
 
   _backToMenu() {
+    if (this.onBack) {
+      // Return to hub
+      this.onBack();
+      return;
+    }
     gsap.to(this.anim, { goA: 0, duration: 0.3, onComplete: () => {
       this._guessLocked = false;
       this._showMenu();
