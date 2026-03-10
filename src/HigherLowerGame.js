@@ -1093,11 +1093,12 @@ export class HigherLowerGame {
 
   _drawGameOver() {
     const { ctx, W, H, anim } = this;
+    const mobile = W < 600;
     ctx.save();
     ctx.globalAlpha = anim.goA;
     ctx.fillStyle = C.overlay; ctx.fillRect(0, 0, W, H);
     const cx = W/2, cy = H/2;
-    const pw = Math.min(420, W - 40), ph = 360;
+    const pw = Math.min(420, W - 24), ph = mobile ? 380 : 420;
     const px = cx - pw/2, py = cy - ph/2;
 
     // Panel
@@ -1113,50 +1114,55 @@ export class HigherLowerGame {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
     // Title
-    ctx.font = `900 44px Inter, system-ui, sans-serif`;
+    ctx.font = `900 ${mobile ? 32 : 44}px Inter, system-ui, sans-serif`;
     ctx.shadowColor = C.red; ctx.shadowBlur = 22;
     ctx.fillStyle = C.red;
-    ctx.fillText('GAME OVER', cx, py + 70);
+    ctx.fillText('GAME OVER', cx, py + (mobile ? 55 : 70));
     ctx.shadowBlur = 0;
 
     // Score label
-    ctx.font = `500 17px Inter, system-ui, sans-serif`;
+    ctx.font = `500 ${mobile ? 14 : 17}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted;
-    ctx.fillText('Tvoje skóre', cx, cy - 28);
+    ctx.fillText('Tvoje skóre', cx, py + (mobile ? 110 : 130));
 
     // Score
-    ctx.font = `900 72px Inter, system-ui, sans-serif`;
+    ctx.font = `900 ${mobile ? 56 : 72}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
     ctx.shadowColor = C.gold; ctx.shadowBlur = this.score > 0 ? 24 : 0;
-    ctx.fillText(`${this.score}`, cx, cy + 52);
+    ctx.fillText(`${this.score}`, cx, py + (mobile ? 170 : 200));
     ctx.shadowBlur = 0;
 
     // Record
     if (this.bestScore > this.score) {
-      ctx.font = `500 14px Inter`; ctx.fillStyle = C.muted;
-      ctx.fillText(`Rekord: ${this.bestScore}`, cx, cy + 100);
+      ctx.font = '500 14px Inter'; ctx.fillStyle = C.muted;
+      ctx.fillText(`Rekord: ${this.bestScore}`, cx, py + (mobile ? 210 : 245));
     } else if (this.score > 0) {
-      ctx.font = `700 14px Inter`; ctx.fillStyle = C.gold;
-      ctx.fillText('🏆 Nový rekord!', cx, cy + 100);
+      ctx.font = '700 14px Inter'; ctx.fillStyle = C.gold;
+      ctx.fillText('🏆 Nový rekord!', cx, py + (mobile ? 210 : 245));
     }
 
-    // Restart + Leave buttons
-    const rbw = mobile ? Math.min(pw - 32, 200) : 200, rbh = 52, gap = 12;
-    const totalBw = rbw * 2 + gap;
-    const rb = { x: cx - totalBw/2, y: py + ph - 72, w: rbw, h: rbh };
+    // Buttons: Hrať znova + Menu
+    const btnW = mobile ? Math.min((pw - 36) / 2, 160) : 175;
+    const btnH = mobile ? 46 : 52;
+    const btnGap = 10;
+    const btnY = py + ph - btnH - (mobile ? 20 : 24);
+
+    // Hrať znova (gold)
+    const rb = { x: cx - btnW - btnGap/2, y: btnY, w: btnW, h: btnH };
     this.hits.br = rb;
     this._drawGoldBtn(rb, '🔄 Hrať znova', anim.brH);
 
-    const lb = { x: cx + gap/2, y: py + ph - 72, w: rbw, h: rbh };
+    // Menu (outline)
+    const lb = { x: cx + btnGap/2, y: btnY, w: btnW, h: btnH };
     this.hits.leave = lb;
-    rr(ctx, lb.x, lb.y, rbw, rbh, 16);
-    ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)'; ctx.fill();
-    rr(ctx, lb.x, lb.y, rbw, rbh, 16);
+    rr(ctx, lb.x, lb.y, btnW, btnH, 14);
+    ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.04)'; ctx.fill();
+    rr(ctx, lb.x, lb.y, btnW, btnH, 14);
     ctx.strokeStyle = anim.leaveH ? C.red : 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font = '700 16px Inter, system-ui, sans-serif';
+    ctx.font = `700 ${mobile ? 14 : 16}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = anim.leaveH ? C.redL : C.muted;
-    ctx.fillText('🔙 Menu', lb.x + rbw/2, lb.y + rbh/2);
+    ctx.fillText('🔙 Menu', lb.x + btnW/2, lb.y + btnH/2);
 
     ctx.restore();
   }
