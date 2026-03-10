@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { GameHub } from './GameHub';
 import { HigherLowerGame } from './HigherLowerGame';
+import { QuizDuelGame } from './QuizDuelGame';
+import { MillionaireGame } from './MillionaireGame';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -63,16 +65,17 @@ function App() {
       instanceRef.current = game;
       game.start();
     } else if (currentGame.id === 'quiz-duel') {
-      // TODO: QuizDuelGame
-      // For now, show a placeholder and go back
-      destroyCurrent();
-      alert('Kvíz Duel – Už čoskoro!');
-      setCurrentGame(null);
+      const game = new QuizDuelGame(canvas, user, {
+        onBack: goToHub,
+      });
+      instanceRef.current = game;
+      game.start();
     } else if (currentGame.id === 'millionaire') {
-      // TODO: MillionaireGame
-      destroyCurrent();
-      alert('Milionár Battle – Už čoskoro!');
-      setCurrentGame(null);
+      const game = new MillionaireGame(canvas, user, {
+        onBack: goToHub,
+      });
+      instanceRef.current = game;
+      game.start();
     }
 
     return () => destroyCurrent();
