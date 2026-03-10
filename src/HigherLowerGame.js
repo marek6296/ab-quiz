@@ -455,7 +455,7 @@ export class HigherLowerGame {
   }
 
   _next() {
-    this.currentIndex++;
+    this.currentIndex += 2; // step by 2 to get a fresh pair each round
     this.roundNumber++;
 
     // Phase 1: Slide BOTH cards out simultaneously

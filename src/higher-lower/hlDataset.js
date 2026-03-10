@@ -539,7 +539,6 @@ function shuffle(arr) {
 // Returns a random game sequence, filtered by difficulty
 // difficulty: null = all, 1 = easy, 2 = medium, 3 = hard
 export const getRandomGameSequence = async (length = 100, difficulty = null) => {
-    let allItems = [];
     let categories = [];
 
     // Try DB first
@@ -591,17 +590,38 @@ export const getRandomGameSequence = async (length = 100, difficulty = null) => 
 
     // Pick a random category
     const cat = categories[Math.floor(Math.random() * categories.length)];
-    const items = shuffle(cat.items);
+    const pool = shuffle(cat.items);
 
-    // Build sequence — truly random, no consecutive duplicates
-    let sequence = [];
-    let lastItem = null;
+    // Build PAIRS — no item from previous pair can appear in next pair
+    // This prevents the "reversed duplicate" problem
+    const pairs = [];
+    const usedRecently = new Set(); // items used in the previous pair
+
     for (let i = 0; i < length; i++) {
-        let candidates = items.filter(it => it.name !== lastItem?.name);
-        if (candidates.length === 0) candidates = items;
-        const picked = candidates[Math.floor(Math.random() * candidates.length)];
-        sequence.push(picked);
-        lastItem = picked;
+        // Get candidates not used in previous pair
+        let candidates = pool.filter(it => !usedRecently.has(it.name));
+        if (candidates.length < 2) candidates = pool; // fallback if pool too small
+
+        // Pick two different items
+        const shuffled = shuffle(candidates);
+        const left = shuffled[0];
+        let right = shuffled[1];
+        // Extra safety: ensure they're different
+        if (right.name === left.name && shuffled.length > 2) right = shuffled[2];
+
+        pairs.push({ left, right });
+
+        // Track: next pair can't reuse these items
+        usedRecently.clear();
+        usedRecently.add(left.name);
+        usedRecently.add(right.name);
+    }
+
+    // Build sequence as flat array — each pair = [left, right]
+    // The game reads sequence[i] vs sequence[i+1], so we interleave pairs
+    const sequence = [];
+    for (const pair of pairs) {
+        sequence.push(pair.left, pair.right);
     }
 
     return {
