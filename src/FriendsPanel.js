@@ -18,10 +18,12 @@ export class FriendsPanel {
     this.loading = false;
 
     this._channels = [];
+    this._presenceOnline = {}; // { userId: true }
     this._el = null;
     this._build();
     this._load();
     this._subscribeRealtime();
+    this._subscribePresence();
   }
 
   // ── Build DOM ─────────────────────────────────────────────────────────────
@@ -208,11 +210,11 @@ export class FriendsPanel {
         border-radius:14px; padding:12px 16px; margin-bottom:8px;
         transition: background 0.2s;
       " onmouseover="this.style.background='rgba(59,130,246,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-        ${this._avatar(f.username, f.online_status === 'online' ? '#10b981' : '#475569')}
+        ${this._avatar(f.username, this._presenceOnline[f.id] ? '#10b981' : '#475569')}
         <div style="flex:1;">
           <div style="color:#f8fafc; font-weight:600; font-size:15px;">${f.username}</div>
-          <div style="font-size:12px; color:${f.online_status === 'online' ? '#10b981' : '#475569'};">
-            ${f.online_status === 'online' ? '🟢 Online' : '⚫ Offline'}
+          <div style="font-size:12px; color:${this._presenceOnline[f.id] ? '#10b981' : '#475569'};">
+            ${this._presenceOnline[f.id] ? '🟢 Online' : '⚫ Offline'}
           </div>
         </div>
         <button class="fp-invite-friend" data-uid="${f.id}" data-name="${f.username}" style="
@@ -451,6 +453,24 @@ export class FriendsPanel {
       is_public: false,
     }).select().single();
     this.myGame = data;
+
+    // Subscribe to this game – when someone joins and sets status='playing', start the duel
+    if (data) {
+      this._gameSub = supabase.channel(`duel-host-${data.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'higher_lower_games',
+          filter: `id=eq.${data.id}`,
+        }, (payload) => {
+          if (payload.new.status === 'playing') {
+            // Opponent joined! Start the duel as host
+            if (this._gameSub) { this._gameSub.unsubscribe(); this._gameSub = null; }
+            this.destroy();
+            this.onStartDuel(payload.new, true);
+          }
+        })
+        .subscribe();
+    }
+
     return data;
   }
 
@@ -484,16 +504,22 @@ export class FriendsPanel {
       alert('Kód nenájdený alebo hra už prebehla.');
       return;
     }
+    // Update game status to playing so host gets notified
+    await supabase.from('higher_lower_games').update({ status: 'playing' }).eq('id', game.id);
+    const updated = { ...game, status: 'playing' };
     this.destroy();
-    this.onStartDuel(game, false);
+    this.onStartDuel(updated, false);
   }
 
   async _acceptInvite(invite) {
     await supabase.from('hl_game_invites').update({ status: 'accepted' }).eq('id', invite.id);
     const { data: game } = await supabase.from('higher_lower_games').select('*').eq('id', invite.game_id).single();
     if (game) {
+      // Set game to playing so host is notified
+      await supabase.from('higher_lower_games').update({ status: 'playing' }).eq('id', game.id);
+      const updated = { ...game, status: 'playing' };
       this.destroy();
-      this.onStartDuel(game, false);
+      this.onStartDuel(updated, false);
     }
   }
 
@@ -528,9 +554,29 @@ export class FriendsPanel {
     this._channels.push(ch);
   }
 
+  // ── Presence ──────────────────────────────────────────────────────────────
+  _subscribePresence() {
+    // Track self as online, watch friends going online/offline
+    const pCh = supabase.channel('hl-presence', { config: { presence: { key: this.user.id } } });
+    pCh
+      .on('presence', { event: 'sync' }, () => {
+        const state = pCh.presenceState();
+        this._presenceOnline = {};
+        Object.keys(state).forEach(uid => { this._presenceOnline[uid] = true; });
+        this._renderContent();
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await pCh.track({ user_id: this.user.id, username: this.profile?.username || '' });
+        }
+      });
+    this._channels.push(pCh);
+  }
+
   // ── Destroy ───────────────────────────────────────────────────────────────
   destroy() {
     this._channels.forEach(c => c.unsubscribe());
+    if (this._gameSub) { this._gameSub.unsubscribe(); this._gameSub = null; }
     if (this._el && this._el.parentNode) this._el.parentNode.removeChild(this._el);
     if (this.onClose) this.onClose();
   }

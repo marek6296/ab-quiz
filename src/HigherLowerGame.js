@@ -1,6 +1,7 @@
 import { getRandomGameSequence } from './higher-lower/hlDataset';
 import { supabase } from './lib/supabase';
 import { FriendsPanel } from './FriendsPanel';
+import { DuelGame } from './DuelGame';
 import gsap from 'gsap';
 
 // ─── BLACK + GOLD PALETTE ────────────────────────────────────────────────────
@@ -310,7 +311,21 @@ export class HigherLowerGame {
     });
   }
 
-  async _startDuelGame(game, isHost) { await this._startGame(); }
+  async _startDuelGame(game, isHost) {
+    this.state = 'duel';
+    if (this._duelGame) this._duelGame.destroy();
+    this._duelGame = new DuelGame({
+      canvas: this.canvas,
+      user: this.user,
+      profile: this.profile,
+      game,
+      isHost,
+      onEnd: () => {
+        this._duelGame = null;
+        this._showMenu();
+      },
+    });
+  }
 
   // ── States ────────────────────────────────────────────────────────────────
   _showMenu() {
@@ -557,6 +572,9 @@ export class HigherLowerGame {
 
     // Particles (always)
     this.particles.draw(ctx, W, H);
+
+    // If duel is active, it renders itself on the same canvas – skip main draw
+    if (this.state === 'duel') return;
 
     if (this.state === 'menu' || this.anim.menuAlpha > 0.01) this._drawMenu();
     if (['playing','gameover'].includes(this.state)) this._drawGame();
