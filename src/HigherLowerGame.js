@@ -580,7 +580,7 @@ export class HigherLowerGame {
     const cx = W / 2, cy = H / 2;
 
     // Gold aura behind title
-    const glow = ctx.createRadialGradient(cx, cy - 100 + yo, 10, cx, cy - 100 + yo, 320);
+    const glow = ctx.createRadialGradient(cx, cy - 130 + yo, 10, cx, cy - 130 + yo, 320);
     glow.addColorStop(0, hex2rgba(C.gold, 0.12 * anim.titleGlow));
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
@@ -591,7 +591,14 @@ export class HigherLowerGame {
     ctx.save();
     ctx.font = `900 ${fz}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    
+    // Pass 1: Draw solid text just for the shadow (fixes Safari bug with gradient+shadow)
     ctx.shadowColor = C.gold; ctx.shadowBlur = 35 * anim.titleGlow;
+    ctx.fillStyle = C.gold;
+    ctx.fillText('HIGHER OR LOWER', cx, cy - 150 + yo);
+    
+    // Pass 2: Draw gradient text with no shadow on top
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
     const tg = ctx.createLinearGradient(cx - 250, 0, cx + 250, 0);
     const shift = (Math.sin(this._time * 0.8) + 1) / 2;
     tg.addColorStop(0, C.goldD);
@@ -600,14 +607,14 @@ export class HigherLowerGame {
     tg.addColorStop(0.5 + shift * 0.5, C.goldL);
     tg.addColorStop(1, C.goldD);
     ctx.fillStyle = tg;
-    ctx.fillText('HIGHER OR LOWER', cx, cy - 120 + yo);
+    ctx.fillText('HIGHER OR LOWER', cx, cy - 150 + yo);
     ctx.restore();
 
     // Subtitle with animated arrow
     const arrows = '▲▼';
     ctx.font = `400 ${Math.min(17, W * 0.015)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${arrows}  Uhádni čo je viac a čo menej  ${arrows}`, cx, cy - 62 + yo);
+    ctx.fillText(`${arrows}  Uhádni čo je viac a čo menej  ${arrows}`, cx, cy - 75 + yo);
 
     // Best score
     if (this.bestScore > 0) {
