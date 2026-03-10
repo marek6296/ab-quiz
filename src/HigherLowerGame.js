@@ -818,8 +818,10 @@ export class HigherLowerGame {
       ctx.restore();
     }
 
-    // Cards
-    if (mobile) {
+    // Skip cards while "Ďalšia otázka" banner is visible
+    if (anim.nextBanner > 0.05) {
+      // Don't draw cards during transition banner
+    } else if (mobile) {
       const CW = Math.min(W - 24, 320);
       const CH = 150;
       const topStart = 80;
