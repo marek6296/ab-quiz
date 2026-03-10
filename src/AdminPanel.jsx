@@ -293,38 +293,66 @@ function HigherLowerTab() {
 
 // ── Milionár Battle Tab ─────────────────────────────────────────────────────
 function MillionaireTab() {
-  const [sessions, setSessions] = useState([]);
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { rows, loading, reload } = useQuizQuestions();
+  const [filter, setFilter] = useState('all');
   const [msg, setMsg] = useState(null);
+  const [form, setForm] = useState({ question: '', answer_a: '', answer_b: '', answer_c: '', answer_d: '', correct_answer: 0, difficulty: 1 });
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [sessLoading, setSessLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [sessRes, qRes] = await Promise.all([
-      supabase.from('game_sessions').select('*').eq('game_type', 'millionaire').order('created_at', { ascending: false }).limit(50),
-      supabase.from('quiz_questions').select('difficulty, reported'),
-    ]);
-    setSessions(sessRes.data || []);
-    setQuestions(qRes.data || []);
-    setLoading(false);
+  // Load sessions
+  useEffect(() => {
+    (async () => {
+      setSessLoading(true);
+      const { data } = await supabase.from('game_sessions').select('*').eq('game_type', 'millionaire').order('created_at', { ascending: false }).limit(50);
+      setSessions(data || []);
+      setSessLoading(false);
+    })();
   }, []);
-  useEffect(() => { load(); }, [load]);
 
-  async function deleteSession(id) {
-    if (!confirm('Zmazať session a všetkých hráčov?')) return;
-    await supabase.from('game_sessions').delete().eq('id', id);
-    setMsg({ type: 'success', text: 'Session zmazaná.' });
-    load();
+  const filtered = rows.filter(r => {
+    if (filter === 'reported') return r.reported;
+    if (filter === 'easy') return r.difficulty === 1 && !r.reported;
+    if (filter === 'medium') return r.difficulty === 2 && !r.reported;
+    if (filter === 'hard') return r.difficulty === 3 && !r.reported;
+    return !r.reported;
+  });
+  const reportedCount = rows.filter(r => r.reported).length;
+
+  async function deleteQ(id) {
+    if (!confirm('Zmazať otázku?')) return;
+    await supabase.from('quiz_questions').delete().eq('id', id);
+    setMsg({ type: 'success', text: 'Otázka zmazaná.' }); reload();
+  }
+  async function approveQ(id) {
+    await supabase.from('quiz_questions').update({ reported: false }).eq('id', id);
+    setMsg({ type: 'success', text: 'Otázka schválená.' }); reload();
+  }
+  async function saveNew(e) {
+    e.preventDefault();
+    if (!form.question || !form.answer_a || !form.answer_b || !form.answer_c || !form.answer_d) {
+      setMsg({ type: 'error', text: 'Vyplň všetky polia!' }); return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('quiz_questions').insert({ ...form, reported: false });
+    setSaving(false);
+    if (error) { setMsg({ type: 'error', text: error.message }); return; }
+    setMsg({ type: 'success', text: 'Otázka pridaná!' });
+    setForm({ question: '', answer_a: '', answer_b: '', answer_c: '', answer_d: '', correct_answer: 0, difficulty: 1 });
+    setShowForm(false); reload();
   }
 
-  const totalSessions = sessions.length;
-  const activeSessions = sessions.filter(s => s.status === 'waiting' || s.status === 'playing').length;
-  const finishedSessions = sessions.filter(s => s.status === 'finished').length;
-  const cancelledSessions = sessions.filter(s => s.status === 'cancelled' || s.status === 'abandoned').length;
-  const qActive = questions.filter(q => !q.reported);
-  const qEasy = qActive.filter(q => q.difficulty === 1).length;
-  const qMed = qActive.filter(q => q.difficulty === 2).length;
-  const qHard = qActive.filter(q => q.difficulty === 3).length;
+  async function deleteSession(id) {
+    if (!confirm('Zmazať session?')) return;
+    await supabase.from('game_sessions').delete().eq('id', id);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    setMsg({ type: 'success', text: 'Session zmazaná.' });
+  }
+
+  const labels = ['A', 'B', 'C', 'D'];
+  const keys = ['answer_a', 'answer_b', 'answer_c', 'answer_d'];
 
   const STATUS_COLORS = { waiting: '#f59e0b', playing: '#3b82f6', finished: '#22c55e', cancelled: '#ef4444', abandoned: '#ef4444' };
   const STATUS_LABELS = { waiting: 'Čaká', playing: 'Hrá sa', finished: 'Dokončená', cancelled: 'Zrušená', abandoned: 'Opustená' };
@@ -333,43 +361,98 @@ function MillionaireTab() {
     <div style={S.body}>
       {msg && <div style={msg.type === 'error' ? S.errBox : S.successBox}>{msg.text} <button onClick={() => setMsg(null)} style={{ float: 'right', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>✕</button></div>}
 
-      {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Celkom hier', val: totalSessions, color: '#a855f7' },
-          { label: 'Aktívne', val: activeSessions, color: '#3b82f6' },
-          { label: 'Dokončené', val: finishedSessions, color: '#22c55e' },
-          { label: 'Zrušené', val: cancelledSessions, color: '#ef4444' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 12, padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, color: '#555', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: s.color }}>{s.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Question pool */}
+      {/* ── Otázky sekcia ── */}
       <div style={S.section}>
-        <div style={{ ...S.sectionTitle, color: '#c084fc' }}>📋 Pool otázok (zdieľané s Kvíz Duel)</div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Ľahké', val: qEasy, color: '#22c55e' },
-            { label: 'Stredné', val: qMed, color: '#f59e0b' },
-            { label: 'Ťažké', val: qHard, color: '#ef4444' },
-            { label: 'Celkom aktívnych', val: qActive.length, color: '#a855f7' },
-          ].map(s => (
-            <div key={s.label} style={{ background: '#111', border: `1px solid ${s.color}33`, borderRadius: 10, padding: '10px 18px', minWidth: 100 }}>
-              <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.val}</div>
-            </div>
+        <div style={{ ...S.sectionTitle, color: '#c084fc' }}>💎 Otázky (zdieľané s Kvíz Duel)</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          {['all', 'reported', 'easy', 'medium', 'hard'].map(f => (
+            <button key={f} style={S.tab(filter === f)} onClick={() => setFilter(f)}>
+              {f === 'all' ? 'Všetky' : f === 'reported' ? `⚠️ Nahlásené (${reportedCount})` : DIFF_LABELS[f === 'easy' ? 1 : f === 'medium' ? 2 : 3]}
+            </button>
           ))}
+          <button style={{ ...S.btn('#22c55e'), marginLeft: 'auto' }} onClick={() => setShowForm(!showForm)}>
+            {showForm ? '✕ Zavrieť' : '➕ Pridať otázku'}
+          </button>
         </div>
+
+        {showForm && (
+          <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 14, padding: '20px', marginBottom: 20 }}>
+            <div style={S.sectionTitle}>Nová otázka (Milionár / Kvíz Duel)</div>
+            <form onSubmit={saveNew}>
+              <div style={{ marginBottom: 10 }}>
+                <label style={S.label}>Otázka</label>
+                <input style={S.input} value={form.question} onChange={e => setForm(f => ({ ...f, question: e.target.value }))} placeholder="Napíš otázku..." />
+              </div>
+              <div style={S.formGrid}>
+                {keys.map((k, i) => (
+                  <div key={k}>
+                    <label style={S.label}>Odpoveď {labels[i]}</label>
+                    <input style={{ ...S.input, borderColor: form.correct_answer === i ? '#22c55e' : '#333' }}
+                      value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} placeholder={`Odpoveď ${labels[i]}`} />
+                  </div>
+                ))}
+              </div>
+              <div style={S.formGrid}>
+                <div>
+                  <label style={S.label}>Správna odpoveď</label>
+                  <select style={S.select} value={form.correct_answer} onChange={e => setForm(f => ({ ...f, correct_answer: Number(e.target.value) }))}>
+                    {labels.map((l, i) => <option key={i} value={i}>Odpoveď {l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>Obtiažnosť</label>
+                  <select style={S.select} value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: Number(e.target.value) }))}>
+                    <option value={1}>1 – Ľahká</option>
+                    <option value={2}>2 – Stredná</option>
+                    <option value={3}>3 – Ťažká</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" style={S.btn('#22c55e')} disabled={saving}>{saving ? 'Ukladám...' : '💾 Uložiť otázku'}</button>
+            </form>
+          </div>
+        )}
+
+        {loading ? <div style={{ color: '#555', padding: '32px 0', textAlign: 'center' }}>Načítavam...</div> : (
+          <table style={S.table}>
+            <thead>
+              <tr>
+                <th style={S.th}>Otázka</th>
+                <th style={S.th}>A</th><th style={S.th}>B</th><th style={S.th}>C</th><th style={S.th}>D</th>
+                <th style={S.th}>Správna</th>
+                <th style={S.th}>Obtiažnosť</th>
+                <th style={S.th}>Akcie</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(r => (
+                <tr key={r.id} style={{ background: r.reported ? '#1a0000' : 'transparent' }}>
+                  <td style={{ ...S.td, maxWidth: 240, color: r.reported ? '#f87171' : '#fff' }}>
+                    {r.reported && <span style={{ color: '#ef4444', fontSize: 11, display: 'block' }}>⚠️ Nahlásená</span>}
+                    {r.question}
+                  </td>
+                  <td style={{ ...S.td, color: '#888' }}>{r.answer_a}</td>
+                  <td style={{ ...S.td, color: '#888' }}>{r.answer_b}</td>
+                  <td style={{ ...S.td, color: '#888' }}>{r.answer_c}</td>
+                  <td style={{ ...S.td, color: '#888' }}>{r.answer_d}</td>
+                  <td style={S.td}><span style={S.badge('#22c55e')}>{['A','B','C','D'][r.correct_answer]}</span></td>
+                  <td style={S.td}><span style={S.badge(DIFF_COLORS[r.difficulty] || '#888')}>{DIFF_LABELS[r.difficulty] || r.difficulty}</span></td>
+                  <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
+                    {r.reported && <button style={{ ...S.btn('#22c55e', true), marginRight: 4 }} onClick={() => approveQ(r.id)}>✓ Schváliť</button>}
+                    <button style={S.btn('#ef4444', true)} onClick={() => deleteQ(r.id)}>🗑</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={8} style={{ padding: '32px 12px', textAlign: 'center', color: '#333' }}>Žiadne otázky</td></tr>}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Sessions table */}
+      {/* ── Online Sessions sekcia ── */}
       <div style={S.section}>
         <div style={{ ...S.sectionTitle, color: '#c084fc' }}>🎮 Online Sessions (posledných 50)</div>
-        {loading ? <div style={{ color: '#555', padding: '32px 0', textAlign: 'center' }}>Načítavam...</div> : (
+        {sessLoading ? <div style={{ color: '#555', padding: '32px 0', textAlign: 'center' }}>Načítavam...</div> : (
           <table style={S.table}>
             <thead>
               <tr>
