@@ -124,9 +124,11 @@ export class HigherLowerGame {
       resultIcon: 0, resultOk: true,
       roundBanner: 0, nextBanner: 0,
       leaveH: 0, reportH: 0,
+      countdownScale: 0,
     };
     this.hits = {};
     this._time = 0;
+    this.countdownNum = 3;
 
     this._resize = this._resize.bind(this);
     this._onMove = this._onMove.bind(this);
@@ -369,9 +371,22 @@ export class HigherLowerGame {
     this.roundNumber = 1;
     this._guessLocked = false;
 
-    this.state = 'playing';
-    this._showRoundBanner();
-    this._animIn();
+    // Countdown 3-2-1-GO
+    this.state = 'countdown';
+    this.countdownNum = 3;
+    const tick = () => {
+      if (this._dead) return;
+      this.anim.countdownScale = 0;
+      gsap.fromTo(this.anim, { countdownScale: 2 }, { countdownScale: 1, duration: 0.5, ease: 'back.out(2)' });
+      if (this.countdownNum <= 0) {
+        this.state = 'playing';
+        this._showRoundBanner();
+        this._animIn();
+        return;
+      }
+      setTimeout(() => { this.countdownNum--; tick(); }, 1000);
+    };
+    tick();
   }
 
   _showRoundBanner() {
@@ -616,6 +631,7 @@ export class HigherLowerGame {
     if (this.state === 'duel') return;
 
     if (this.state === 'menu' || this.anim.menuAlpha > 0.01) this._drawMenu();
+    if (this.state === 'countdown') this._drawCountdown();
     if (['playing','gameover'].includes(this.state)) this._drawGame();
     if (this.state === 'loading') this._drawLoading();
     if (this.state === 'gameover' && this.anim.goA > 0.01) this._drawGameOver();
@@ -745,6 +761,19 @@ export class HigherLowerGame {
 
     // User section
     this._drawUserSection(cx, bf.y + bh + 24);
+    ctx.restore();
+  }
+
+  _drawCountdown() {
+    const { ctx, W, H, anim } = this;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(anim.countdownScale, anim.countdownScale);
+    ctx.font = '900 120px Inter, system-ui, sans-serif';
+    ctx.fillStyle = C.goldL;
+    ctx.shadowColor = C.gold; ctx.shadowBlur = 30;
+    ctx.fillText(this.countdownNum > 0 ? `${this.countdownNum}` : 'GO!', 0, 0);
     ctx.restore();
   }
 

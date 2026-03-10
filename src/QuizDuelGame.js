@@ -246,7 +246,7 @@ export class QuizDuelGame{
     bg.addColorStop(0,'#010d04');bg.addColorStop(0.5,'#031a08');bg.addColorStop(1,'#010d04');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     if(this.phase==='menu')this._drawMenu();
-    else if(this.phase==='countdown'){this._drawBoard();this._drawCD()}
+    else if(this.phase==='countdown'){this._drawCD()}
     else if(this.phase==='selectHex'){this._drawSB();this._drawBoard();this._drawSelUI()}
     else if((this.phase==='question'||this.phase==='reveal')&&!this._trans){this._drawSB();this._drawBoard();this._drawQ()}
     else if(this.phase==='steal'){this._drawSB();this._drawBoard();this._drawSteal()}
