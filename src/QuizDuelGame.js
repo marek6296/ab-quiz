@@ -411,15 +411,14 @@ export class QuizDuelGame{
       rr(ctx,cx-iw/2,iy,iw,ih,12);ctx.strokeStyle=ok?C.green:C.red;ctx.lineWidth=2;ctx.stroke();
       ctx.font=`700 ${m?14:16}px Inter,system-ui,sans-serif`;ctx.fillStyle=ok?C.greenL:C.redL;
       ctx.fillText(ok?'✅ Správne!':`❌ Správna: ${q.a}`,cx,iy+ih/2)}
-    // Leave+Report
-    const btnY=iy+ih+(this.phase==='question'&&this.turn==='player'?58:16);
-    const lbw=m?75:95,lbh=28;
-    const leave={x:cx-lbw-4,y:btnY,w:lbw,h:lbh};this.hits.leave=leave;
+    // Leave+Report (bottom-left corner)
+    const lbw=m?75:90,lbh=28;
+    const leave={x:12,y:H-lbh-12,w:lbw,h:lbh};this.hits.leave=leave;
     rr(ctx,leave.x,leave.y,lbw,lbh,10);ctx.fillStyle=anim.leaveH?'rgba(239,68,68,0.12)':'rgba(255,255,255,0.03)';ctx.fill();
     rr(ctx,leave.x,leave.y,lbw,lbh,10);ctx.strokeStyle=anim.leaveH?C.red:'rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();
-    ctx.font=`600 ${m?9:10}px Inter,system-ui,sans-serif`;ctx.fillStyle=anim.leaveH?C.redL:C.dim;ctx.fillText('🚪 Odísť',leave.x+lbw/2,leave.y+lbh/2);
+    ctx.font=`600 ${m?10:11}px Inter,system-ui,sans-serif`;ctx.fillStyle=anim.leaveH?C.redL:C.dim;ctx.fillText('🚪 Odísť',leave.x+lbw/2,leave.y+lbh/2);
     const qi=this.phase==='reveal'?Math.max(0,this.qIdx-1):this.qIdx;const rptd=this.reportedQ.has(qi);
-    const rpt={x:cx+4,y:btnY,w:lbw,h:lbh};this.hits.report=rpt;
+    const rpt={x:12+lbw+8,y:H-lbh-12,w:lbw,h:lbh};this.hits.report=rpt;
     rr(ctx,rpt.x,rpt.y,lbw,lbh,10);ctx.fillStyle=rptd?'rgba(239,68,68,0.1)':anim.reportH?'rgba(251,191,36,0.1)':'rgba(255,255,255,0.03)';ctx.fill();
     rr(ctx,rpt.x,rpt.y,lbw,lbh,10);ctx.strokeStyle=rptd?C.red:anim.reportH?C.gold:'rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();
     ctx.fillStyle=rptd?C.redL:anim.reportH?C.goldL:C.dim;ctx.fillText(rptd?'⚠️ Nahlásené':'⚠️ Nahlásiť',rpt.x+lbw/2,rpt.y+lbh/2);
@@ -441,8 +440,8 @@ export class QuizDuelGame{
       rr(ctx,no.x,no.y,bw,bh,14);ctx.fillStyle=hex2rgba(C.red,0.1+anim.stealNoH*0.1);ctx.fill();
       rr(ctx,no.x,no.y,bw,bh,14);ctx.strokeStyle=C.red;ctx.lineWidth=1.5;ctx.stroke();
       ctx.fillStyle=C.redL;ctx.fillText('❌ Nie (čierne)',no.x+bw/2,no.y+bh/2)}
-    // Leave
-    const lbw=m?80:100,lbh=30,leave={x:cx-lbw/2,y:bb+80,w:lbw,h:lbh};this.hits.leave=leave;
+    // Leave (bottom-left corner)
+    const lbw=m?75:90,lbh=28,leave={x:12,y:H-lbh-12,w:lbw,h:lbh};this.hits.leave=leave;
     rr(ctx,leave.x,leave.y,lbw,lbh,10);ctx.fillStyle=anim.leaveH?'rgba(239,68,68,0.12)':'rgba(255,255,255,0.03)';ctx.fill();
     rr(ctx,leave.x,leave.y,lbw,lbh,10);ctx.strokeStyle=anim.leaveH?C.red:'rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();
     ctx.font=`600 ${m?10:11}px Inter,system-ui,sans-serif`;ctx.fillStyle=anim.leaveH?C.redL:C.dim;ctx.fillText('🚪 Odísť',leave.x+lbw/2,leave.y+lbh/2)}

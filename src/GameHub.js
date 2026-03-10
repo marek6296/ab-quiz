@@ -314,28 +314,38 @@ export class GameHub {
     const titleY = mobile ? 55 : 75;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    // Animated glow
-    const glowPulse = 0.7 + Math.sin(this._time * 2) * 0.3;
-    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 40 * anim.titleGlow * glowPulse;
+    // Smooth floating motion
+    const floatY = Math.sin(this._time * 1.2) * 4;
+    const floatScale = 1 + Math.sin(this._time * 0.8) * 0.015;
 
-    // Big title with looping cyan shimmer gradient
+    // Glow that breathes
+    const glowA = 0.6 + Math.sin(this._time * 1.5) * 0.4;
+    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 25 * anim.titleGlow * glowA;
+
+    // Big title with smooth multi-stop gradient
     const tfz = mobile ? 48 : 72;
+    ctx.save();
+    ctx.translate(cx, titleY + floatY);
+    ctx.scale(floatScale, floatScale);
     ctx.font = `900 ${tfz}px Inter, system-ui, sans-serif`;
-    const tg = ctx.createLinearGradient(cx - 280, 0, cx + 280, 0);
-    const shift = (this._time * 0.4) % 1;
-    tg.addColorStop(0, '#0097a7');
-    tg.addColorStop(Math.max(0, shift - 0.2), '#0097a7');
-    tg.addColorStop(shift, '#e0f7fa');
-    tg.addColorStop(Math.min(1, shift + 0.2), '#0097a7');
-    tg.addColorStop(1, '#0097a7');
+    const tg = ctx.createLinearGradient(-280, 0, 280, 0);
+    const t = this._time * 0.6;
+    const s1 = (Math.sin(t) + 1) / 2;
+    const s2 = (Math.sin(t + 1.5) + 1) / 2;
+    tg.addColorStop(0, '#006064');
+    tg.addColorStop(s1 * 0.4, '#00bcd4');
+    tg.addColorStop(0.5, '#e0f7fa');
+    tg.addColorStop(0.5 + s2 * 0.4, '#00bcd4');
+    tg.addColorStop(1, '#006064');
     ctx.fillStyle = tg;
-    ctx.fillText('QUIZOVNÍK', cx, titleY);
+    ctx.fillText('QUIZOVNÍK', 0, 0);
+    ctx.restore();
     ctx.shadowBlur = 0;
 
     // Subtitle
     ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted;
-    ctx.fillText('Vyber si hru a začni hrať', cx, titleY + (mobile ? 32 : 42));
+    ctx.fillText('Vyber si hru a začni hrať', cx, titleY + floatY + (mobile ? 32 : 42));
     ctx.restore();
 
     // ── Game Cards ──

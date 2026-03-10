@@ -628,10 +628,9 @@ export class MillionaireGame {
       });
     }
 
-    // Leave + Report
-    const btnY = astartY + 2 * (abh + agap) + (this.phase === 'reveal' ? 30 : 14);
-    const lbw = mobile ? 80 : 100, lbh = 30;
-    const leave = { x: cx - lbw - 5, y: btnY, w: lbw, h: lbh };
+    // Leave + Report (bottom-left corner)
+    const lbw = mobile ? 75 : 90, lbh = 28;
+    const leave = { x: 12, y: H - lbh - 12, w: lbw, h: lbh };
     this.hits.leave = leave;
     rr(ctx, leave.x, leave.y, lbw, lbh, 10);
     ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)'; ctx.fill();
@@ -641,7 +640,7 @@ export class MillionaireGame {
     ctx.fillText('🚪 Odísť', leave.x + lbw/2, leave.y + lbh/2);
 
     const reported = this.reportedQ.has(this.round);
-    const report = { x: cx + 5, y: btnY, w: lbw, h: lbh };
+    const report = { x: 12 + lbw + 8, y: H - lbh - 12, w: lbw, h: lbh };
     this.hits.report = report;
     rr(ctx, report.x, report.y, lbw, lbh, 10);
     ctx.fillStyle = reported ? 'rgba(239,68,68,0.1)' : (anim.reportH ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)'); ctx.fill();
