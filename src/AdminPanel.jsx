@@ -291,22 +291,140 @@ function HigherLowerTab() {
   );
 }
 
+// ── Milionár Battle Tab ─────────────────────────────────────────────────────
+function MillionaireTab() {
+  const [sessions, setSessions] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [sessRes, qRes] = await Promise.all([
+      supabase.from('game_sessions').select('*').eq('game_type', 'millionaire').order('created_at', { ascending: false }).limit(50),
+      supabase.from('quiz_questions').select('difficulty, reported'),
+    ]);
+    setSessions(sessRes.data || []);
+    setQuestions(qRes.data || []);
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function deleteSession(id) {
+    if (!confirm('Zmazať session a všetkých hráčov?')) return;
+    await supabase.from('game_sessions').delete().eq('id', id);
+    setMsg({ type: 'success', text: 'Session zmazaná.' });
+    load();
+  }
+
+  const totalSessions = sessions.length;
+  const activeSessions = sessions.filter(s => s.status === 'waiting' || s.status === 'playing').length;
+  const finishedSessions = sessions.filter(s => s.status === 'finished').length;
+  const cancelledSessions = sessions.filter(s => s.status === 'cancelled' || s.status === 'abandoned').length;
+  const qActive = questions.filter(q => !q.reported);
+  const qEasy = qActive.filter(q => q.difficulty === 1).length;
+  const qMed = qActive.filter(q => q.difficulty === 2).length;
+  const qHard = qActive.filter(q => q.difficulty === 3).length;
+
+  const STATUS_COLORS = { waiting: '#f59e0b', playing: '#3b82f6', finished: '#22c55e', cancelled: '#ef4444', abandoned: '#ef4444' };
+  const STATUS_LABELS = { waiting: 'Čaká', playing: 'Hrá sa', finished: 'Dokončená', cancelled: 'Zrušená', abandoned: 'Opustená' };
+
+  return (
+    <div style={S.body}>
+      {msg && <div style={msg.type === 'error' ? S.errBox : S.successBox}>{msg.text} <button onClick={() => setMsg(null)} style={{ float: 'right', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>✕</button></div>}
+
+      {/* Stats cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Celkom hier', val: totalSessions, color: '#a855f7' },
+          { label: 'Aktívne', val: activeSessions, color: '#3b82f6' },
+          { label: 'Dokončené', val: finishedSessions, color: '#22c55e' },
+          { label: 'Zrušené', val: cancelledSessions, color: '#ef4444' },
+        ].map(s => (
+          <div key={s.label} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ fontSize: 11, color: '#555', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: s.color }}>{s.val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Question pool */}
+      <div style={S.section}>
+        <div style={{ ...S.sectionTitle, color: '#c084fc' }}>📋 Pool otázok (zdieľané s Kvíz Duel)</div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Ľahké', val: qEasy, color: '#22c55e' },
+            { label: 'Stredné', val: qMed, color: '#f59e0b' },
+            { label: 'Ťažké', val: qHard, color: '#ef4444' },
+            { label: 'Celkom aktívnych', val: qActive.length, color: '#a855f7' },
+          ].map(s => (
+            <div key={s.label} style={{ background: '#111', border: `1px solid ${s.color}33`, borderRadius: 10, padding: '10px 18px', minWidth: 100 }}>
+              <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sessions table */}
+      <div style={S.section}>
+        <div style={{ ...S.sectionTitle, color: '#c084fc' }}>🎮 Online Sessions (posledných 50)</div>
+        {loading ? <div style={{ color: '#555', padding: '32px 0', textAlign: 'center' }}>Načítavam...</div> : (
+          <table style={S.table}>
+            <thead>
+              <tr>
+                <th style={S.th}>ID</th>
+                <th style={S.th}>Stav</th>
+                <th style={S.th}>Kód</th>
+                <th style={S.th}>Obtiažnosť</th>
+                <th style={S.th}>Vytvorená</th>
+                <th style={S.th}>Akcie</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map(s => (
+                <tr key={s.id}>
+                  <td style={{ ...S.td, color: '#666', fontSize: 11, fontFamily: 'monospace' }}>{s.id.slice(0, 8)}…</td>
+                  <td style={S.td}><span style={S.badge(STATUS_COLORS[s.status] || '#888')}>{STATUS_LABELS[s.status] || s.status}</span></td>
+                  <td style={{ ...S.td, color: '#c084fc', fontWeight: 700 }}>{s.join_code || '–'}</td>
+                  <td style={S.td}><span style={S.badge(DIFF_COLORS[s.difficulty] || '#888')}>{DIFF_LABELS[s.difficulty] || s.difficulty}</span></td>
+                  <td style={{ ...S.td, color: '#666', fontSize: 12 }}>{new Date(s.created_at).toLocaleString('sk-SK')}</td>
+                  <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
+                    <button style={S.btn('#ef4444', true)} onClick={() => deleteSession(s.id)}>🗑</button>
+                  </td>
+                </tr>
+              ))}
+              {sessions.length === 0 && <tr><td colSpan={6} style={{ padding: '32px 12px', textAlign: 'center', color: '#333' }}>Žiadne sessions</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Stats Tab ─────────────────────────────────────────────────────────────────
 function StatsTab() {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     async function load() {
-      const [qq, hl] = await Promise.all([
+      const [qq, hl, ms] = await Promise.all([
         supabase.from('quiz_questions').select('difficulty, reported'),
         supabase.from('hl_dataset').select('difficulty, reported'),
+        supabase.from('game_sessions').select('game_type, status'),
       ]);
-      const q = qq.data || [], h = hl.data || [];
+      const q = qq.data || [], h = hl.data || [], g = ms.data || [];
+      const mill = g.filter(x => x.game_type === 'millionaire');
+      const quiz = g.filter(x => x.game_type === 'quiz_duel');
+      const hlSess = g.filter(x => x.game_type === 'higher_lower');
       setStats({
         qTotal: q.length, qReported: q.filter(x => x.reported).length,
         qEasy: q.filter(x => x.difficulty === 1 && !x.reported).length,
         qMed: q.filter(x => x.difficulty === 2 && !x.reported).length,
         qHard: q.filter(x => x.difficulty === 3 && !x.reported).length,
         hTotal: h.length, hReported: h.filter(x => x.reported).length,
+        millTotal: mill.length, millActive: mill.filter(x => x.status === 'waiting' || x.status === 'playing').length,
+        quizSess: quiz.length, hlSess: hlSess.length,
       });
     }
     load();
@@ -323,6 +441,10 @@ function StatsTab() {
           { label: 'Kvíz – Ťažké', val: stats.qHard, color: '#ef4444' },
           { label: 'H&L položky', val: stats.hTotal, color: '#f59e0b' },
           { label: '⚠️ Nahlásené (H&L)', val: stats.hReported, color: '#ef4444' },
+          { label: '🎮 Milionár Sessions', val: stats.millTotal, color: '#c084fc' },
+          { label: '🟢 Milionár Aktívne', val: stats.millActive, color: '#3b82f6' },
+          { label: '⚔️ Kvíz Duel Sessions', val: stats.quizSess, color: '#a855f7' },
+          { label: '📈 H&L Sessions', val: stats.hlSess, color: '#f59e0b' },
         ].map(s => (
           <div key={s.label} style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 12, padding: '16px 20px' }}>
             <div style={{ fontSize: 11, color: '#555', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
@@ -339,6 +461,7 @@ const TABS = [
   { id: 'stats', label: '📊 Prehľad' },
   { id: 'quiz', label: '🎯 Kvíz otázky' },
   { id: 'hl', label: '📈 Higher or Lower' },
+  { id: 'millionaire', label: '💎 Milionár Battle' },
 ];
 
 export function AdminPanel({ user, onBack }) {
@@ -369,6 +492,7 @@ export function AdminPanel({ user, onBack }) {
       {tab === 'stats' && <StatsTab />}
       {tab === 'quiz' && <QuizQuestionsTab />}
       {tab === 'hl' && <HigherLowerTab />}
+      {tab === 'millionaire' && <MillionaireTab />}
     </div>
   );
 }
