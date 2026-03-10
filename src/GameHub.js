@@ -318,9 +318,6 @@ export class GameHub {
     const floatY = Math.sin(this._time * 1.2) * 4;
     const floatScale = 1 + Math.sin(this._time * 0.8) * 0.015;
 
-    // Glow that breathes
-    const glowA = 0.6 + Math.sin(this._time * 1.5) * 0.4;
-    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 25 * anim.titleGlow * glowA;
 
     // Big title with smooth multi-stop gradient
     const tfz = mobile ? 48 : 72;
@@ -340,7 +337,6 @@ export class GameHub {
     ctx.fillStyle = tg;
     ctx.fillText('QUIZOVNÍK', 0, 0);
     ctx.restore();
-    ctx.shadowBlur = 0;
 
     // Subtitle
     ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`;
