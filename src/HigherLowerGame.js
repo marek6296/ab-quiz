@@ -764,16 +764,17 @@ export class HigherLowerGame {
   // ── GAME ──────────────────────────────────────────────────────────────────
   _drawGame() {
     const { ctx, W, H, anim } = this;
-    const mobile = W < 768;
+    const mobile = W < 600;
     const cx = W / 2, cy = H / 2;
     const L = this.sequence[this.currentIndex];
     const R = this.sequence[this.currentIndex + 1];
     if (!L || !R) return;
 
     // Top bar: score + topic
+    const scoreY = mobile ? 24 : 36;
     ctx.save();
-    ctx.translate(cx, 36); ctx.scale(anim.scoreScale, anim.scoreScale);
-    ctx.font = `900 ${Math.max(18, Math.min(26, W * 0.03))}px Inter, system-ui, sans-serif`;
+    ctx.translate(cx, scoreY); ctx.scale(anim.scoreScale, anim.scoreScale);
+    ctx.font = `900 ${mobile ? 20 : Math.max(18, Math.min(26, W * 0.03))}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = C.gold;
     ctx.shadowColor = C.gold; ctx.shadowBlur = this.score > 0 ? 16 : 0;
@@ -781,20 +782,20 @@ export class HigherLowerGame {
     ctx.restore();
 
     ctx.save();
-    ctx.font = `500 ${Math.max(11, Math.min(13, W * 0.015))}px Inter, system-ui, sans-serif`;
+    ctx.font = `500 ${mobile ? 10 : Math.max(11, Math.min(13, W * 0.015))}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = C.muted;
-    ctx.fillText(this.topic, cx, 67);
+    ctx.fillText(this.topic, cx, mobile ? 48 : 67);
     ctx.restore();
 
     // Round banner
     if (anim.roundBanner > 0.01) {
       ctx.save();
       ctx.globalAlpha = anim.roundBanner;
-      ctx.font = `800 16px Inter, system-ui, sans-serif`;
+      ctx.font = `800 ${mobile ? 13 : 16}px Inter, system-ui, sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = C.gold;
-      ctx.fillText(`Kolo ${this.roundNumber}`, cx, 95);
+      ctx.fillText(`Kolo ${this.roundNumber}`, cx, mobile ? 68 : 95);
       ctx.restore();
     }
 
@@ -805,34 +806,54 @@ export class HigherLowerGame {
       ctx.translate(cx, cy);
       const s = 0.7 + anim.nextBanner * 0.3;
       ctx.scale(s, s);
-      ctx.font = '900 32px Inter, system-ui, sans-serif';
+      ctx.font = `900 ${mobile ? 24 : 32}px Inter, system-ui, sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.shadowColor = C.gold; ctx.shadowBlur = 25;
       ctx.fillStyle = C.gold;
       ctx.fillText('Ďalšia otázka ▶', 0, 0);
       ctx.shadowBlur = 0;
-      ctx.font = '500 14px Inter, system-ui, sans-serif';
+      ctx.font = `500 ${mobile ? 12 : 14}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = C.muted;
-      ctx.fillText(`Kolo ${this.roundNumber}`, 0, 35);
+      ctx.fillText(`Kolo ${this.roundNumber}`, 0, mobile ? 28 : 35);
       ctx.restore();
     }
 
     // Cards
-    const gapX = mobile ? 0 : 210;
-    const gapY = mobile ? 175 : 0;
+    if (mobile) {
+      const CW = Math.min(W - 24, 320);
+      const CH = 150;
+      const topStart = 80;
+      const gap = 14;
+      const c1y = topStart + CH / 2;
+      const c2y = topStart + CH + gap + CH / 2;
+      const vsY = topStart + CH + gap / 2;
 
-    this._drawCard(cx - gapX + anim.leftX, cy - gapY, L, true, anim.leftA, 1);
-    this._drawCard(cx + gapX + anim.rightX, cy + gapY, R, false, anim.rightA, anim.rightScale);
+      this._drawCard(cx + anim.leftX, c1y, L, true, anim.leftA, 1, CW, CH);
+      this._drawCard(cx + anim.rightX, c2y, R, false, anim.rightA, anim.rightScale, CW, CH);
 
-    // VS
-    if (anim.vsA > 0.01) {
-      ctx.save();
-      ctx.globalAlpha = anim.vsA * 0.3;
-      ctx.font = `900 18px Inter, system-ui, sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#555';
-      ctx.fillText('VS', cx, cy);
-      ctx.restore();
+      if (anim.vsA > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = anim.vsA * 0.3;
+        ctx.font = '800 18px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = C.dim;
+        ctx.fillText('VS', cx, vsY);
+        ctx.restore();
+      }
+    } else {
+      const gapX = 210;
+      this._drawCard(cx - gapX + anim.leftX, cy, L, true, anim.leftA, 1, 310, 360);
+      this._drawCard(cx + gapX + anim.rightX, cy, R, false, anim.rightA, anim.rightScale, 310, 360);
+
+      if (anim.vsA > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = anim.vsA * 0.3;
+        ctx.font = `900 18px Inter, system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#555';
+        ctx.fillText('VS', cx, cy);
+        ctx.restore();
+      }
     }
 
     // Result icon (✓ or ✕)
@@ -841,7 +862,7 @@ export class HigherLowerGame {
       ctx.globalAlpha = anim.resultIcon;
       ctx.translate(cx, cy);
       ctx.scale(anim.resultIcon, anim.resultIcon);
-      ctx.font = `900 48px Inter, system-ui, sans-serif`;
+      ctx.font = `900 ${mobile ? 36 : 48}px Inter, system-ui, sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = anim.resultOk ? C.green : C.red;
       ctx.shadowColor = anim.resultOk ? C.green : C.red;
@@ -851,9 +872,10 @@ export class HigherLowerGame {
     }
   }
 
-  _drawCard(cx, cy, item, revealed, alpha, scale) {
-    const { ctx } = this;
-    const CW = 310, CH = 360, CR = 20;
+  _drawCard(cx, cy, item, revealed, alpha, scale, CW, CH) {
+    const { ctx, W } = this;
+    const mobile = W < 600;
+    const CR = mobile ? 14 : 20;
     const x = cx - CW / 2, y = cy - CH / 2;
 
     ctx.save();
@@ -863,93 +885,126 @@ export class HigherLowerGame {
     ctx.translate(-cx, -cy);
 
     // Card bg
-    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = mobile ? 15 : 30; ctx.shadowOffsetY = mobile ? 5 : 10;
     rr(ctx, x, y, CW, CH, CR);
     const bg = ctx.createLinearGradient(x, y, x, y + CH);
     bg.addColorStop(0, '#151515'); bg.addColorStop(1, '#0a0a0a');
     ctx.fillStyle = bg; ctx.fill();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-    // Border with subtle gold if revealed
+    // Border
     rr(ctx, x, y, CW, CH, CR);
     ctx.strokeStyle = revealed ? hex2rgba(C.gold, 0.3) : 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1.5; ctx.stroke();
 
-    // Top glass shine
-    const shine = ctx.createLinearGradient(x, y, x, y + 60);
-    shine.addColorStop(0, 'rgba(255,255,255,0.04)');
-    shine.addColorStop(1, 'rgba(255,255,255,0)');
-    rr(ctx, x, y, CW, 60, CR);
-    ctx.fillStyle = shine; ctx.fill();
+    if (!mobile) {
+      const shine = ctx.createLinearGradient(x, y, x, y + 60);
+      shine.addColorStop(0, 'rgba(255,255,255,0.04)');
+      shine.addColorStop(1, 'rgba(255,255,255,0)');
+      rr(ctx, x, y, CW, 60, CR);
+      ctx.fillStyle = shine; ctx.fill();
+    }
 
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    // Emoji
-    ctx.font = '56px serif';
-    ctx.fillText(item.image || '❓', cx, y + 80);
+    if (mobile) {
+      // ── Mobile compact: emoji left, name+value right, buttons bottom ──
+      ctx.font = '30px serif';
+      ctx.fillText(item.image || '❓', x + 35, cy - 15);
 
-    // Name
-    ctx.font = `700 ${item.name.length > 18 ? 17 : 21}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = '#fff';
-    wrapText(ctx, item.name, cx, y + 160, CW - 32, 26);
+      ctx.font = `700 ${item.name.length > 20 ? 13 : 15}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = '#fff';
+      wrapText(ctx, item.name, cx + 10, cy - 18, CW - 85, 18);
 
-    // Value (always shown on left; count-up on right)
-    if (revealed) {
-      const val = `${formatNum(item.value)} ${this.metric}`;
-      ctx.font = `900 ${val.length > 18 ? 16 : 19}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = C.gold;
-      ctx.shadowColor = C.gold; ctx.shadowBlur = 8;
-      ctx.fillText(val, cx, y + 210);
-      ctx.shadowBlur = 0;
+      if (revealed) {
+        const val = `${formatNum(item.value)} ${this.metric}`;
+        ctx.font = '900 13px Inter, system-ui, sans-serif';
+        ctx.fillStyle = C.gold; ctx.shadowColor = C.gold; ctx.shadowBlur = 6;
+        ctx.fillText(val, cx + 10, cy + 8);
+        ctx.shadowBlur = 0;
+      } else {
+        if (this.anim.valReveal > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = this.anim.valReveal;
+          ctx.font = '900 13px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.gold; ctx.shadowColor = C.gold; ctx.shadowBlur = 6;
+          ctx.fillText(`${formatNum(Math.round(this.countUp.current))} ${this.metric}`, cx + 10, cy + 8);
+          ctx.restore();
+        }
+        const btnA = 1 - Math.min(1, this.anim.valReveal * 2.5);
+        if (btnA > 0.01) {
+          ctx.save();
+          ctx.globalAlpha *= btnA;
+          const bw = (CW - 20) / 2 - 4, bh = 32, by = y + CH - bh - 8;
+          const bha = { x: x + 6, y: by, w: bw, h: bh };
+          this.hits.bh = bha;
+          rr(ctx, bha.x, bha.y, bw, bh, 10);
+          ctx.fillStyle = this.anim.bhH ? C.greenL : C.green; ctx.fill();
+          ctx.font = '800 12px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#000';
+          ctx.fillText('▲ HIGHER', x + 6 + bw / 2, by + bh / 2);
+          const bla = { x: x + 6 + bw + 8, y: by, w: bw, h: bh };
+          this.hits.bl = bla;
+          rr(ctx, bla.x, bla.y, bw, bh, 10);
+          ctx.fillStyle = this.anim.blH ? C.redL : C.red; ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.fillText('▼ LOWER', bla.x + bw / 2, by + bh / 2);
+          ctx.restore();
+        }
+      }
     } else {
-      // Revealed value with count-up
-      if (this.anim.valReveal > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = this.anim.valReveal;
-        const displayVal = formatNum(Math.round(this.countUp.current));
-        const val = `${displayVal} ${this.metric}`;
+      // ── Desktop: vertical card ──
+      ctx.font = '56px serif';
+      ctx.fillText(item.image || '❓', cx, y + 80);
+      ctx.font = `700 ${item.name.length > 18 ? 17 : 21}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = '#fff';
+      wrapText(ctx, item.name, cx, y + 160, CW - 32, 26);
+
+      if (revealed) {
+        const val = `${formatNum(item.value)} ${this.metric}`;
         ctx.font = `900 ${val.length > 18 ? 16 : 19}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = C.gold; ctx.shadowColor = C.gold; ctx.shadowBlur = 8;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(val, cx, y + 210);
-        ctx.restore();
-      }
-
-      // Buttons (hidden during reveal)
-      const btnA = 1 - Math.min(1, this.anim.valReveal * 2.5);
-      if (btnA > 0.01) {
-        ctx.save();
-        ctx.globalAlpha *= btnA;
-
-        const bw = 180, bh = 48, bx = cx - bw / 2;
-        const by1 = y + CH - 125, by2 = y + CH - 65;
-
-        // Higher
-        const bha = { x: bx, y: by1 - bh/2, w: bw, h: bh };
-        this.hits.bh = bha;
-        ctx.shadowColor = C.green; ctx.shadowBlur = this.anim.bhH * 20;
-        const gh = ctx.createLinearGradient(bx, bha.y, bx, bha.y + bh);
-        gh.addColorStop(0, this.anim.bhH ? C.greenL : C.green);
-        gh.addColorStop(1, this.anim.bhH ? C.green : '#15803d');
-        rr(ctx, bx, bha.y, bw, bh, 14); ctx.fillStyle = gh; ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.font = `800 16px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('▲ HIGHER', cx, by1);
-
-        // Lower
-        const bla = { x: bx, y: by2 - bh/2, w: bw, h: bh };
-        this.hits.bl = bla;
-        ctx.shadowColor = C.red; ctx.shadowBlur = this.anim.blH * 20;
-        const gl = ctx.createLinearGradient(bx, bla.y, bx, bla.y + bh);
-        gl.addColorStop(0, this.anim.blH ? C.redL : C.red);
-        gl.addColorStop(1, this.anim.blH ? C.red : '#991b1b');
-        rr(ctx, bx, bla.y, bw, bh, 14); ctx.fillStyle = gl; ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fff';
-        ctx.fillText('▼ LOWER', cx, by2);
-
-        ctx.restore();
+      } else {
+        if (this.anim.valReveal > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = this.anim.valReveal;
+          const val = `${formatNum(Math.round(this.countUp.current))} ${this.metric}`;
+          ctx.font = `900 ${val.length > 18 ? 16 : 19}px Inter, system-ui, sans-serif`;
+          ctx.fillStyle = C.gold; ctx.shadowColor = C.gold; ctx.shadowBlur = 8;
+          ctx.fillText(val, cx, y + 210);
+          ctx.restore();
+        }
+        const btnA = 1 - Math.min(1, this.anim.valReveal * 2.5);
+        if (btnA > 0.01) {
+          ctx.save();
+          ctx.globalAlpha *= btnA;
+          const bw = 180, bh = 48, bx = cx - bw / 2;
+          const by1 = y + CH - 125, by2 = y + CH - 65;
+          const bha = { x: bx, y: by1 - bh/2, w: bw, h: bh };
+          this.hits.bh = bha;
+          ctx.shadowColor = C.green; ctx.shadowBlur = this.anim.bhH * 20;
+          const gh = ctx.createLinearGradient(bx, bha.y, bx, bha.y + bh);
+          gh.addColorStop(0, this.anim.bhH ? C.greenL : C.green);
+          gh.addColorStop(1, this.anim.bhH ? C.green : '#15803d');
+          rr(ctx, bx, bha.y, bw, bh, 14); ctx.fillStyle = gh; ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.font = '800 16px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('▲ HIGHER', cx, by1);
+          const bla = { x: bx, y: by2 - bh/2, w: bw, h: bh };
+          this.hits.bl = bla;
+          ctx.shadowColor = C.red; ctx.shadowBlur = this.anim.blH * 20;
+          const gl = ctx.createLinearGradient(bx, bla.y, bx, bla.y + bh);
+          gl.addColorStop(0, this.anim.blH ? C.redL : C.red);
+          gl.addColorStop(1, this.anim.blH ? C.red : '#991b1b');
+          rr(ctx, bx, bla.y, bw, bh, 14); ctx.fillStyle = gl; ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#fff';
+          ctx.fillText('▼ LOWER', cx, by2);
+          ctx.restore();
+        }
       }
     }
 
