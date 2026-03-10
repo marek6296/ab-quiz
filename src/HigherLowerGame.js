@@ -294,7 +294,7 @@ export class HigherLowerGame {
   _handleClick(p) {
     if (this.state === 'menu') {
       if (this._hit(p, this.hits.backHub) && this.onBack) { this.onBack(); return; }
-      if (this._hit(p, this.hits.bq)) this._startGame();
+      if (this._hit(p, this.hits.bq) && this.difficulty) this._startGame();
       if (this._hit(p, this.hits.bf)) {
         if (!this.user) { this._openAuth(); return; }
         this._openFriends();
@@ -718,13 +718,25 @@ export class HigherLowerGame {
     // Label above difficulty
     ctx.font = `500 11px Inter, system-ui, sans-serif`;
     ctx.fillStyle = `rgba(255,255,255,0.25)`;
-    ctx.fillText(this.difficulty ? '' : 'Obtiažnosť (všetky)', cx, dsy - 12);
+    ctx.fillText(this.difficulty ? '' : 'Vyber obtiažnosť', cx, dsy - 12);
     const bw = 260, bh = 58;
 
-    // RÝCHLA HRA button
+    // HRAŤ button (greyed if no difficulty)
     const bq = { x: cx - bw/2, y: dsy + dbh + 24, w: bw, h: bh };
     this.hits.bq = bq;
-    this._drawGoldBtn(bq, '⚡  HRAŤ', anim.bqH);
+    const canPlay = !!this.difficulty;
+    if (canPlay) {
+      this._drawGoldBtn(bq, '⚡  HRAŤ', anim.bqH);
+    } else {
+      ctx.save();
+      const g = ctx.createLinearGradient(bq.x, bq.y, bq.x, bq.y + bh);
+      g.addColorStop(0, '#333'); g.addColorStop(1, '#222');
+      rr(ctx, bq.x, bq.y, bw, bh, 16); ctx.fillStyle = g; ctx.fill();
+      ctx.font = '800 20px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#555'; ctx.fillText('⚡  HRAŤ', cx, bq.y + bh/2);
+      ctx.restore();
+    }
 
     // ONLINE DUEL button
     const bf = { x: cx - bw/2, y: bq.y + bh + 14, w: bw, h: bh };
