@@ -265,7 +265,7 @@ export class HigherLowerGame {
     gsap.to(this.anim, { bfH: this._hit(p, this.hits.bf) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { bhH: this._hit(p, this.hits.bh) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { blH: this._hit(p, this.hits.bl) ? 1:0, duration: 0.15 });
-    gsap.to(this.anim, { brH: this._hit(p, this.hits.br) ? 1:0, duration: 0.15 });
+    gsap.to(this.anim, { brH: (this._hit(p, this.hits.br) || this._hit(p, this.hits.backHub)) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { baH: this._hit(p, this.hits.ba) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { boH: this._hit(p, this.hits.bo) ? 1:0, duration: 0.15 });
     // Difficulty buttons
@@ -280,6 +280,7 @@ export class HigherLowerGame {
 
   _handleClick(p) {
     if (this.state === 'menu') {
+      if (this._hit(p, this.hits.backHub) && this.onBack) { this.onBack(); return; }
       if (this._hit(p, this.hits.bq)) this._startGame();
       if (this._hit(p, this.hits.bf)) {
         if (!this.user) { this._openAuth(); return; }
@@ -617,6 +618,23 @@ export class HigherLowerGame {
     ctx.globalAlpha = anim.menuAlpha;
     const yo = anim.menuY;
     const cx = W / 2, cy = H / 2;
+    const mobile = W < 600;
+
+    // Back to hub button (if launched from hub)
+    if (this.onBack) {
+      const bbw = mobile ? 90 : 110, bbh = 36;
+      const bb = { x: 16, y: 16 + yo, w: bbw, h: bbh };
+      this.hits.backHub = bb;
+      rr(ctx, bb.x, bb.y, bbw, bbh, 12);
+      ctx.fillStyle = this.anim.brH ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
+      ctx.fill();
+      rr(ctx, bb.x, bb.y, bbw, bbh, 12);
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.font = `600 ${mobile ? 12 : 13}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = C.muted;
+      ctx.fillText('← Späť', bb.x + bbw/2, bb.y + bbh/2);
+    }
 
     // Gold aura behind title
     const glow = ctx.createRadialGradient(cx, cy - 100 + yo, 10, cx, cy - 100 + yo, 320);
