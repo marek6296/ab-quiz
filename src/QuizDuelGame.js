@@ -79,11 +79,21 @@ export class QuizDuelGame{
     window.addEventListener('resize',this._resize);canvas.addEventListener('mousemove',this._onMove);
     canvas.addEventListener('mousedown',this._onClick);canvas.addEventListener('touchstart',e=>this._onClick(e),{passive:true});
     window.addEventListener('keydown',this._onKey);this._resize();
+    // Hidden input for mobile keyboard
+    this._hiddenInput=document.createElement('input');
+    Object.assign(this._hiddenInput.style,{position:'fixed',bottom:'0',left:'0',width:'1px',height:'1px',
+      opacity:'0.01',fontSize:'16px',zIndex:'-1',pointerEvents:'none',border:'none',padding:'0'});
+    this._hiddenInput.setAttribute('autocomplete','off');this._hiddenInput.setAttribute('autocorrect','off');
+    this._hiddenInput.setAttribute('autocapitalize','off');this._hiddenInput.setAttribute('spellcheck','false');
+    this._hiddenInput.addEventListener('input',()=>{this.typedAnswer=this._hiddenInput.value.slice(0,40)});
+    this._hiddenInput.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();this._submitTyped()}});
+    document.body.appendChild(this._hiddenInput);
   }
   start(){this._animateMenu();this._loop()}
   destroy(){this._dead=true;clearInterval(this._ti);clearTimeout(this._bt);
     window.removeEventListener('resize',this._resize);window.removeEventListener('keydown',this._onKey);
     this.canvas.removeEventListener('mousemove',this._onMove);this.canvas.removeEventListener('mousedown',this._onClick);
+    if(this._hiddenInput?.parentNode)this._hiddenInput.remove();
     gsap.killTweensOf(this.anim)}
   setUser(u){this.user=u}
 
@@ -121,6 +131,11 @@ export class QuizDuelGame{
     this.phase='question';this.typedAnswer='';this.answerResult=null;this.timer=ROUND_TIME;this._trans=false;
     this.anim.qA=0;this.anim.qY=20;this.anim.revealA=0;
     gsap.to(this.anim,{qA:1,qY:0,duration:0.5,ease:'back.out(1.2)'});
+    // Auto-focus hidden input for player's turn (mobile keyboard)
+    if(this.turn==='player'&&this._hiddenInput){
+      this._hiddenInput.value='';this._hiddenInput.style.pointerEvents='auto';
+      setTimeout(()=>{if(!this._dead&&this.phase==='question'&&this.turn==='player')this._hiddenInput.focus()},100);
+    }else if(this._hiddenInput){this._hiddenInput.blur();this._hiddenInput.style.pointerEvents='none'}
     if(this.turn==='bot'){const q=this.questions[this.qIdx];const ok=this.bot.willAnswer(q);
       this._bt=setTimeout(()=>{if(this._dead||this.phase!=='question')return;
         this.answerResult=ok?'correct':'wrong';this._doReveal()},this.bot.delay()*1000)}
@@ -130,7 +145,9 @@ export class QuizDuelGame{
 
   _submitTyped(){if(this.phase!=='question'||this.turn!=='player'||this.answerResult)return;
     const q=this.questions[this.qIdx];const ok=checkAnswer(this.typedAnswer,q.a);
-    this.answerResult=ok?'correct':'wrong';this._doReveal()}
+    this.answerResult=ok?'correct':'wrong';
+    if(this._hiddenInput){this._hiddenInput.blur();this._hiddenInput.style.pointerEvents='none'}
+    this._doReveal()}
 
   _doReveal(){if(this.phase!=='question')return;clearInterval(this._ti);clearTimeout(this._bt);
     this.phase='reveal';const correct=this.answerResult==='correct';
@@ -140,6 +157,7 @@ export class QuizDuelGame{
       setTimeout(()=>{if(this._dead)return;this._nextTurn()},1800);
     }else{// Wrong/timeout → steal opportunity for opponent
       this.qIdx++;
+      if(this._hiddenInput){this._hiddenInput.blur();this._hiddenInput.style.pointerEvents='none'}
       setTimeout(()=>{if(this._dead)return;this._startSteal()},1500)}}
 
   _startSteal(){const opp=this.turn==='player'?'bot':'player';this.stealPhase=true;this.stealFor=opp;
@@ -173,8 +191,10 @@ export class QuizDuelGame{
 
   _onKey(e){if(this.phase==='question'&&this.turn==='player'&&!this.answerResult){
     if(e.key==='Enter'){e.preventDefault();this._submitTyped();return}
-    if(e.key==='Backspace'){this.typedAnswer=this.typedAnswer.slice(0,-1);return}
-    if(e.key.length===1&&this.typedAnswer.length<40)this.typedAnswer+=e.key}}
+    if(e.key==='Backspace'){this.typedAnswer=this.typedAnswer.slice(0,-1);
+      if(this._hiddenInput)this._hiddenInput.value=this.typedAnswer;return}
+    if(e.key.length===1&&this.typedAnswer.length<40){this.typedAnswer+=e.key;
+      if(this._hiddenInput)this._hiddenInput.value=this.typedAnswer}}}
 
   _resize(){const r=this.canvas.getBoundingClientRect();this.W=r.width||window.innerWidth;this.H=r.height||window.innerHeight;
     this.canvas.width=this.W*this.dpr;this.canvas.height=this.H*this.dpr;
