@@ -587,7 +587,7 @@ export class HigherLowerGame {
     ctx.fillRect(cx - 350, cy - 350 + yo, 700, 500);
 
     // Title: HIGHER OR LOWER
-    const fz = Math.min(64, W * 0.05);
+    const fz = Math.max(34, Math.min(64, W * 0.08));
     ctx.save();
     ctx.font = `900 ${fz}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -606,7 +606,7 @@ export class HigherLowerGame {
 
     // Subtitle with animated arrow
     const arrows = '▲▼';
-    ctx.font = `400 ${Math.min(17, W * 0.015)}px Inter, system-ui, sans-serif`;
+    ctx.font = `400 ${Math.max(12, Math.min(17, W * 0.02))}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(`${arrows}  Uhádni čo je viac a čo menej  ${arrows}`, cx, cy - 62 + yo);
 
@@ -740,7 +740,7 @@ export class HigherLowerGame {
     // Top bar: score + topic
     ctx.save();
     ctx.translate(cx, 36); ctx.scale(anim.scoreScale, anim.scoreScale);
-    ctx.font = `900 ${Math.min(26, W*0.02)}px Inter, system-ui, sans-serif`;
+    ctx.font = `900 ${Math.max(18, Math.min(26, W * 0.03))}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = C.gold;
     ctx.shadowColor = C.gold; ctx.shadowBlur = this.score > 0 ? 16 : 0;
@@ -748,7 +748,7 @@ export class HigherLowerGame {
     ctx.restore();
 
     ctx.save();
-    ctx.font = `500 ${Math.min(13, W*0.011)}px Inter, system-ui, sans-serif`;
+    ctx.font = `500 ${Math.max(11, Math.min(13, W * 0.015))}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = C.muted;
     ctx.fillText(this.topic, cx, 67);
