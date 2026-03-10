@@ -654,11 +654,11 @@ export class HigherLowerGame {
     }
 
     // Gold aura behind title
-    const glow = ctx.createRadialGradient(cx, cy - 100 + yo, 10, cx, cy - 100 + yo, 320);
+    const glow = ctx.createRadialGradient(cx, cy - 110 + yo, 10, cx, cy - 110 + yo, 320);
     glow.addColorStop(0, hex2rgba(C.gold, 0.12 * anim.titleGlow));
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(cx - 350, cy - 350 + yo, 700, 500);
+    ctx.fillRect(cx - 350, cy - 400 + yo, 700, 500);
 
     // Title: HIGHER OR LOWER
     const fz = Math.max(34, Math.min(64, W * 0.08));
@@ -675,12 +675,12 @@ export class HigherLowerGame {
     tg.addColorStop(0.5 + shift * 0.5, C.goldL);
     tg.addColorStop(1, C.goldD);
     ctx.fillStyle = tg;
-    ctx.fillText('HIGHER OR LOWER', cx, cy - 120 + yo);
+    ctx.fillText('HIGHER OR LOWER', cx, cy - 110 + yo);
     ctx.restore();
 
     // Subtitle with animated arrow
     const arrows = '▲▼';
-    ctx.font = `400 ${Math.max(12, Math.min(17, W * 0.02))}px Inter, system-ui, sans-serif`;
+    ctx.font = `400 ${Math.max(13, Math.min(16, W * 0.02))}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(`${arrows}  Uhádni čo je viac a čo menej  ${arrows}`, cx, cy - 62 + yo);
 
@@ -696,7 +696,7 @@ export class HigherLowerGame {
     const diffColors = [C.green, C.gold, C.red];
     const dbw = 90, dbh = 38, dgap = 12;
     const dtotalW = dbw * 3 + dgap * 2;
-    const dsy = cy - 4 + yo;
+    const dsy = cy - 10 + yo;
     for (let i = 0; i < 3; i++) {
       const dx = cx - dtotalW / 2 + i * (dbw + dgap);
       const da = { x: dx, y: dsy, w: dbw, h: dbh };
@@ -719,7 +719,6 @@ export class HigherLowerGame {
     ctx.font = `500 11px Inter, system-ui, sans-serif`;
     ctx.fillStyle = `rgba(255,255,255,0.25)`;
     ctx.fillText(this.difficulty ? '' : 'Obtiažnosť (všetky)', cx, dsy - 12);
-
     const bw = 260, bh = 58;
 
     // RÝCHLA HRA button

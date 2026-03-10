@@ -264,38 +264,33 @@ export class QuizDuelGame{
     ctx.fillStyle=C.muted;ctx.fillText('← Späť',bb.x+bbw/2,bb.y+bbh/2);
 
     // Title glow
-    const glow=ctx.createRadialGradient(cx,cy-100,10,cx,cy-100,320);
+    const glow=ctx.createRadialGradient(cx,cy-110,10,cx,cy-110,320);
     glow.addColorStop(0,hex2rgba(C.green,0.12));glow.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=glow;ctx.fillRect(cx-350,cy-350,700,500);
+    ctx.fillStyle=glow;ctx.fillRect(cx-350,cy-400,700,500);
 
     // Title with shimmer gradient
-    const fz=Math.max(28,Math.min(52,W*0.07));
+    const fz=Math.max(34,Math.min(64,W*0.08));
     ctx.save();ctx.font=`900 ${fz}px Inter,system-ui,sans-serif`;
     ctx.textAlign='center';ctx.textBaseline='middle';
-    const tg=ctx.createLinearGradient(cx-200,0,cx+200,0);
+    const tg=ctx.createLinearGradient(cx-250,0,cx+250,0);
     const shift=(Math.sin(this._time*0.8)+1)/2;
     tg.addColorStop(0,C.greenD);tg.addColorStop(shift*0.5,C.greenL);
     tg.addColorStop(0.5,'#fff');tg.addColorStop(0.5+shift*0.5,C.greenL);
     tg.addColorStop(1,C.greenD);
-    ctx.fillStyle=tg;ctx.fillText('KVÍZ DUEL',cx,cy-120);
+    ctx.fillStyle=tg;ctx.fillText('KVÍZ DUEL',cx,cy-110);
     ctx.restore();
 
     // Subtitle
-    ctx.font=`400 ${m?12:15}px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=C.muted;ctx.fillText('AZ Kvíz • Hexagony • Píš odpoveď!',cx,cy-78);
+    ctx.font=`400 ${m?13:16}px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=C.muted;ctx.fillText('⬡ AZ Kvíz • Hexagony • Píš odpoveď!',cx,cy-62);
 
-    // Rules
-    ctx.font=`500 ${m?10:12}px Inter,system-ui,sans-serif`;ctx.fillStyle=hex2rgba(C.greenL,0.5);
-    const rules=['🟦 Ty hráš modrou zhora nadol','🟧 BOT hrá oranžovou','✍️ Odpoveď napíš','❌ Zlé → súper môže prevziať'];
-    rules.forEach((r,i)=>ctx.fillText(r,cx,cy-50+i*(m?16:20)));
-
-    // Difficulty selector (same style as H&L)
+    // Difficulty selector
     const diffLabels=['Ľahká','Stredná','Ťažká'],dk=['easy','medium','hard'],dc=[C.greenL,C.gold,C.red];
     const dbw=90,dbh=38,dgap=12,dtw=dbw*3+dgap*2;
-    const dsy=cy-50+rules.length*(m?16:20)+16;
+    const dsy=cy-10;
     ctx.font='500 11px Inter,system-ui,sans-serif';
     ctx.fillStyle=anim.errorFlash>0?`rgba(239,68,68,${anim.errorFlash})`:'rgba(255,255,255,0.25)';
-    ctx.fillText(this.botDiff?'':'⚠️ Vyber obtiažnosť!',cx,dsy-12);
+    ctx.fillText(this.botDiff?'':'Vyber obtiažnosť',cx,dsy-12);
     for(let i=0;i<3;i++){
       const dx=cx-dtw/2+i*(dbw+dgap);this.hits[`d${i}`]={x:dx,y:dsy,w:dbw,h:dbh};
       const act=this.botDiff===dk[i],hv=this.anim.diffH[i];
@@ -310,7 +305,7 @@ export class QuizDuelGame{
       ctx.restore();
     }
 
-    // HRAŤ button (gold style like H&L)
+    // HRAŤ vs BOT button
     const pbw=260,pbh=58;const pb={x:cx-pbw/2,y:dsy+dbh+24,w:pbw,h:pbh};this.hits.play=pb;
     const cp=!!this.botDiff;
     ctx.save();
