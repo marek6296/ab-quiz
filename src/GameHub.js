@@ -401,9 +401,8 @@ export class GameHub {
       ctx.fillText('🔑 Prihlásiť sa', lbx + lbw/2, barY + fbh/2);
     }
 
-    // Admin button (only for admins)
-    const ADMIN_EMAILS = ['marek@example.com'];
-    if (this.user && ADMIN_EMAILS.includes(this.user.email)) {
+    // Admin button (visible for logged-in users)
+    if (this.user) {
       const abw = mobile ? 80 : 100, abh = mobile ? 30 : 34;
       const abx = mobile ? W - abw - 8 : W - abw - 16;
       const aby = mobile ? 8 : 16;

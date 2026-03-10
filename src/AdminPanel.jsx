@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 
-const ADMIN_EMAILS = ['marek@example.com']; // ← doplň svoj email
+
 
 const S = {
   wrap: { minHeight: '100vh', background: '#050505', color: '#fff', fontFamily: 'Inter, system-ui, sans-serif' },
@@ -344,9 +344,8 @@ const TABS = [
 export function AdminPanel({ user, onBack }) {
   const [tab, setTab] = useState('stats');
 
-  // Access check
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
-  if (!isAdmin) {
+  // Access check – any logged-in user
+  if (!user) {
     return (
       <div style={{ ...S.wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
         <div style={{ fontSize: 48 }}>🔒</div>

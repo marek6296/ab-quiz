@@ -109,6 +109,7 @@ export class MillionaireGame {
     this.countdownNum = 3;
     this.bots = [];
     this.botCount = 3; // 1–7
+    this.difficulty = null; // null = mix, 1/2/3
     this.reportedQ = new Set();
     this._transitioning = false;
 
@@ -122,6 +123,7 @@ export class MillionaireGame {
       leaveH: 0, reportH: 0,
       ladderA: 0,
       botMinusH: 0, botPlusH: 0,
+      diffH: [0, 0, 0],
     };
     this.hits = {};
 
@@ -154,11 +156,18 @@ export class MillionaireGame {
   }
 
   async _startGame() {
+    if (!this.difficulty) return; // must select difficulty
     const allQ = await loadQuestions();
-    const easy = shuffle(allQ.filter(q => q.difficulty === 1));
-    const medium = shuffle(allQ.filter(q => q.difficulty === 2));
-    const hard = shuffle(allQ.filter(q => q.difficulty === 3));
-    this.questions = [...easy.slice(0, 5), ...medium.slice(0, 5), ...hard.slice(0, 4)];
+    let pool;
+    if (this.difficulty) {
+      pool = shuffle(allQ.filter(q => q.difficulty === this.difficulty));
+    } else {
+      const easy = shuffle(allQ.filter(q => q.difficulty === 1));
+      const medium = shuffle(allQ.filter(q => q.difficulty === 2));
+      const hard = shuffle(allQ.filter(q => q.difficulty === 3));
+      pool = [...easy.slice(0, 5), ...medium.slice(0, 5), ...hard.slice(0, 4)];
+    }
+    this.questions = pool.slice(0, TOTAL_Q);
     if (this.questions.length < TOTAL_Q) {
       const used = new Set(this.questions.map(q => q.q));
       const remaining = shuffle(allQ.filter(q => !used.has(q.q)));
@@ -287,6 +296,10 @@ export class MillionaireGame {
     gsap.to(this.anim, { reportH: this._hit(p, this.hits.report) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { botMinusH: this._hit(p, this.hits.botMinus) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { botPlusH: this._hit(p, this.hits.botPlus) ? 1 : 0, duration: 0.15 });
+    for (let i = 0; i < 3; i++) {
+      const h = this._hit(p, this.hits[`diff${i}`]);
+      gsap.to(this.anim.diffH, { [i]: h ? 1 : 0, duration: 0.15 });
+    }
     const any = Object.values(this.hits).some(a => a && this._hit(p, a));
     this.canvas.style.cursor = any ? 'pointer' : 'default';
   }
@@ -298,6 +311,9 @@ export class MillionaireGame {
       if (this._hit(p, this.hits.play)) this._startGame();
       if (this._hit(p, this.hits.botMinus) && this.botCount > 1) this.botCount--;
       if (this._hit(p, this.hits.botPlus) && this.botCount < 7) this.botCount++;
+      for (let i = 0; i < 3; i++) {
+        if (this._hit(p, this.hits[`diff${i}`])) this.difficulty = this.difficulty === (i+1) ? null : (i+1);
+      }
     }
     if (this.phase === 'question') {
       for (let i = 0; i < 4; i++) { if (this._hit(p, this.hits[`a${i}`])) this._submitAnswer(i); }
@@ -390,8 +406,34 @@ export class MillionaireGame {
     ctx.fillStyle = C.purpleL;
     ctx.fillText(`${this.botCount}`, cx, bcY + 12 + btnS/2);
 
+    // Difficulty selector
+    const diffLabels = ['Ľah', 'Stred', 'Ťaž'];
+    const diffColors = ['#22c55e', '#f59e0b', '#ef4444'];
+    const dbw = mobile ? 70 : 85, dbh = mobile ? 34 : 38, dgap = 8;
+    const dtotalW = dbw * 3 + dgap * 2;
+    const diffY = bcY + btnS + 26;
+    ctx.font = `500 ${mobile ? 10 : 12}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillText(this.difficulty ? '' : 'Vyber obtiažnosť!', cx, diffY - 10);
+    for (let i = 0; i < 3; i++) {
+      const dx = cx - dtotalW/2 + i * (dbw + dgap);
+      const da = { x: dx, y: diffY, w: dbw, h: dbh };
+      this.hits[`diff${i}`] = da;
+      const active = this.difficulty === (i + 1);
+      const hover = this.anim.diffH[i];
+      rr(ctx, dx, diffY, dbw, dbh, 10);
+      ctx.fillStyle = active ? hex2rgba(diffColors[i], 0.25) : `rgba(255,255,255,${0.03 + hover * 0.05})`; ctx.fill();
+      rr(ctx, dx, diffY, dbw, dbh, 10);
+      ctx.strokeStyle = active ? diffColors[i] : `rgba(255,255,255,${0.1 + hover * 0.15})`;
+      ctx.lineWidth = active ? 2 : 1; ctx.stroke();
+      ctx.font = `${active ? 700 : 500} ${mobile ? 12 : 13}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = active ? diffColors[i] : `rgba(255,255,255,${0.6 + hover * 0.3})`;
+      ctx.fillText(diffLabels[i], dx + dbw/2, diffY + dbh/2);
+    }
+
     const pbw = 240, pbh = 56;
-    const pb = { x: cx - pbw/2, y: bcY + btnS + 30, w: pbw, h: pbh };
+    const pb = { x: cx - pbw/2, y: diffY + dbh + 18, w: pbw, h: pbh };
     this.hits.play = pb;
     ctx.shadowColor = C.purple; ctx.shadowBlur = 12 + anim.playH * 20;
     const g = ctx.createLinearGradient(pb.x, pb.y, pb.x, pb.y + pbh);
