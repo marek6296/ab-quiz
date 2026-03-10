@@ -445,76 +445,99 @@ export class DuelGame {
   // ── ROUND / REVEAL ────────────────────────────────────────────────────────
   _drawRound() {
     const { ctx, W, H, anim } = this;
-    const cx = W / 2, cy = H / 2;
+    const cx = W / 2;
+    const mobile = W < 600;
 
-    // Scoreboard
+    // Scoreboard at top
     this._drawScoreboard();
 
-    // Round indicator + timer
+    // Header area below scoreboard
+    const headerY = 58;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '700 14px Inter, system-ui, sans-serif';
+    ctx.font = `700 ${mobile ? 12 : 14}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.muted;
-    ctx.fillText(`Kolo ${this.round + 1} / ${TOTAL_ROUNDS}`, cx, 80);
+    ctx.fillText(`Kolo ${this.round + 1} / ${TOTAL_ROUNDS}`, cx, headerY);
 
-    // Timer bar
-    this._drawTimer(cx, 105);
-
-    // Topic
-    ctx.font = '500 12px Inter, system-ui, sans-serif';
+    // Topic (below round text)
+    ctx.font = `500 ${mobile ? 10 : 12}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.dim;
-    ctx.fillText(this.topic, cx, 130);
+    ctx.fillText(this.topic, cx, headerY + 18);
+
+    // Timer bar (below topic)
+    this._drawTimer(cx, headerY + 36);
 
     // Cards
     const L = this.sequence[this.round];
     const R = this.sequence[this.round + 1];
     if (!L || !R) return;
 
-    const mobile = W < 768;
-    const gapX = mobile ? 0 : 200;
-    const gapY = mobile ? 165 : 0;
+    if (mobile) {
+      // Mobile: stacked vertically, smaller cards
+      const CW = Math.min(W - 30, 280);
+      const CH = 160;
+      const topStart = headerY + 65;
+      this._drawCard(cx + anim.leftX, topStart + CH / 2 + 5, L, true, anim.leftA, CW, CH);
+      this._drawCard(cx + anim.rightX, topStart + CH + CH / 2 + 20, R, false, anim.rightA, CW, CH);
 
-    this._drawCard(cx - gapX + anim.leftX, cy - gapY + 20, L, true, anim.leftA);
-    this._drawCard(cx + gapX + anim.rightX, cy + gapY + 20, R, false, anim.rightA);
+      // Answers overlay during reveal
+      if (this.phase === 'reveal') {
+        this._drawAnswers(cx, topStart + CH * 2 + 50);
+      }
+    } else {
+      // Desktop: side by side
+      const cy = H / 2 + 30;
+      const gapX = Math.min(220, W * 0.16);
+      this._drawCard(cx - gapX + anim.leftX, cy, L, true, anim.leftA, 290, 320);
+      this._drawCard(cx + gapX + anim.rightX, cy, R, false, anim.rightA, 290, 320);
 
-    // Answers overlay during reveal
-    if (this.phase === 'reveal') {
-      this._drawAnswers(cx, cy + (mobile ? 0 : 0));
+      if (this.phase === 'reveal') {
+        this._drawAnswers(cx, cy);
+      }
     }
   }
 
   _drawScoreboard() {
     const { ctx, W } = this;
-    const y = 30;
+    const mobile = W < 600;
+    const y = mobile ? 18 : 26;
+    const nameFz = mobile ? 13 : 16;
+    const scoreFz = mobile ? 18 : 22;
     ctx.textBaseline = 'middle';
+
+    // Truncate names on mobile
+    const myDisplay = mobile ? this.myName.slice(0, 8) : this.myName;
+    const oppDisplay = mobile ? this.oppName.slice(0, 8) : this.oppName;
 
     // My side (left)
     ctx.textAlign = 'right';
-    ctx.font = '700 16px Inter, system-ui, sans-serif';
+    ctx.font = `700 ${nameFz}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.goldL;
-    ctx.fillText(this.myName, W/2 - 60, y);
-    ctx.font = '900 22px Inter, system-ui, sans-serif';
+    ctx.fillText(myDisplay, W/2 - 45, y);
+    ctx.font = `900 ${scoreFz}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(`${this.myScore}`, W/2 - 25, y);
+    ctx.fillText(`${this.myScore}`, W/2 - 18, y);
 
     // VS
     ctx.textAlign = 'center';
-    ctx.font = '700 14px Inter, system-ui, sans-serif';
+    ctx.font = `700 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.dim;
     ctx.fillText('vs', W/2, y);
 
     // Opponent (right)
     ctx.textAlign = 'left';
-    ctx.font = '900 22px Inter, system-ui, sans-serif';
+    ctx.font = `900 ${scoreFz}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(`${this.oppScore}`, W/2 + 25, y);
-    ctx.font = '700 16px Inter, system-ui, sans-serif';
+    ctx.fillText(`${this.oppScore}`, W/2 + 18, y);
+    ctx.font = `700 ${nameFz}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.purple;
-    ctx.fillText(this.oppName, W/2 + 60, y);
+    ctx.fillText(oppDisplay, W/2 + 45, y);
   }
 
   _drawTimer(cx, y) {
-    const { ctx } = this;
-    const w = 200, h = 6;
+    const { ctx, W } = this;
+    const mobile = W < 600;
+    const w = mobile ? Math.min(W - 60, 180) : 200;
+    const h = 5;
     const pct = Math.max(0, this.timer / ROUND_TIME);
 
     // BG
@@ -522,27 +545,31 @@ export class DuelGame {
     ctx.fillStyle = '#222'; ctx.fill();
 
     // Fill
-    const fillColor = pct > 0.3 ? C.gold : C.red;
-    rr(ctx, cx - w/2, y, w * pct, h, 3);
-    ctx.fillStyle = fillColor; ctx.fill();
+    const fillW = Math.max(0, w * pct);
+    if (fillW > 0) {
+      rr(ctx, cx - w/2, y, fillW, h, 3);
+      ctx.fillStyle = pct > 0.3 ? C.gold : C.red; ctx.fill();
+    }
 
     // Timer text
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `700 ${this.anim.timerPulse ? 16 : 13}px Inter, system-ui, sans-serif`;
+    const tFz = this.anim.timerPulse ? (mobile ? 13 : 16) : (mobile ? 11 : 13);
+    ctx.font = `700 ${tFz}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = pct > 0.3 ? C.muted : C.red;
-    ctx.fillText(`${Math.ceil(this.timer)}s`, cx, y + 22);
+    ctx.fillText(`${Math.ceil(this.timer)}s`, cx, y + (mobile ? 16 : 20));
   }
 
-  _drawCard(cx, cy, item, revealed, alpha) {
-    const { ctx } = this;
-    const CW = 290, CH = 320, CR = 18;
+  _drawCard(cx, cy, item, revealed, alpha, CW, CH) {
+    const { ctx, W } = this;
+    const mobile = W < 600;
+    const CR = mobile ? 14 : 18;
     const x = cx - CW / 2, y = cy - CH / 2;
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     // Shadow + bg
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 25; ctx.shadowOffsetY = 8;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = mobile ? 12 : 25; ctx.shadowOffsetY = mobile ? 4 : 8;
     rr(ctx, x, y, CW, CH, CR);
     const bg = ctx.createLinearGradient(x, y, x, y + CH);
     bg.addColorStop(0, '#151515'); bg.addColorStop(1, '#0a0a0a');
@@ -556,80 +583,144 @@ export class DuelGame {
 
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    // Emoji
-    ctx.font = '50px serif';
-    ctx.fillText(item.image || '❓', cx, y + 70);
+    if (mobile) {
+      // Mobile compact layout: emoji left, name+value right, buttons bottom
+      const emojiFz = 32;
+      const nameFz = item.name.length > 18 ? 13 : 16;
 
-    // Name
-    ctx.font = `700 ${item.name.length > 18 ? 16 : 20}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = '#fff';
-    wrapText(ctx, item.name, cx, y + 145, CW - 30, 24);
+      // Emoji
+      ctx.font = `${emojiFz}px serif`;
+      ctx.fillText(item.image || '❓', x + 40, cy - 10);
 
-    // Value
-    if (revealed) {
-      const val = `${formatNum(item.value)} ${this.metric}`;
-      ctx.font = `900 18px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = C.gold;
-      ctx.fillText(val, cx, y + 195);
-    } else {
-      // Revealed value (count-up)
-      if (this.anim.valReveal > 0.01) {
-        ctx.save();
-        ctx.globalAlpha = this.anim.valReveal;
-        const val = `${formatNum(Math.round(this.countUp.current))} ${this.metric}`;
-        ctx.font = `900 18px Inter, system-ui, sans-serif`;
+      // Name
+      ctx.font = `700 ${nameFz}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = '#fff';
+      wrapText(ctx, item.name, cx + 15, cy - 15, CW - 90, 20);
+
+      // Value
+      if (revealed) {
+        ctx.font = '900 14px Inter, system-ui, sans-serif';
         ctx.fillStyle = C.gold;
-        ctx.fillText(val, cx, y + 195);
-        ctx.restore();
+        ctx.fillText(`${formatNum(item.value)} ${this.metric}`, cx + 15, cy + 15);
+      } else {
+        // Revealed value (count-up)
+        if (this.anim.valReveal > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = this.anim.valReveal;
+          ctx.font = '900 14px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.gold;
+          ctx.fillText(`${formatNum(Math.round(this.countUp.current))} ${this.metric}`, cx + 15, cy + 15);
+          ctx.restore();
+        }
+
+        // Buttons
+        const btnAlpha = 1 - Math.min(1, this.anim.valReveal * 2.5);
+        if (btnAlpha > 0.01 && !this.myAnswer) {
+          ctx.save();
+          ctx.globalAlpha *= btnAlpha;
+          const bw = (CW - 20) / 2 - 4, bh = 34;
+          const by = y + CH - bh - 8;
+
+          // Higher
+          const bha = { x: x + 6, y: by, w: bw, h: bh };
+          this.hits.bh = bha;
+          rr(ctx, bha.x, bha.y, bw, bh, 10);
+          ctx.fillStyle = this.anim.bhH ? C.greenL : C.green; ctx.fill();
+          ctx.font = '800 12px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#000';
+          ctx.fillText('▲ HIGHER', x + 6 + bw / 2, by + bh / 2);
+
+          // Lower
+          const bla = { x: x + 6 + bw + 8, y: by, w: bw, h: bh };
+          this.hits.bl = bla;
+          rr(ctx, bla.x, bla.y, bw, bh, 10);
+          ctx.fillStyle = this.anim.blH ? C.redL : C.red; ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.fillText('▼ LOWER', bla.x + bw / 2, by + bh / 2);
+          ctx.restore();
+        }
+
+        // "Answered" indicator
+        if (this.myAnswer && this.anim.valReveal < 0.01) {
+          ctx.font = '700 13px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.goldL;
+          ctx.fillText(`Ty: ${this.myAnswer === 'higher' ? '▲' : '▼'}`, cx - 30, y + CH - 25);
+          ctx.font = '500 11px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.muted;
+          ctx.fillText(this.oppAnswer ? '✓' : '⏳', cx + 30, y + CH - 25);
+        }
       }
+    } else {
+      // Desktop layout: vertical card
+      // Emoji
+      ctx.font = '50px serif';
+      ctx.fillText(item.image || '❓', cx, y + 70);
 
-      // Buttons (hide during reveal)
-      const btnAlpha = 1 - Math.min(1, this.anim.valReveal * 2.5);
-      if (btnAlpha > 0.01 && !this.myAnswer) {
-        ctx.save();
-        ctx.globalAlpha *= btnAlpha;
-        const bw = 160, bh = 44, bx = cx - bw / 2;
-        const by1 = y + CH - 110, by2 = y + CH - 55;
+      // Name
+      ctx.font = `700 ${item.name.length > 18 ? 16 : 20}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = '#fff';
+      wrapText(ctx, item.name, cx, y + 145, CW - 30, 24);
 
-        // Higher
-        const bha = { x: bx, y: by1 - bh/2, w: bw, h: bh };
-        this.hits.bh = bha;
-        ctx.shadowColor = C.green; ctx.shadowBlur = this.anim.bhH * 18;
-        rr(ctx, bx, bha.y, bw, bh, 12);
-        ctx.fillStyle = this.anim.bhH ? C.greenL : C.green; ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.font = '800 15px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#000';
-        ctx.fillText('▲ HIGHER', cx, by1);
+      // Value
+      if (revealed) {
+        ctx.font = '900 18px Inter, system-ui, sans-serif';
+        ctx.fillStyle = C.gold;
+        ctx.fillText(`${formatNum(item.value)} ${this.metric}`, cx, y + 195);
+      } else {
+        if (this.anim.valReveal > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = this.anim.valReveal;
+          ctx.font = '900 18px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.gold;
+          ctx.fillText(`${formatNum(Math.round(this.countUp.current))} ${this.metric}`, cx, y + 195);
+          ctx.restore();
+        }
 
-        // Lower
-        const bla = { x: bx, y: by2 - bh/2, w: bw, h: bh };
-        this.hits.bl = bla;
-        ctx.shadowColor = C.red; ctx.shadowBlur = this.anim.blH * 18;
-        rr(ctx, bx, bla.y, bw, bh, 12);
-        ctx.fillStyle = this.anim.blH ? C.redL : C.red; ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fff';
-        ctx.fillText('▼ LOWER', cx, by2);
-        ctx.restore();
-      }
+        const btnAlpha = 1 - Math.min(1, this.anim.valReveal * 2.5);
+        if (btnAlpha > 0.01 && !this.myAnswer) {
+          ctx.save();
+          ctx.globalAlpha *= btnAlpha;
+          const bw = 160, bh = 44, bx = cx - bw / 2;
+          const by1 = y + CH - 110, by2 = y + CH - 55;
 
-      // "Answered" indicator
-      if (this.myAnswer && this.anim.valReveal < 0.01) {
-        ctx.font = '700 16px Inter, system-ui, sans-serif';
-        ctx.fillStyle = C.goldL;
-        ctx.fillText(`Ty: ${this.myAnswer === 'higher' ? '▲ Higher' : '▼ Lower'}`, cx, y + CH - 70);
-        ctx.font = '500 13px Inter, system-ui, sans-serif';
-        ctx.fillStyle = C.muted;
-        ctx.fillText(this.oppAnswer ? 'Súper odpovedal ✓' : 'Čakám na súpera...', cx, y + CH - 42);
+          const bha = { x: bx, y: by1 - bh/2, w: bw, h: bh };
+          this.hits.bh = bha;
+          ctx.shadowColor = C.green; ctx.shadowBlur = this.anim.bhH * 18;
+          rr(ctx, bx, bha.y, bw, bh, 12);
+          ctx.fillStyle = this.anim.bhH ? C.greenL : C.green; ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.font = '800 15px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#000';
+          ctx.fillText('▲ HIGHER', cx, by1);
+
+          const bla = { x: bx, y: by2 - bh/2, w: bw, h: bh };
+          this.hits.bl = bla;
+          ctx.shadowColor = C.red; ctx.shadowBlur = this.anim.blH * 18;
+          rr(ctx, bx, bla.y, bw, bh, 12);
+          ctx.fillStyle = this.anim.blH ? C.redL : C.red; ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#fff';
+          ctx.fillText('▼ LOWER', cx, by2);
+          ctx.restore();
+        }
+
+        if (this.myAnswer && this.anim.valReveal < 0.01) {
+          ctx.font = '700 16px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.goldL;
+          ctx.fillText(`Ty: ${this.myAnswer === 'higher' ? '▲ Higher' : '▼ Lower'}`, cx, y + CH - 70);
+          ctx.font = '500 13px Inter, system-ui, sans-serif';
+          ctx.fillStyle = C.muted;
+          ctx.fillText(this.oppAnswer ? 'Súper odpovedal ✓' : 'Čakám na súpera...', cx, y + CH - 42);
+        }
       }
     }
 
     ctx.restore();
   }
 
-  _drawAnswers(cx, cy) {
+  _drawAnswers(cx, baseY) {
     const { ctx, W } = this;
+    const mobile = W < 600;
     const L = this.sequence[this.round];
     const R = this.sequence[this.round + 1];
     const isHigher = Number(R.value) >= Number(L.value);
@@ -637,22 +728,24 @@ export class DuelGame {
     const myCorrect = this.myAnswer && ((this.myAnswer === 'higher' && isHigher) || (this.myAnswer === 'lower' && !isHigher));
     const oppCorrect = this.oppAnswer && ((this.oppAnswer === 'higher' && isHigher) || (this.oppAnswer === 'lower' && !isHigher));
 
-    const y = Math.min(cy + 200, this.H - 70);
-
+    const y = mobile ? baseY : Math.min(baseY + 200, this.H - 60);
+    const fz = mobile ? 12 : 15;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${fz}px Inter, system-ui, sans-serif`;
 
-    // My answer
-    ctx.font = '700 15px Inter, system-ui, sans-serif';
+    const spacing = mobile ? 0 : 120;
+
+    // My answer  
     ctx.fillStyle = myCorrect ? C.green : (this.myAnswer ? C.red : C.muted);
     const myIcon = myCorrect ? '✓' : (this.myAnswer ? '✕' : '—');
     const myLabel = this.myAnswer ? (this.myAnswer === 'higher' ? 'Higher' : 'Lower') : 'Neodpovedal';
-    ctx.fillText(`${myIcon} ${this.myName}: ${myLabel}`, W/2 - 120, y);
+    ctx.fillText(`${myIcon} ${this.myName}: ${myLabel}`, W/2 - spacing, y);
 
     // Opp answer
     ctx.fillStyle = oppCorrect ? C.green : (this.oppAnswer ? C.red : C.muted);
     const oppIcon = oppCorrect ? '✓' : (this.oppAnswer ? '✕' : '—');
     const oppLabel = this.oppAnswer ? (this.oppAnswer === 'higher' ? 'Higher' : 'Lower') : 'Neodpovedal';
-    ctx.fillText(`${oppIcon} ${this.oppName}: ${oppLabel}`, W/2 + 120, y);
+    ctx.fillText(`${oppIcon} ${this.oppName}: ${oppLabel}`, W/2 + spacing, mobile ? y + 18 : y);
   }
 
   // ── RESULT ────────────────────────────────────────────────────────────────

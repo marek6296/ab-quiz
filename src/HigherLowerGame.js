@@ -422,23 +422,32 @@ export class HigherLowerGame {
   _next() {
     this.currentIndex++;
     this.roundNumber++;
-    this._guessLocked = false;
 
-    // Slide left out, then swap
-    gsap.to(this.anim, {
-      leftX: -400, leftA: 0, duration: 0.45, ease: 'power3.in',
-      onComplete: () => {
-        this.anim.leftX = 0; this.anim.leftA = 1;
-        this.anim.rightX = 400; this.anim.rightA = 0; this.anim.rightScale = 0.85;
-        this.anim.vsA = 0; this.anim.valReveal = 0;
-        this.anim.resultIcon = 0;
-        this.countUp = { current: 0, target: 0, active: false };
+    // Phase 1: Slide BOTH cards out simultaneously
+    gsap.to(this.anim, { leftX: -500, leftA: 0, duration: 0.5, ease: 'power3.in' });
+    gsap.to(this.anim, { rightX: 500, rightA: 0, duration: 0.5, ease: 'power3.in' });
+    gsap.to(this.anim, { vsA: 0, duration: 0.25 });
 
-        this._showRoundBanner();
-        gsap.to(this.anim, { rightX: 0, rightA: 1, rightScale: 1, duration: 0.6, ease: 'back.out(1.4)', delay: 0.3 });
-        gsap.to(this.anim, { vsA: 1, duration: 0.4, delay: 0.6 });
-      }
-    });
+    // Phase 2: After cards are gone, reset and bring new ones in
+    setTimeout(() => {
+      this.anim.valReveal = 0;
+      this.anim.resultIcon = 0;
+      this.countUp = { current: 0, target: 0, active: false };
+      this._guessLocked = false;
+
+      // Reset positions (off-screen)
+      this.anim.leftX = -500; this.anim.leftA = 0;
+      this.anim.rightX = 500; this.anim.rightA = 0; this.anim.rightScale = 0.85;
+      this.anim.vsA = 0;
+
+      // Show round banner
+      this._showRoundBanner();
+
+      // Phase 3: Slide new cards in with staggered bounce
+      gsap.to(this.anim, { leftX: 0, leftA: 1, duration: 0.6, ease: 'back.out(1.4)', delay: 0.15 });
+      gsap.to(this.anim, { rightX: 0, rightA: 1, rightScale: 1, duration: 0.65, ease: 'back.out(1.4)', delay: 0.35 });
+      gsap.to(this.anim, { vsA: 1, duration: 0.4, delay: 0.7 });
+    }, 600);
   }
 
   _backToMenu() {
