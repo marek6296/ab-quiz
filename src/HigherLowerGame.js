@@ -120,7 +120,7 @@ export class HigherLowerGame {
       valReveal: 0,
       authA: 0, authY: 30,
       resultIcon: 0, resultOk: true,
-      roundBanner: 0,
+      roundBanner: 0, nextBanner: 0,
     };
     this.hits = {};
     this._time = 0;
@@ -428,25 +428,31 @@ export class HigherLowerGame {
     gsap.to(this.anim, { rightX: 500, rightA: 0, duration: 0.5, ease: 'power3.in' });
     gsap.to(this.anim, { vsA: 0, duration: 0.25 });
 
-    // Phase 2: After cards are gone, reset and bring new ones in
+    // Phase 2: Cards gone – show "Ďalšia otázka" banner with pause
     setTimeout(() => {
       this.anim.valReveal = 0;
       this.anim.resultIcon = 0;
       this.countUp = { current: 0, target: 0, active: false };
-      this._guessLocked = false;
 
       // Reset positions (off-screen)
       this.anim.leftX = -500; this.anim.leftA = 0;
       this.anim.rightX = 500; this.anim.rightA = 0; this.anim.rightScale = 0.85;
       this.anim.vsA = 0;
 
-      // Show round banner
-      this._showRoundBanner();
+      // Show "Ďalšia otázka" banner
+      this.anim.nextBanner = 0;
+      gsap.to(this.anim, { nextBanner: 1, duration: 0.4, ease: 'back.out(2)' });
 
-      // Phase 3: Slide new cards in with staggered bounce
-      gsap.to(this.anim, { leftX: 0, leftA: 1, duration: 0.6, ease: 'back.out(1.4)', delay: 0.15 });
-      gsap.to(this.anim, { rightX: 0, rightA: 1, rightScale: 1, duration: 0.65, ease: 'back.out(1.4)', delay: 0.35 });
-      gsap.to(this.anim, { vsA: 1, duration: 0.4, delay: 0.7 });
+      // Phase 3: After banner pause, hide it and slide new cards in
+      setTimeout(() => {
+        gsap.to(this.anim, { nextBanner: 0, duration: 0.3 });
+        this._guessLocked = false;
+        this._showRoundBanner();
+
+        gsap.to(this.anim, { leftX: 0, leftA: 1, duration: 0.6, ease: 'back.out(1.4)', delay: 0.25 });
+        gsap.to(this.anim, { rightX: 0, rightA: 1, rightScale: 1, duration: 0.65, ease: 'back.out(1.4)', delay: 0.45 });
+        gsap.to(this.anim, { vsA: 1, duration: 0.4, delay: 0.8 });
+      }, 1000);
     }, 600);
   }
 
@@ -789,6 +795,25 @@ export class HigherLowerGame {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = C.gold;
       ctx.fillText(`Kolo ${this.roundNumber}`, cx, 95);
+      ctx.restore();
+    }
+
+    // "Ďalšia otázka" transition banner
+    if (anim.nextBanner > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = anim.nextBanner;
+      ctx.translate(cx, cy);
+      const s = 0.7 + anim.nextBanner * 0.3;
+      ctx.scale(s, s);
+      ctx.font = '900 32px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = C.gold; ctx.shadowBlur = 25;
+      ctx.fillStyle = C.gold;
+      ctx.fillText('Ďalšia otázka ▶', 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.font = '500 14px Inter, system-ui, sans-serif';
+      ctx.fillStyle = C.muted;
+      ctx.fillText(`Kolo ${this.roundNumber}`, 0, 35);
       ctx.restore();
     }
 
