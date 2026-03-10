@@ -12,12 +12,11 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
     "dotenv": "^17.3.1",
-    "framer-motion": "^12.35.0",
-    "lucide-react": "^0.576.0",
+    "gsap": "^3.14.2",
     "node-fetch": "^3.3.2",
+    "pixi.js": "^8.17.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "zustand": "^5.0.11"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
