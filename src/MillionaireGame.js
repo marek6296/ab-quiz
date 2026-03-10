@@ -108,6 +108,7 @@ export class MillionaireGame {
     this.questions = [];
     this.countdownNum = 3;
     this.bots = [];
+    this.botCount = 3; // 1–7
     this.reportedQ = new Set();
     this._transitioning = false;
 
@@ -120,6 +121,7 @@ export class MillionaireGame {
       playH: 0, backH: 0, exitH: 0,
       leaveH: 0, reportH: 0,
       ladderA: 0,
+      botMinusH: 0, botPlusH: 0,
     };
     this.hits = {};
 
@@ -153,13 +155,11 @@ export class MillionaireGame {
 
   async _startGame() {
     const allQ = await loadQuestions();
-    // Sort: easy first, then medium, then hard – pick across tiers
     const easy = shuffle(allQ.filter(q => q.difficulty === 1));
     const medium = shuffle(allQ.filter(q => q.difficulty === 2));
     const hard = shuffle(allQ.filter(q => q.difficulty === 3));
     this.questions = [...easy.slice(0, 5), ...medium.slice(0, 5), ...hard.slice(0, 4)];
     if (this.questions.length < TOTAL_Q) {
-      // Fill with any remaining
       const used = new Set(this.questions.map(q => q.q));
       const remaining = shuffle(allQ.filter(q => !used.has(q.q)));
       this.questions.push(...remaining.slice(0, TOTAL_Q - this.questions.length));
@@ -167,11 +167,12 @@ export class MillionaireGame {
     this.round = 0; this.myAnswer = null; this.myAlive = true;
     this.reportedQ = new Set();
     this._transitioning = false;
-    this.bots = [
-      new BotPlayer(BOT_NAMES[0], 0.55),
-      new BotPlayer(BOT_NAMES[1], 0.65),
-      new BotPlayer(BOT_NAMES[2], 0.75),
-    ];
+    // Dynamic bot count with varied skills
+    const allNames = ['🤖 Anna','🤖 Peter','🤖 Lucia','🤖 Tomáš','🤖 Eva','🤖 Marek','🤖 Jana'];
+    const baseSkills = [0.45, 0.55, 0.62, 0.70, 0.75, 0.80, 0.85];
+    this.bots = Array.from({ length: this.botCount }, (_, i) =>
+      new BotPlayer(allNames[i % allNames.length], baseSkills[i % baseSkills.length])
+    );
     gsap.to(this.anim, { menuA: 0, menuY: -30, duration: 0.3 });
     setTimeout(() => this._startCountdown(), 350);
   }
@@ -284,6 +285,8 @@ export class MillionaireGame {
     gsap.to(this.anim, { exitH: this._hit(p, this.hits.exit) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { leaveH: this._hit(p, this.hits.leave) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { reportH: this._hit(p, this.hits.report) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { botMinusH: this._hit(p, this.hits.botMinus) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { botPlusH: this._hit(p, this.hits.botPlus) ? 1 : 0, duration: 0.15 });
     const any = Object.values(this.hits).some(a => a && this._hit(p, a));
     this.canvas.style.cursor = any ? 'pointer' : 'default';
   }
@@ -293,6 +296,8 @@ export class MillionaireGame {
     if (this.phase === 'menu') {
       if (this._hit(p, this.hits.back)) { this.onBack(); return; }
       if (this._hit(p, this.hits.play)) this._startGame();
+      if (this._hit(p, this.hits.botMinus) && this.botCount > 1) this.botCount--;
+      if (this._hit(p, this.hits.botPlus) && this.botCount < 7) this.botCount++;
     }
     if (this.phase === 'question') {
       for (let i = 0; i < 4; i++) { if (this._hit(p, this.hits[`a${i}`])) this._submitAnswer(i); }
@@ -346,14 +351,14 @@ export class MillionaireGame {
     ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = C.muted; ctx.fillText('← Späť', bb.x + 45, bb.y + 18);
 
-    ctx.font = `${mobile ? 50 : 70}px serif`; ctx.fillText('💎', cx, mobile ? 85 : 100);
+    ctx.font = `${mobile ? 50 : 70}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💎', cx, mobile ? 85 : 100);
     ctx.font = `900 ${mobile ? 28 : 42}px Inter, system-ui, sans-serif`;
     ctx.shadowColor = C.purple; ctx.shadowBlur = 25; ctx.fillStyle = C.purpleL;
     ctx.fillText('MILIONÁR', cx, mobile ? 140 : 170); ctx.shadowBlur = 0;
     ctx.font = `900 ${mobile ? 18 : 28}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.gold;
     ctx.fillText('BATTLE', cx, mobile ? 170 : 210);
     ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.muted;
-    ctx.fillText('Ty vs 3 BOTi • 14 otázok • Kto vydrží najdlhšie?', cx, mobile ? 195 : 245);
+    ctx.fillText(`Ty vs ${this.botCount} ${this.botCount === 1 ? 'BOT' : 'BOTi'} • 14 otázok • Kto vydrží najdlhšie?`, cx, mobile ? 195 : 245);
 
     const pStartY = mobile ? 220 : 270; const pGap = mobile ? 20 : 24;
     [13, 12, 11, 4, 0].forEach((idx, i) => {
@@ -362,8 +367,31 @@ export class MillionaireGame {
       ctx.fillText(`${idx + 1}. ${PRIZES[idx]}`, cx, pStartY + i * pGap);
     });
 
+    // Bot count selector
+    const bcY = pStartY + 5 * pGap + 6;
+    ctx.font = `500 ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('Počet BOTov:', cx, bcY);
+    const btnS = mobile ? 32 : 38;
+    const minus = { x: cx - btnS * 1.6, y: bcY + 12, w: btnS, h: btnS };
+    const plus  = { x: cx + btnS * 0.6, y: bcY + 12, w: btnS, h: btnS };
+    this.hits.botMinus = minus; this.hits.botPlus = plus;
+    [minus, plus].forEach((b, i) => {
+      const hv = i === 0 ? anim.botMinusH : anim.botPlusH;
+      rr(ctx, b.x, b.y, btnS, btnS, 10);
+      ctx.fillStyle = `rgba(255,255,255,${0.06 + hv * 0.08})`; ctx.fill();
+      rr(ctx, b.x, b.y, btnS, btnS, 10);
+      ctx.strokeStyle = hex2rgba(C.purpleL, 0.3 + hv * 0.3); ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.font = `700 ${mobile ? 18 : 22}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = i === 0 ? (this.botCount <= 1 ? C.muted : C.purpleL) : (this.botCount >= 7 ? C.muted : C.purpleL);
+      ctx.fillText(i === 0 ? '−' : '+', b.x + btnS/2, b.y + btnS/2);
+    });
+    ctx.font = `900 ${mobile ? 22 : 28}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = C.purpleL;
+    ctx.fillText(`${this.botCount}`, cx, bcY + 12 + btnS/2);
+
     const pbw = 240, pbh = 56;
-    const pb = { x: cx - pbw/2, y: pStartY + 5 * pGap + 15, w: pbw, h: pbh };
+    const pb = { x: cx - pbw/2, y: bcY + btnS + 30, w: pbw, h: pbh };
     this.hits.play = pb;
     ctx.shadowColor = C.purple; ctx.shadowBlur = 12 + anim.playH * 20;
     const g = ctx.createLinearGradient(pb.x, pb.y, pb.x, pb.y + pbh);
@@ -388,18 +416,29 @@ export class MillionaireGame {
 
   _drawPlayersBar() {
     const { ctx, W } = this;
-    const mobile = W < 600; const y = mobile ? 18 : 26;
-    const myName = '👤 Ty';
-    const all = [{ name: myName, alive: this.myAlive }, ...this.bots.map(b => ({ name: b.name, alive: b.alive }))];
-    const gap = mobile ? W / 4.5 : 110;
-    const startX = W/2 - (all.length - 1) * gap / 2;
+    const mobile = W < 600;
+    const rowH = mobile ? 32 : 40;
+    const myScore = this.myAlive ? this.round : Math.max(0, this.round - 1);
+    const all = [
+      { name: '👤 Ty', alive: this.myAlive, score: myScore, color: C.purple },
+      ...this.bots.map(b => ({ name: b.name, alive: b.alive, score: b.score, color: C.gold }))
+    ];
+    const total = all.length;
+    const colW = Math.min(mobile ? 80 : 110, (W - 16) / total);
+    const startX = W/2 - (total - 1) * colW / 2;
     all.forEach((p, i) => {
+      const x = startX + i * colW;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = `600 ${mobile ? 10 : 12}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = p.alive ? C.text : C.dim; ctx.globalAlpha = p.alive ? 1 : 0.4;
-      ctx.fillText(p.name, startX + i * gap, y);
-      if (!p.alive) { ctx.fillStyle = C.red; ctx.font = `700 ${mobile ? 8 : 10}px Inter, system-ui, sans-serif`;
-        ctx.fillText('✕', startX + i * gap + (mobile ? 30 : 35), y); }
+      ctx.globalAlpha = p.alive ? 1 : 0.35;
+      // Name
+      ctx.font = `600 ${mobile ? 9 : 11}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = p.alive ? (i === 0 ? C.purpleL : C.text) : C.dim;
+      ctx.fillText(p.alive ? p.name : `✕ ${p.name}`, x, mobile ? 14 : 18);
+      // Score badge
+      const prize = PRIZES[Math.min(p.score, PRIZES.length - 1)];
+      ctx.font = `700 ${mobile ? 8 : 10}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = p.alive ? (i === 0 ? C.purpleL : C.goldL) : '#555';
+      ctx.fillText(p.score > 0 ? `Ot.${p.score}` : '–', x, mobile ? 25 : 32);
       ctx.globalAlpha = 1;
     });
   }

@@ -3,6 +3,7 @@ import { GameHub } from './GameHub';
 import { HigherLowerGame } from './HigherLowerGame';
 import { QuizDuelGame } from './QuizDuelGame';
 import { MillionaireGame } from './MillionaireGame';
+import { AdminPanel } from './AdminPanel';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -99,6 +100,11 @@ function App() {
         Načítavám...
       </div>
     );
+  }
+
+  // Admin panel is a React component, not canvas
+  if (currentGame?.id === 'admin') {
+    return <AdminPanel user={user} onBack={goToHub} />;
   }
 
   return (

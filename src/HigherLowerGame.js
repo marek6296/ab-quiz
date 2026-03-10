@@ -110,6 +110,7 @@ export class HigherLowerGame {
     this._createHTMLOverlay();
 
     // Anim
+    this.reportedItems = new Set();
     this.anim = {
       menuAlpha: 0, menuY: 40, titleGlow: 0,
       leftX: 0, leftA: 0,
@@ -122,6 +123,7 @@ export class HigherLowerGame {
       authA: 0, authY: 30,
       resultIcon: 0, resultOk: true,
       roundBanner: 0, nextBanner: 0,
+      leaveH: 0, reportH: 0,
     };
     this.hits = {};
     this._time = 0;
@@ -268,6 +270,8 @@ export class HigherLowerGame {
     gsap.to(this.anim, { brH: (this._hit(p, this.hits.br) || this._hit(p, this.hits.backHub)) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { baH: this._hit(p, this.hits.ba) ? 1:0, duration: 0.15 });
     gsap.to(this.anim, { boH: this._hit(p, this.hits.bo) ? 1:0, duration: 0.15 });
+    gsap.to(this.anim, { leaveH: this._hit(p, this.hits.leave) ? 1:0, duration: 0.15 });
+    gsap.to(this.anim, { reportH: this._hit(p, this.hits.report) ? 1:0, duration: 0.15 });
     // Difficulty buttons
     for (let i = 0; i < 3; i++) {
       const h = this._hit(p, this.hits[`bd${i}`]);
@@ -277,6 +281,15 @@ export class HigherLowerGame {
 
   _onDown(e) { if (this.state !== 'auth') this._handleClick(this._pos(e)); }
   _onTouch(e) { if (this.state !== 'auth') this._handleClick(this._pos(e)); }
+
+  async _reportItem() {
+    const idx = this.currentIndex + 1; // right card is the question
+    if (this.reportedItems.has(idx)) return;
+    this.reportedItems.add(idx);
+    const item = this.sequence?.[idx];
+    if (!item?.id) return;
+    try { await supabase.from('hl_dataset').update({ reported: true }).eq('id', item.id); } catch(e) {}
+  }
 
   _handleClick(p) {
     if (this.state === 'menu') {
@@ -297,8 +310,11 @@ export class HigherLowerGame {
     } else if (this.state === 'playing') {
       if (this._hit(p, this.hits.bh)) this._guess('higher');
       if (this._hit(p, this.hits.bl)) this._guess('lower');
+      if (this._hit(p, this.hits.leave)) { if (this.onBack) this.onBack(); else this._backToMenu(); }
+      if (this._hit(p, this.hits.report)) this._reportItem();
     } else if (this.state === 'gameover') {
       if (this._hit(p, this.hits.br)) this._backToMenu();
+      if (this._hit(p, this.hits.leave)) { if (this.onBack) this.onBack(); else this._backToMenu(); }
     }
   }
 
@@ -896,6 +912,33 @@ export class HigherLowerGame {
       ctx.fillText(anim.resultOk ? '✓' : '✕', 0, 0);
       ctx.restore();
     }
+
+    // ── Leave + Report buttons (always visible during game) ──
+    if (anim.nextBanner <= 0.05) {
+      const lbw = mobile ? 75 : 95, lbh = 28;
+      const lbx = mobile ? 8 : 16, lby = mobile ? H - lbh - 8 : H - lbh - 16;
+      const leave = { x: lbx, y: lby, w: lbw, h: lbh };
+      this.hits.leave = leave;
+      rr(ctx, leave.x, leave.y, lbw, lbh, 10);
+      ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.14)' : 'rgba(255,255,255,0.04)'; ctx.fill();
+      rr(ctx, leave.x, leave.y, lbw, lbh, 10);
+      ctx.strokeStyle = anim.leaveH ? C.red : 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.font = `600 ${mobile ? 10 : 11}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = anim.leaveH ? C.redL : C.muted;
+      ctx.fillText('🚪 Odísť', leave.x + lbw/2, leave.y + lbh/2);
+
+      const reported = this.reportedItems.has(this.currentIndex + 1);
+      const rpbx = lbx + lbw + 6;
+      const report = { x: rpbx, y: lby, w: lbw, h: lbh };
+      this.hits.report = report;
+      rr(ctx, report.x, report.y, lbw, lbh, 10);
+      ctx.fillStyle = reported ? 'rgba(239,68,68,0.1)' : (anim.reportH ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.04)'); ctx.fill();
+      rr(ctx, report.x, report.y, lbw, lbh, 10);
+      ctx.strokeStyle = reported ? C.red : (anim.reportH ? C.gold : 'rgba(255,255,255,0.08)'); ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = reported ? C.redL : (anim.reportH ? C.goldL : C.muted);
+      ctx.fillText(reported ? '⚠️ Nahlásené' : '⚠️ Nahlásiť', report.x + lbw/2, report.y + lbh/2);
+    }
   }
 
   _drawCard(cx, cy, item, revealed, alpha, scale, CW, CH) {
@@ -1097,11 +1140,23 @@ export class HigherLowerGame {
       ctx.fillText('🏆 Nový rekord!', cx, cy + 100);
     }
 
-    // Restart
-    const rbw = 220, rbh = 52;
-    const rb = { x: cx - rbw/2, y: py + ph - 72, w: rbw, h: rbh };
+    // Restart + Leave buttons
+    const rbw = mobile ? Math.min(pw - 32, 200) : 200, rbh = 52, gap = 12;
+    const totalBw = rbw * 2 + gap;
+    const rb = { x: cx - totalBw/2, y: py + ph - 72, w: rbw, h: rbh };
     this.hits.br = rb;
     this._drawGoldBtn(rb, '🔄 Hrať znova', anim.brH);
+
+    const lb = { x: cx + gap/2, y: py + ph - 72, w: rbw, h: rbh };
+    this.hits.leave = lb;
+    rr(ctx, lb.x, lb.y, rbw, rbh, 16);
+    ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)'; ctx.fill();
+    rr(ctx, lb.x, lb.y, rbw, rbh, 16);
+    ctx.strokeStyle = anim.leaveH ? C.red : 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font = '700 16px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = anim.leaveH ? C.redL : C.muted;
+    ctx.fillText('🔙 Menu', lb.x + rbw/2, lb.y + rbh/2);
 
     ctx.restore();
   }

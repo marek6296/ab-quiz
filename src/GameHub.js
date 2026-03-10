@@ -110,7 +110,7 @@ export class GameHub {
       profileA: 0,
       cardHover: [0, 0, 0],
       authA: 0, authY: 30,
-      friendsH: 0, loginH: 0,
+      friendsH: 0, loginH: 0, adminH: 0,
     };
     this.hits = {};
 
@@ -237,8 +237,9 @@ export class GameHub {
     });
     gsap.to(this.anim, { friendsH: this._hit(p, this.hits.friends) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { loginH: this._hit(p, this.hits.login) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { adminH: this._hit(p, this.hits.admin) ? 1 : 0, duration: 0.15 });
     const any = GAMES.some((_, i) => this._hit(p, this.hits[`card${i}`])) ||
-      this._hit(p, this.hits.friends) || this._hit(p, this.hits.login);
+      this._hit(p, this.hits.friends) || this._hit(p, this.hits.login) || this._hit(p, this.hits.admin);
     this.canvas.style.cursor = any ? 'pointer' : 'default';
   }
 
@@ -266,6 +267,8 @@ export class GameHub {
         this._showAuthOverlay();
       }
     }
+    // Admin
+    if (this._hit(p, this.hits.admin)) this.onSelectGame('admin');
   }
 
   _openFriends() {
@@ -397,6 +400,25 @@ export class GameHub {
       ctx.fillStyle = C.goldL;
       ctx.fillText('🔑 Prihlásiť sa', lbx + lbw/2, barY + fbh/2);
     }
+
+    // Admin button (only for admins)
+    const ADMIN_EMAILS = ['marek@example.com'];
+    if (this.user && ADMIN_EMAILS.includes(this.user.email)) {
+      const abw = mobile ? 80 : 100, abh = mobile ? 30 : 34;
+      const abx = mobile ? W - abw - 8 : W - abw - 16;
+      const aby = mobile ? 8 : 16;
+      const ab = { x: abx, y: aby, w: abw, h: abh };
+      this.hits.admin = ab;
+      rr(ctx, abx, aby, abw, abh, 10);
+      ctx.fillStyle = anim.adminH ? 'rgba(168,85,247,0.15)' : 'rgba(168,85,247,0.06)'; ctx.fill();
+      rr(ctx, abx, aby, abw, abh, 10);
+      ctx.strokeStyle = anim.adminH ? '#a855f7' : 'rgba(168,85,247,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.font = `600 ${mobile ? 10 : 11}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = anim.adminH ? '#c084fc' : '#6b21a8';
+      ctx.fillText('⚙️ Admin', abx + abw/2, aby + abh/2);
+    } else { this.hits.admin = null; }
+
     ctx.restore();
   }
 
