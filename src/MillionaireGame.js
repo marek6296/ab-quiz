@@ -449,7 +449,7 @@ export class MillionaireGame {
     const diffColors = ['#22c55e', '#f59e0b', '#ef4444'];
     const dbw = 90, dbh = 38, dgap = 12;
     const dtotalW = dbw * 3 + dgap * 2;
-    const dsy = bcY + btnS + 18;
+    const dsy = bcY + btnS + 32;
     ctx.font = '500 11px Inter, system-ui, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.fillText(this.difficulty ? '' : 'Vyber obtiažnosť', cx, dsy - 12);
