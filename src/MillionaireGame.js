@@ -353,94 +353,118 @@ export class MillionaireGame {
   }
 
   _drawMenu() {
-    const { ctx, W, anim } = this;
-    const mobile = W < 600; const cx = W / 2;
+    const { ctx, W, H, anim } = this;
+    const mobile = W < 600; const cx = W / 2; const cy = H / 2;
     ctx.save(); ctx.globalAlpha = anim.menuA; ctx.translate(0, anim.menuY);
 
     // Back
-    const bb = { x: 16, y: 16, w: 90, h: 36 };
+    const bbw = mobile ? 90 : 110, bbh = 36;
+    const bb = { x: 16, y: 16, w: bbw, h: bbh };
     this.hits.back = bb;
-    rr(ctx, bb.x, bb.y, 90, 36, 12);
+    rr(ctx, bb.x, bb.y, bbw, bbh, 12);
     ctx.fillStyle = anim.backH ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)'; ctx.fill();
-    rr(ctx, bb.x, bb.y, 90, 36, 12);
+    rr(ctx, bb.x, bb.y, bbw, bbh, 12);
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = C.muted; ctx.fillText('← Späť', bb.x + 45, bb.y + 18);
+    ctx.font = `600 ${mobile ? 12 : 13}px Inter, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.muted; ctx.fillText('← Späť', bb.x + bbw/2, bb.y + bbh/2);
 
-    ctx.font = `${mobile ? 50 : 70}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('💎', cx, mobile ? 85 : 100);
-    ctx.font = `900 ${mobile ? 28 : 42}px Inter, system-ui, sans-serif`;
-    ctx.shadowColor = C.purple; ctx.shadowBlur = 25; ctx.fillStyle = C.purpleL;
-    ctx.fillText('MILIONÁR', cx, mobile ? 140 : 170); ctx.shadowBlur = 0;
-    ctx.font = `900 ${mobile ? 18 : 28}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.gold;
-    ctx.fillText('BATTLE', cx, mobile ? 170 : 210);
-    ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.muted;
-    ctx.fillText(`Ty vs ${this.botCount} ${this.botCount === 1 ? 'BOT' : 'BOTi'} • 14 otázok • Kto vydrží najdlhšie?`, cx, mobile ? 195 : 245);
+    // Title glow
+    const glow = ctx.createRadialGradient(cx, cy - 100, 10, cx, cy - 100, 320);
+    glow.addColorStop(0, hex2rgba(C.purple, 0.15)); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow; ctx.fillRect(cx - 350, cy - 350, 700, 500);
 
-    const pStartY = mobile ? 220 : 270; const pGap = mobile ? 20 : 24;
-    [13, 12, 11, 4, 0].forEach((idx, i) => {
-      ctx.font = `${i === 0 ? 800 : 500} ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = idx === 13 ? C.gold : (idx >= 10 ? C.purpleL : C.muted);
-      ctx.fillText(`${idx + 1}. ${PRIZES[idx]}`, cx, pStartY + i * pGap);
-    });
+    // Title with shimmer gradient
+    const fz = Math.max(28, Math.min(52, W * 0.07));
+    ctx.save();
+    ctx.font = `900 ${fz}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tg = ctx.createLinearGradient(cx - 200, 0, cx + 200, 0);
+    const shift = (Math.sin(this._time * 0.8) + 1) / 2;
+    tg.addColorStop(0, '#6b21a8'); tg.addColorStop(shift * 0.5, C.purpleL);
+    tg.addColorStop(0.5, '#fff'); tg.addColorStop(0.5 + shift * 0.5, C.purpleL);
+    tg.addColorStop(1, '#6b21a8');
+    ctx.fillStyle = tg;
+    ctx.fillText('MILIONÁR', cx, cy - 120);
+    ctx.restore();
+
+    ctx.font = `900 ${mobile ? 18 : 28}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.gold;
+    ctx.fillText('BATTLE', cx, cy - 78);
+
+    // Subtitle
+    ctx.font = `400 ${mobile ? 12 : 15}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = C.muted;
+    ctx.fillText(`Ty vs ${this.botCount} ${this.botCount === 1 ? 'BOT' : 'BOTi'} • 14 otázok`, cx, cy - 48);
 
     // Bot count selector
-    const bcY = pStartY + 5 * pGap + 6;
-    ctx.font = `500 ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    const bcY = cy - 18;
+    ctx.font = `500 ${mobile ? 11 : 12}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fillText('Počet BOTov:', cx, bcY);
-    const btnS = mobile ? 32 : 38;
-    const minus = { x: cx - btnS * 1.6, y: bcY + 12, w: btnS, h: btnS };
-    const plus  = { x: cx + btnS * 0.6, y: bcY + 12, w: btnS, h: btnS };
+    const btnS = mobile ? 30 : 34;
+    const minus = { x: cx - btnS * 1.6, y: bcY + 10, w: btnS, h: btnS };
+    const plus  = { x: cx + btnS * 0.6, y: bcY + 10, w: btnS, h: btnS };
     this.hits.botMinus = minus; this.hits.botPlus = plus;
     [minus, plus].forEach((b, i) => {
       const hv = i === 0 ? anim.botMinusH : anim.botPlusH;
       rr(ctx, b.x, b.y, btnS, btnS, 10);
-      ctx.fillStyle = `rgba(255,255,255,${0.06 + hv * 0.08})`; ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.04 + hv * 0.08})`; ctx.fill();
       rr(ctx, b.x, b.y, btnS, btnS, 10);
       ctx.strokeStyle = hex2rgba(C.purpleL, 0.3 + hv * 0.3); ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.font = `700 ${mobile ? 18 : 22}px Inter, system-ui, sans-serif`;
+      ctx.font = `700 ${mobile ? 16 : 20}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = i === 0 ? (this.botCount <= 1 ? C.muted : C.purpleL) : (this.botCount >= 7 ? C.muted : C.purpleL);
       ctx.fillText(i === 0 ? '−' : '+', b.x + btnS/2, b.y + btnS/2);
     });
-    ctx.font = `900 ${mobile ? 22 : 28}px Inter, system-ui, sans-serif`;
+    ctx.font = `900 ${mobile ? 20 : 26}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = C.purpleL;
-    ctx.fillText(`${this.botCount}`, cx, bcY + 12 + btnS/2);
+    ctx.fillText(`${this.botCount}`, cx, bcY + 10 + btnS/2);
 
-    // Difficulty selector
-    const diffLabels = ['Ľah', 'Stred', 'Ťaž'];
+    // Difficulty selector (same style as H&L)
+    const diffLabels = ['Ľahká', 'Stredná', 'Ťažká'];
     const diffColors = ['#22c55e', '#f59e0b', '#ef4444'];
-    const dbw = mobile ? 70 : 85, dbh = mobile ? 34 : 38, dgap = 8;
+    const dbw = 90, dbh = 38, dgap = 12;
     const dtotalW = dbw * 3 + dgap * 2;
-    const diffY = bcY + btnS + 26;
-    ctx.font = `500 ${mobile ? 10 : 12}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillText(this.difficulty ? '' : 'Vyber obtiažnosť!', cx, diffY - 10);
+    const dsy = bcY + btnS + 24;
+    ctx.font = '500 11px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillText(this.difficulty ? '' : '⚠️ Vyber obtiažnosť!', cx, dsy - 12);
     for (let i = 0; i < 3; i++) {
       const dx = cx - dtotalW/2 + i * (dbw + dgap);
-      const da = { x: dx, y: diffY, w: dbw, h: dbh };
+      const da = { x: dx, y: dsy, w: dbw, h: dbh };
       this.hits[`diff${i}`] = da;
       const active = this.difficulty === (i + 1);
       const hover = this.anim.diffH[i];
-      rr(ctx, dx, diffY, dbw, dbh, 10);
-      ctx.fillStyle = active ? hex2rgba(diffColors[i], 0.25) : `rgba(255,255,255,${0.03 + hover * 0.05})`; ctx.fill();
-      rr(ctx, dx, diffY, dbw, dbh, 10);
+      ctx.save();
+      rr(ctx, dx, dsy, dbw, dbh, 12);
+      ctx.fillStyle = active ? hex2rgba(diffColors[i], 0.25) : `rgba(255,255,255,${0.03 + hover * 0.05})`;
+      ctx.fill();
       ctx.strokeStyle = active ? diffColors[i] : `rgba(255,255,255,${0.1 + hover * 0.15})`;
       ctx.lineWidth = active ? 2 : 1; ctx.stroke();
-      ctx.font = `${active ? 700 : 500} ${mobile ? 12 : 13}px Inter, system-ui, sans-serif`;
+      ctx.font = `${active ? 700 : 500} 13px Inter, system-ui, sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = active ? diffColors[i] : `rgba(255,255,255,${0.6 + hover * 0.3})`;
-      ctx.fillText(diffLabels[i], dx + dbw/2, diffY + dbh/2);
+      ctx.fillStyle = active ? diffColors[i] : `rgba(255,255,255,${0.7 + hover * 0.3})`;
+      ctx.fillText(diffLabels[i], dx + dbw/2, dsy + dbh/2);
+      ctx.restore();
     }
 
-    const pbw = 240, pbh = 56;
-    const pb = { x: cx - pbw/2, y: diffY + dbh + 18, w: pbw, h: pbh };
+    // HRAŤ button (gold style like H&L)
+    const pbw = 260, pbh = 58;
+    const pb = { x: cx - pbw/2, y: dsy + dbh + 24, w: pbw, h: pbh };
     this.hits.play = pb;
-    ctx.shadowColor = C.purple; ctx.shadowBlur = 12 + anim.playH * 20;
+    const canPlay = !!this.difficulty;
+    ctx.save();
+    ctx.shadowColor = canPlay ? C.purple : '#222'; ctx.shadowBlur = canPlay ? 12 + anim.playH * 24 : 0;
     const g = ctx.createLinearGradient(pb.x, pb.y, pb.x, pb.y + pbh);
-    g.addColorStop(0, anim.playH ? C.purpleL : C.purple); g.addColorStop(1, anim.playH ? C.purple : '#6b21a8');
+    if (canPlay) { g.addColorStop(0, anim.playH ? C.purpleL : C.purple); g.addColorStop(1, anim.playH ? C.purple : '#6b21a8'); }
+    else { g.addColorStop(0, '#333'); g.addColorStop(1, '#222'); }
     rr(ctx, pb.x, pb.y, pbw, pbh, 16); ctx.fillStyle = g; ctx.fill(); ctx.shadowBlur = 0;
-    ctx.font = '800 20px Inter, system-ui, sans-serif'; ctx.fillStyle = '#fff';
+    ctx.font = '800 20px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = canPlay ? '#fff' : '#555';
     ctx.fillText('💎 HRAŤ', cx, pb.y + pbh/2);
+    ctx.restore();
+
     ctx.restore();
   }
 

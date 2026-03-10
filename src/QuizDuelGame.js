@@ -238,39 +238,78 @@ export class QuizDuelGame{
     else if(this.phase==='steal'){this._drawSB();this._drawBoard();this._drawSteal()}
     else if(this.phase==='result'){this._drawBoard();this._drawResult()}}
 
-  _drawMenu(){const{ctx,W,anim}=this;const m=W<600,cx=W/2;
+  _drawMenu(){const{ctx,W,H,anim}=this;const m=W<600,cx=W/2,cy=H/2;
     ctx.save();ctx.globalAlpha=anim.menuA;ctx.translate(0,anim.menuY);
-    const bb={x:16,y:16,w:90,h:36};this.hits.back=bb;rr(ctx,bb.x,bb.y,90,36,12);
+
+    // Back button
+    const bbw=m?90:110,bbh=36;const bb={x:16,y:16,w:bbw,h:bbh};this.hits.back=bb;
+    rr(ctx,bb.x,bb.y,bbw,bbh,12);
     ctx.fillStyle=anim.backH?'rgba(255,255,255,0.08)':'rgba(255,255,255,0.03)';ctx.fill();
-    rr(ctx,bb.x,bb.y,90,36,12);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.stroke();
-    ctx.font='600 13px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=C.muted;ctx.fillText('← Späť',bb.x+45,bb.y+18);
-    drawHex(ctx,cx,m?80:95,m?28:38,C.greenD,C.green,2,'rgba(34,197,94,0.3)');
-    const ty=m?130:155;ctx.font=`900 ${m?28:42}px Inter,system-ui,sans-serif`;
-    ctx.shadowColor=C.green;ctx.shadowBlur=25;ctx.fillStyle=C.greenL;ctx.fillText('KVÍZ DUEL',cx,ty);ctx.shadowBlur=0;
-    ctx.font=`500 ${m?11:14}px Inter,system-ui,sans-serif`;ctx.fillStyle=C.muted;
-    ctx.fillText('AZ Kvíz • Hexagony • Píš odpoveď!',cx,ty+(m?28:35));
-    const ry=ty+(m?52:65);ctx.font=`500 ${m?10:12}px Inter,system-ui,sans-serif`;ctx.fillStyle=hex2rgba(C.greenL,0.6);
-    ['🟦 Ty hráš modrou (zhora → nadol)','🟧 BOT hrá oranžovou (zľava → doprava)',
-     '✍️ Odpoveď napíš na klávesnici','❌ Zlé → súper môže prevziať alebo čierne pole'].forEach((r,i)=>ctx.fillText(r,cx,ry+i*(m?18:22)));
-    const diffs=['Ľahký','Stredný','Ťažký'],dk=['easy','medium','hard'],dc=[C.greenL,C.gold,C.red];
-    const dbw=m?82:100,dbh=38,dgap=8,dtw=dbw*3+dgap*2,dsy=ry+4*(m?18:22)+(m?18:25);
-    ctx.font='600 11px Inter,system-ui,sans-serif';
-    ctx.fillStyle=anim.errorFlash>0?`rgba(239,68,68,${anim.errorFlash})`:hex2rgba(C.text,0.4);
-    ctx.fillText(this.botDiff?'Obtiažnosť BOTa':'⚠️ Vyber obtiažnosť!',cx,dsy-14);
-    for(let i=0;i<3;i++){const dx=cx-dtw/2+i*(dbw+dgap);this.hits[`d${i}`]={x:dx,y:dsy,w:dbw,h:dbh};
+    rr(ctx,bb.x,bb.y,bbw,bbh,12);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.stroke();
+    ctx.font=`600 ${m?12:13}px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=C.muted;ctx.fillText('← Späť',bb.x+bbw/2,bb.y+bbh/2);
+
+    // Title glow
+    const glow=ctx.createRadialGradient(cx,cy-100,10,cx,cy-100,320);
+    glow.addColorStop(0,hex2rgba(C.green,0.12));glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;ctx.fillRect(cx-350,cy-350,700,500);
+
+    // Title with shimmer gradient
+    const fz=Math.max(28,Math.min(52,W*0.07));
+    ctx.save();ctx.font=`900 ${fz}px Inter,system-ui,sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const tg=ctx.createLinearGradient(cx-200,0,cx+200,0);
+    const shift=(Math.sin(this._time*0.8)+1)/2;
+    tg.addColorStop(0,C.greenD);tg.addColorStop(shift*0.5,C.greenL);
+    tg.addColorStop(0.5,'#fff');tg.addColorStop(0.5+shift*0.5,C.greenL);
+    tg.addColorStop(1,C.greenD);
+    ctx.fillStyle=tg;ctx.fillText('KVÍZ DUEL',cx,cy-120);
+    ctx.restore();
+
+    // Subtitle
+    ctx.font=`400 ${m?12:15}px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=C.muted;ctx.fillText('AZ Kvíz • Hexagony • Píš odpoveď!',cx,cy-78);
+
+    // Rules
+    ctx.font=`500 ${m?10:12}px Inter,system-ui,sans-serif`;ctx.fillStyle=hex2rgba(C.greenL,0.5);
+    const rules=['🟦 Ty hráš modrou zhora nadol','🟧 BOT hrá oranžovou','✍️ Odpoveď napíš','❌ Zlé → súper môže prevziať'];
+    rules.forEach((r,i)=>ctx.fillText(r,cx,cy-50+i*(m?16:20)));
+
+    // Difficulty selector (same style as H&L)
+    const diffLabels=['Ľahká','Stredná','Ťažká'],dk=['easy','medium','hard'],dc=[C.greenL,C.gold,C.red];
+    const dbw=90,dbh=38,dgap=12,dtw=dbw*3+dgap*2;
+    const dsy=cy-50+rules.length*(m?16:20)+16;
+    ctx.font='500 11px Inter,system-ui,sans-serif';
+    ctx.fillStyle=anim.errorFlash>0?`rgba(239,68,68,${anim.errorFlash})`:'rgba(255,255,255,0.25)';
+    ctx.fillText(this.botDiff?'':'⚠️ Vyber obtiažnosť!',cx,dsy-12);
+    for(let i=0;i<3;i++){
+      const dx=cx-dtw/2+i*(dbw+dgap);this.hits[`d${i}`]={x:dx,y:dsy,w:dbw,h:dbh};
       const act=this.botDiff===dk[i],hv=this.anim.diffH[i];
-      rr(ctx,dx,dsy,dbw,dbh,12);ctx.fillStyle=act?hex2rgba(dc[i],0.2):`rgba(255,255,255,${0.03+hv*0.05})`;ctx.fill();
-      rr(ctx,dx,dsy,dbw,dbh,12);ctx.strokeStyle=act?dc[i]:`rgba(255,255,255,${0.1+hv*0.1})`;ctx.lineWidth=act?2:1;ctx.stroke();
-      ctx.font=`${act?700:500} 13px Inter,system-ui,sans-serif`;ctx.fillStyle=act?dc[i]:`rgba(255,255,255,${0.6+hv*0.3})`;
-      ctx.fillText(diffs[i],dx+dbw/2,dsy+dbh/2)}
-    const pbw=220,pbh=52,pb={x:cx-pbw/2,y:dsy+dbh+30,w:pbw,h:pbh};this.hits.play=pb;
-    const cp=!!this.botDiff;ctx.shadowColor=cp?C.green:'#222';ctx.shadowBlur=cp?10+anim.playH*18:0;
+      ctx.save();
+      rr(ctx,dx,dsy,dbw,dbh,12);
+      ctx.fillStyle=act?hex2rgba(dc[i],0.25):`rgba(255,255,255,${0.03+hv*0.05})`;ctx.fill();
+      ctx.strokeStyle=act?dc[i]:`rgba(255,255,255,${0.1+hv*0.15})`;ctx.lineWidth=act?2:1;ctx.stroke();
+      ctx.font=`${act?700:500} 13px Inter,system-ui,sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=act?dc[i]:`rgba(255,255,255,${0.7+hv*0.3})`;
+      ctx.fillText(diffLabels[i],dx+dbw/2,dsy+dbh/2);
+      ctx.restore();
+    }
+
+    // HRAŤ button (gold style like H&L)
+    const pbw=260,pbh=58;const pb={x:cx-pbw/2,y:dsy+dbh+24,w:pbw,h:pbh};this.hits.play=pb;
+    const cp=!!this.botDiff;
+    ctx.save();
+    ctx.shadowColor=cp?C.green:'#222';ctx.shadowBlur=cp?12+anim.playH*24:0;
     const g=ctx.createLinearGradient(pb.x,pb.y,pb.x,pb.y+pbh);
     if(cp){g.addColorStop(0,anim.playH?C.greenL:C.green);g.addColorStop(1,anim.playH?C.green:C.greenD)}
     else{g.addColorStop(0,'#333');g.addColorStop(1,'#222')}
     rr(ctx,pb.x,pb.y,pbw,pbh,16);ctx.fillStyle=g;ctx.fill();ctx.shadowBlur=0;
-    ctx.font='800 18px Inter,system-ui,sans-serif';ctx.fillStyle=cp?'#000':'#555';ctx.fillText('⬡ HRAŤ vs BOT',cx,pb.y+pbh/2);
+    ctx.font='800 20px Inter,system-ui,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=cp?'#000':'#555';ctx.fillText('⬡ HRAŤ vs BOT',cx,pb.y+pbh/2);
+    ctx.restore();
+
     ctx.restore()}
 
   _drawBoard(){const{ctx,anim}=this;const m=this.W<600;ctx.save();ctx.globalAlpha=anim.boardA;
