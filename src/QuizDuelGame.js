@@ -280,9 +280,6 @@ export class QuizDuelGame{
     ctx.fillStyle=tg;ctx.fillText('KVÍZ DUEL',cx,cy-110);
     ctx.restore();
 
-    // Subtitle
-    ctx.font=`400 ${m?13:16}px Inter,system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=C.muted;ctx.fillText('⬡ AZ Kvíz • Hexagony • Píš odpoveď!',cx,cy-62);
 
     // Difficulty selector
     const diffLabels=['Ľahká','Stredná','Ťažká'],dk=['easy','medium','hard'],dc=[C.greenL,C.gold,C.red];

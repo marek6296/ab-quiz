@@ -694,11 +694,6 @@ export class HigherLowerGame {
     ctx.fillText('HIGHER OR LOWER', cx, cy - 110 + yo);
     ctx.restore();
 
-    // Subtitle with animated arrow
-    const arrows = '▲▼';
-    ctx.font = `400 ${Math.max(13, Math.min(16, W * 0.02))}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${arrows}  Uhádni čo je viac a čo menej  ${arrows}`, cx, cy - 62 + yo);
 
     // Best score
     if (this.bestScore > 0) {

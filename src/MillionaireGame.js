@@ -415,11 +415,6 @@ export class MillionaireGame {
     ctx.fillText('MILIONÁR', cx, cy - 110);
     ctx.restore();
 
-    // Subtitle
-    ctx.font = `400 ${mobile ? 13 : 16}px Inter, system-ui, sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = C.muted;
-    ctx.fillText(`💎 Ty vs ${this.botCount} ${this.botCount === 1 ? 'BOT' : 'BOTi'} • 14 otázok`, cx, cy - 62);
 
     // Bot count selector (compact)
     const bcY = cy - 30;
