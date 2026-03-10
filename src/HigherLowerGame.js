@@ -455,16 +455,19 @@ export class HigherLowerGame {
   }
 
   _next() {
-    this.currentIndex += 2; // step by 2 to get a fresh pair each round
-    this.roundNumber++;
+    this._transitioning = true; // block card rendering immediately
 
     // Phase 1: Slide BOTH cards out simultaneously
     gsap.to(this.anim, { leftX: -500, leftA: 0, duration: 0.5, ease: 'power3.in' });
     gsap.to(this.anim, { rightX: 500, rightA: 0, duration: 0.5, ease: 'power3.in' });
     gsap.to(this.anim, { vsA: 0, duration: 0.25 });
 
-    // Phase 2: Cards gone – show "Ďalšia otázka" banner with pause
+    // Phase 2: Cards fully gone – NOW update index and show banner
     setTimeout(() => {
+      // Only now switch to new pair (old cards are fully off-screen)
+      this.currentIndex += 2;
+      this.roundNumber++;
+
       this.anim.valReveal = 0;
       this.anim.resultIcon = 0;
       this.countUp = { current: 0, target: 0, active: false };
@@ -482,6 +485,7 @@ export class HigherLowerGame {
       setTimeout(() => {
         gsap.to(this.anim, { nextBanner: 0, duration: 0.3 });
         this._guessLocked = false;
+        this._transitioning = false; // allow card rendering again
         this._showRoundBanner();
 
         gsap.to(this.anim, { leftX: 0, leftA: 1, duration: 0.6, ease: 'back.out(1.4)', delay: 0.25 });
@@ -895,9 +899,9 @@ export class HigherLowerGame {
       ctx.restore();
     }
 
-    // Skip cards while "Ďalšia otázka" banner is visible
-    if (anim.nextBanner > 0.05) {
-      // Don't draw cards during transition banner
+    // Skip cards while transitioning or banner is visible
+    if (this._transitioning || anim.nextBanner > 0.05) {
+      // Don't draw cards during transition
     } else if (mobile) {
       const CW = Math.min(W - 24, 320);
       const CH = 150;
@@ -951,7 +955,7 @@ export class HigherLowerGame {
     }
 
     // ── Leave + Report buttons (always visible during game) ──
-    if (anim.nextBanner <= 0.05) {
+    if (!this._transitioning && anim.nextBanner <= 0.05) {
       const lbw = mobile ? 75 : 95, lbh = 28;
       const lbx = mobile ? 8 : 16, lby = mobile ? H - lbh - 8 : H - lbh - 16;
       const leave = { x: lbx, y: lby, w: lbw, h: lbh };
