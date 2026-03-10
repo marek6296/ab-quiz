@@ -1,4 +1,5 @@
 import gsap from 'gsap';
+import { supabase } from './lib/supabase';
 
 // ─── PALETTE ─────────────────────────────────────────────────────────────────
 const C = {
@@ -23,36 +24,50 @@ function shuffle(arr) {
   const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a;
 }
 
-// PRIZE LADDER
+// ─── FALLBACK QUESTIONS (sorted easy→hard) ───────────────────────────────────
+const FALLBACK_QS = [
+  { q: 'Aké je hlavné mesto Slovenska?', answers: ['Bratislava', 'Praha', 'Budapešť', 'Viedeň'], correct: 0, difficulty: 1 },
+  { q: 'Koľko farieb má dúha?', answers: ['5', '6', '7', '8'], correct: 2, difficulty: 1 },
+  { q: 'Ktoré zviera štekot?', answers: ['Mačka', 'Pes', 'Krava', 'Kôň'], correct: 1, difficulty: 1 },
+  { q: 'Koľko dní má týždeň?', answers: ['5', '6', '7', '8'], correct: 2, difficulty: 1 },
+  { q: 'Aká je farba neba?', answers: ['Zelená', 'Modrá', 'Červená', 'Žltá'], correct: 1, difficulty: 1 },
+  { q: 'Aký je najvyšší vrch sveta?', answers: ['K2', 'Everest', 'Kilimandžáro', 'Mont Blanc'], correct: 1, difficulty: 1 },
+  { q: 'Koľko nôh má pavúk?', answers: ['6', '8', '10', '12'], correct: 1, difficulty: 1 },
+  { q: 'Kto namaľoval Monu Lízu?', answers: ['Picasso', 'Van Gogh', 'Da Vinci', 'Michelangelo'], correct: 2, difficulty: 1 },
+  { q: 'Kto napísal Hamleta?', answers: ['Goethe', 'Shakespeare', 'Dickens', 'Molière'], correct: 1, difficulty: 2 },
+  { q: 'Koľko planét má Slnečná sústava?', answers: ['7', '8', '9', '10'], correct: 1, difficulty: 2 },
+  { q: 'V ktorom roku padol Berlínsky múr?', answers: ['1987', '1989', '1991', '1993'], correct: 1, difficulty: 2 },
+  { q: 'Aký je chemický symbol zlata?', answers: ['Ag', 'Au', 'Zn', 'Cu'], correct: 1, difficulty: 2 },
+  { q: 'Koľko kostí má dospelý človek?', answers: ['206', '156', '256', '306'], correct: 0, difficulty: 2 },
+  { q: 'Ktorá planéta je najbližšie k Slnku?', answers: ['Venuša', 'Merkúr', 'Mars', 'Zem'], correct: 1, difficulty: 2 },
+  { q: 'Aká je najdlhšia rieka sveta?', answers: ['Amazonka', 'Níl', 'Yangtze', 'Dunaj'], correct: 1, difficulty: 3 },
+  { q: 'Kto namaľoval Hviezdnu noc?', answers: ['Monet', 'Picasso', 'Van Gogh', 'Dalí'], correct: 2, difficulty: 3 },
+  { q: 'Koľko chromozómov má človek?', answers: ['44', '46', '48', '50'], correct: 1, difficulty: 3 },
+  { q: 'Aký je najväčší orgán človeka?', answers: ['Srdce', 'Pečeň', 'Koža', 'Mozog'], correct: 2, difficulty: 3 },
+  { q: 'V ktorom roku vzniklo Československo?', answers: ['1915', '1918', '1920', '1925'], correct: 1, difficulty: 3 },
+  { q: 'Aký je vzorec Einsteinovej rovnice?', answers: ['E=mc²', 'F=ma', 'a²+b²=c²', 'PV=nRT'], correct: 0, difficulty: 3 },
+  { q: 'Koľko sŕdc má chobotnica?', answers: ['1', '2', '3', '4'], correct: 2, difficulty: 3 },
+  { q: 'Kto zložil Deviatú symfóniu?', answers: ['Mozart', 'Bach', 'Beethoven', 'Chopin'], correct: 2, difficulty: 3 },
+];
+
+async function loadQuestions() {
+  try {
+    const { data, error } = await supabase.from('quiz_questions').select('*').eq('reported', false);
+    if (!error && data && data.length >= 10) {
+      return data.map(r => ({
+        id: r.id, q: r.question,
+        answers: [r.answer_a, r.answer_b, r.answer_c, r.answer_d],
+        correct: r.correct_answer, difficulty: r.difficulty,
+      }));
+    }
+  } catch(e) { console.warn('Millionaire DB load failed:', e); }
+  return FALLBACK_QS;
+}
+
 const PRIZES = [
   '100 €', '200 €', '300 €', '500 €', '1 000 €', '2 000 €', '5 000 €', '10 000 €',
   '20 000 €', '50 000 €', '100 000 €', '250 000 €', '500 000 €', '1 000 000 €'
 ];
-
-// QUESTIONS: Easy → Hard
-const QUESTIONS = [
-  { q: 'Aké je hlavné mesto Slovenska?', answers: ['Bratislava', 'Praha', 'Budapešť', 'Viedeň'], correct: 0, tier: 0 },
-  { q: 'Koľko farieb má dúha?', answers: ['5', '6', '7', '8'], correct: 2, tier: 0 },
-  { q: 'Ktoré zviera štekot?', answers: ['Mačka', 'Pes', 'Krava', 'Kôň'], correct: 1, tier: 0 },
-  { q: 'Koľko dní má týždeň?', answers: ['5', '6', '7', '8'], correct: 2, tier: 0 },
-  { q: 'Aká je farba neba?', answers: ['Zelená', 'Modrá', 'Červená', 'Žltá'], correct: 1, tier: 0 },
-  { q: 'Kto napísal Hamleta?', answers: ['Goethe', 'Shakespeare', 'Dickens', 'Molière'], correct: 1, tier: 1 },
-  { q: 'Koľko planét má Slnečná sústava?', answers: ['7', '8', '9', '10'], correct: 1, tier: 1 },
-  { q: 'V ktorom roku padol Berlínsky múr?', answers: ['1987', '1989', '1991', '1993'], correct: 1, tier: 1 },
-  { q: 'Aký je chemický symbol zlata?', answers: ['Ag', 'Au', 'Zn', 'Cu'], correct: 1, tier: 1 },
-  { q: 'Koľko kostí má dospelý človek?', answers: ['206', '156', '256', '306'], correct: 0, tier: 1 },
-  { q: 'Aká je najdlhšia rieka sveta?', answers: ['Amazonka', 'Níl', 'Yangtze', 'Dunaj'], correct: 1, tier: 2 },
-  { q: 'Kto namaľoval Hviezdnu noc?', answers: ['Monet', 'Picasso', 'Van Gogh', 'Dalí'], correct: 2, tier: 2 },
-  { q: 'Koľko chromozómov má človek?', answers: ['44', '46', '48', '50'], correct: 1, tier: 2 },
-  { q: 'Kto vynašiel telefón?', answers: ['Edison', 'Bell', 'Tesla', 'Morse'], correct: 1, tier: 2 },
-  { q: 'Aký je najväčší orgán človeka?', answers: ['Srdce', 'Pečeň', 'Koža', 'Mozog'], correct: 2, tier: 2 },
-  { q: 'V ktorom roku vzniklo Československo?', answers: ['1915', '1918', '1920', '1925'], correct: 1, tier: 3 },
-  { q: 'Aký je vzorec Einsteinovej rovnice?', answers: ['E=mc²', 'F=ma', 'a²+b²=c²', 'PV=nRT'], correct: 0, tier: 3 },
-  { q: 'Koľko sŕdc má chobotnica?', answers: ['1', '2', '3', '4'], correct: 2, tier: 3 },
-  { q: 'Ako sa volá najvyšší vrch Slovenska?', answers: ['Rysy', 'Gerlachovský štít', 'Kriváň', 'Lomnický štít'], correct: 1, tier: 3 },
-  { q: 'Kto zložil Deviatú symfóniu?', answers: ['Mozart', 'Bach', 'Beethoven', 'Chopin'], correct: 2, tier: 3 },
-];
-
 const TOTAL_Q = 14;
 const ROUND_TIME = 20;
 
@@ -60,22 +75,14 @@ const ROUND_TIME = 20;
 const BOT_NAMES = ['🤖 Anna', '🤖 Peter', '🤖 Lucia'];
 class BotPlayer {
   constructor(name, skill) {
-    this.name = name;
-    this.skill = skill; // 0.4 - 0.9
-    this.score = 0;
-    this.alive = true;
-    this.lastAnswer = null;
-    this.answeredAt = 0;
+    this.name = name; this.skill = skill;
+    this.score = 0; this.alive = true; this.lastAnswer = null;
   }
-  decide(correctIdx, time) {
+  decide(correctIdx) {
     const correct = Math.random() < this.skill;
     const delay = 2 + Math.random() * (ROUND_TIME - 5);
-    this.answeredAt = delay;
-    if (correct) { this.lastAnswer = correctIdx; }
-    else {
-      let w; do { w = Math.floor(Math.random() * 4); } while (w === correctIdx);
-      this.lastAnswer = w;
-    }
+    if (correct) this.lastAnswer = correctIdx;
+    else { let w; do { w = Math.floor(Math.random() * 4); } while (w === correctIdx); this.lastAnswer = w; }
     return { answer: this.lastAnswer, delay };
   }
 }
@@ -92,7 +99,7 @@ export class MillionaireGame {
     this._dead = false;
     this._time = 0;
 
-    this.phase = 'menu'; // menu | countdown | question | reveal | eliminated | result
+    this.phase = 'menu';
     this.round = 0;
     this.myAnswer = null;
     this.myAlive = true;
@@ -101,6 +108,8 @@ export class MillionaireGame {
     this.questions = [];
     this.countdownNum = 3;
     this.bots = [];
+    this.reportedQ = new Set();
+    this._transitioning = false;
 
     this.anim = {
       menuA: 0, menuY: 30,
@@ -109,6 +118,7 @@ export class MillionaireGame {
       revealA: 0, resultA: 0,
       countdownScale: 0,
       playH: 0, backH: 0, exitH: 0,
+      leaveH: 0, reportH: 0,
       ladderA: 0,
     };
     this.hits = {};
@@ -119,14 +129,11 @@ export class MillionaireGame {
     window.addEventListener('resize', this._resize);
     canvas.addEventListener('mousemove', this._onMove);
     canvas.addEventListener('mousedown', this._onClick);
-    canvas.addEventListener('touchstart', (e) => this._onClick(e), { passive: true });
+    canvas.addEventListener('touchstart', e => this._onClick(e), { passive: true });
     this._resize();
   }
 
-  start() {
-    this._animateMenu();
-    this._loop();
-  }
+  start() { this._animateMenu(); this._loop(); }
 
   destroy() {
     this._dead = true;
@@ -140,21 +147,26 @@ export class MillionaireGame {
   setUser(u) { this.user = u; }
 
   _animateMenu() {
-    this.phase = 'menu';
-    this.anim.menuA = 0; this.anim.menuY = 30;
+    this.phase = 'menu'; this.anim.menuA = 0; this.anim.menuY = 30;
     gsap.to(this.anim, { menuA: 1, menuY: 0, duration: 0.6, ease: 'back.out(1.4)', delay: 0.1 });
   }
 
-  _startGame() {
-    // Shuffle and pick questions across tiers
-    const tiers = [0, 1, 2, 3];
-    let pool = [];
-    for (const t of tiers) {
-      const tq = shuffle(QUESTIONS.filter(q => q.tier === t));
-      pool.push(...tq);
+  async _startGame() {
+    const allQ = await loadQuestions();
+    // Sort: easy first, then medium, then hard – pick across tiers
+    const easy = shuffle(allQ.filter(q => q.difficulty === 1));
+    const medium = shuffle(allQ.filter(q => q.difficulty === 2));
+    const hard = shuffle(allQ.filter(q => q.difficulty === 3));
+    this.questions = [...easy.slice(0, 5), ...medium.slice(0, 5), ...hard.slice(0, 4)];
+    if (this.questions.length < TOTAL_Q) {
+      // Fill with any remaining
+      const used = new Set(this.questions.map(q => q.q));
+      const remaining = shuffle(allQ.filter(q => !used.has(q.q)));
+      this.questions.push(...remaining.slice(0, TOTAL_Q - this.questions.length));
     }
-    this.questions = pool.slice(0, TOTAL_Q);
     this.round = 0; this.myAnswer = null; this.myAlive = true;
+    this.reportedQ = new Set();
+    this._transitioning = false;
     this.bots = [
       new BotPlayer(BOT_NAMES[0], 0.55),
       new BotPlayer(BOT_NAMES[1], 0.65),
@@ -165,8 +177,7 @@ export class MillionaireGame {
   }
 
   _startCountdown() {
-    this.phase = 'countdown';
-    this.countdownNum = 3;
+    this.phase = 'countdown'; this.countdownNum = 3;
     const tick = () => {
       if (this._dead) return;
       this.anim.countdownScale = 0;
@@ -181,29 +192,26 @@ export class MillionaireGame {
     this.phase = 'question';
     this.myAnswer = null;
     this.timer = ROUND_TIME;
-    this.anim.revealA = 0; this.anim.ladderA = 0;
+    this.anim.revealA = 0;
+    this._transitioning = false;
     this.anim.qA = 0; this.anim.qY = 20;
     gsap.to(this.anim, { qA: 1, qY: 0, duration: 0.5, ease: 'back.out(1.2)' });
     for (let i = 0; i < 4; i++) this.anim.ansH[i] = 0;
 
-    // Bots decide
     const q = this.questions[this.round];
+    if (!q) { this._showResult(); return; }
     this.bots.forEach(b => {
       if (!b.alive) return;
       b.lastAnswer = null;
-      const { answer, delay } = b.decide(q.correct, ROUND_TIME);
-      setTimeout(() => { if (!this._dead && this.phase === 'question') b.lastAnswer = answer; }, delay * 1000);
+      const { delay } = b.decide(q.correct);
+      setTimeout(() => { if (!this._dead && this.phase === 'question') { /* already set in decide */ } }, delay * 1000);
     });
 
     clearInterval(this._timerInterval);
     this._timerInterval = setInterval(() => {
       if (this._dead || this.phase !== 'question') return;
       this.timer -= 0.1;
-      if (this.timer <= 0) {
-        this.timer = 0;
-        clearInterval(this._timerInterval);
-        this._doReveal();
-      }
+      if (this.timer <= 0) { this.timer = 0; clearInterval(this._timerInterval); this._doReveal(); }
     }, 100);
   }
 
@@ -216,50 +224,50 @@ export class MillionaireGame {
     if (this.phase !== 'question') return;
     clearInterval(this._timerInterval);
     this.phase = 'reveal';
-
     const q = this.questions[this.round];
-    // Process bots
     this.bots.forEach(b => {
       if (!b.alive) return;
-      if (b.lastAnswer !== q.correct) { b.alive = false; }
-      else { b.score = this.round + 1; }
+      if (b.lastAnswer !== q.correct) b.alive = false;
+      else b.score = this.round + 1;
     });
-    // Process me
     if (this.myAlive) {
       if (this.myAnswer !== q.correct) this.myAlive = false;
     }
-
     gsap.to(this.anim, { revealA: 1, duration: 0.5 });
 
     setTimeout(() => {
       if (this._dead) return;
       this.round++;
-      if (!this.myAlive) {
-        this._showResult();
-      } else if (this.round >= this.questions.length) {
-        this._showResult();
-      } else if (!this.bots.some(b => b.alive) && !this.myAlive) {
-        this._showResult();
-      } else {
-        gsap.to(this.anim, { qA: 0, qY: -30, duration: 0.3 });
-        setTimeout(() => this._startRound(), 400);
-      }
+      if (!this.myAlive) { this._showResult(); return; }
+      if (this.round >= this.questions.length) { this._showResult(); return; }
+      // TRANSITION: hide first, THEN spawn new round
+      this._transitioning = true;
+      gsap.to(this.anim, { qA: 0, qY: -30, duration: 0.3, onComplete: () => {
+        if (this._dead) return;
+        setTimeout(() => { if (!this._dead) this._startRound(); }, 300);
+      }});
     }, 2500);
   }
 
   _showResult() {
-    this.phase = 'result';
-    this.anim.resultA = 0;
+    this.phase = 'result'; this.anim.resultA = 0;
     gsap.to(this.anim, { resultA: 1, duration: 0.6 });
+  }
+
+  _leaveGame() { this.onBack(); }
+
+  async _reportQuestion() {
+    const q = this.questions[this.round];
+    if (!q?.id || this.reportedQ.has(this.round)) return;
+    this.reportedQ.add(this.round);
+    try { await supabase.from('quiz_questions').update({ reported: true }).eq('id', q.id); } catch(e) {}
   }
 
   // ── Input ──────────────────────────────────────────────────────────────────
   _resize() {
     const r = this.canvas.getBoundingClientRect();
-    this.W = r.width || window.innerWidth;
-    this.H = r.height || window.innerHeight;
-    this.canvas.width = this.W * this.dpr;
-    this.canvas.height = this.H * this.dpr;
+    this.W = r.width || window.innerWidth; this.H = r.height || window.innerHeight;
+    this.canvas.width = this.W * this.dpr; this.canvas.height = this.H * this.dpr;
   }
   _pos(e) {
     const r = this.canvas.getBoundingClientRect();
@@ -274,6 +282,8 @@ export class MillionaireGame {
     gsap.to(this.anim, { playH: this._hit(p, this.hits.play) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { backH: this._hit(p, this.hits.back) ? 1 : 0, duration: 0.15 });
     gsap.to(this.anim, { exitH: this._hit(p, this.hits.exit) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { leaveH: this._hit(p, this.hits.leave) ? 1 : 0, duration: 0.15 });
+    gsap.to(this.anim, { reportH: this._hit(p, this.hits.report) ? 1 : 0, duration: 0.15 });
     const any = Object.values(this.hits).some(a => a && this._hit(p, a));
     this.canvas.style.cursor = any ? 'pointer' : 'default';
   }
@@ -285,9 +295,13 @@ export class MillionaireGame {
       if (this._hit(p, this.hits.play)) this._startGame();
     }
     if (this.phase === 'question') {
-      for (let i = 0; i < 4; i++) {
-        if (this._hit(p, this.hits[`a${i}`])) this._submitAnswer(i);
-      }
+      for (let i = 0; i < 4; i++) { if (this._hit(p, this.hits[`a${i}`])) this._submitAnswer(i); }
+      if (this._hit(p, this.hits.leave)) this._leaveGame();
+      if (this._hit(p, this.hits.report)) this._reportQuestion();
+    }
+    if (this.phase === 'reveal') {
+      if (this._hit(p, this.hits.leave)) this._leaveGame();
+      if (this._hit(p, this.hits.report)) this._reportQuestion();
     }
     if (this.phase === 'result') {
       if (this._hit(p, this.hits.exit)) this.onBack();
@@ -306,26 +320,21 @@ export class MillionaireGame {
 
   _draw() {
     const { ctx, W, H } = this;
-    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
-
-    // Dark blue gradient for milionaire feel
+    // Dark blue gradient
     const mg = ctx.createLinearGradient(0, 0, 0, H);
     mg.addColorStop(0, '#030318'); mg.addColorStop(0.5, '#0a0a2e'); mg.addColorStop(1, '#050520');
     ctx.fillStyle = mg; ctx.fillRect(0, 0, W, H);
 
     if (this.phase === 'menu') this._drawMenu();
     else if (this.phase === 'countdown') this._drawCountdown();
-    else if (this.phase === 'question' || this.phase === 'reveal') this._drawQuestion();
+    else if ((this.phase === 'question' || this.phase === 'reveal') && !this._transitioning) this._drawQuestion();
     else if (this.phase === 'result') this._drawResult();
   }
 
   _drawMenu() {
-    const { ctx, W, H, anim } = this;
-    const mobile = W < 600;
-    const cx = W / 2;
-    ctx.save();
-    ctx.globalAlpha = anim.menuA;
-    ctx.translate(0, anim.menuY);
+    const { ctx, W, anim } = this;
+    const mobile = W < 600; const cx = W / 2;
+    ctx.save(); ctx.globalAlpha = anim.menuA; ctx.translate(0, anim.menuY);
 
     // Back
     const bb = { x: 16, y: 16, w: 90, h: 36 };
@@ -335,207 +344,138 @@ export class MillionaireGame {
     rr(ctx, bb.x, bb.y, 90, 36, 12);
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = C.muted;
-    ctx.fillText('← Späť', bb.x + 45, bb.y + 18);
+    ctx.fillStyle = C.muted; ctx.fillText('← Späť', bb.x + 45, bb.y + 18);
 
-    // Diamond
-    ctx.font = `${mobile ? 50 : 70}px serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('💎', cx, mobile ? 85 : 100);
-
-    // Title
+    ctx.font = `${mobile ? 50 : 70}px serif`; ctx.fillText('💎', cx, mobile ? 85 : 100);
     ctx.font = `900 ${mobile ? 28 : 42}px Inter, system-ui, sans-serif`;
-    ctx.shadowColor = C.purple; ctx.shadowBlur = 25;
-    ctx.fillStyle = C.purpleL;
-    ctx.fillText('MILIONÁR', cx, mobile ? 140 : 170);
-    ctx.shadowBlur = 0;
-
-    ctx.font = `900 ${mobile ? 18 : 28}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.gold;
+    ctx.shadowColor = C.purple; ctx.shadowBlur = 25; ctx.fillStyle = C.purpleL;
+    ctx.fillText('MILIONÁR', cx, mobile ? 140 : 170); ctx.shadowBlur = 0;
+    ctx.font = `900 ${mobile ? 18 : 28}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.gold;
     ctx.fillText('BATTLE', cx, mobile ? 170 : 210);
-
-    ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.muted;
+    ctx.font = `500 ${mobile ? 11 : 14}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.muted;
     ctx.fillText('Ty vs 3 BOTi • 14 otázok • Kto vydrží najdlhšie?', cx, mobile ? 195 : 245);
 
-    // Prize preview
-    const pStartY = mobile ? 220 : 270;
-    const pGap = mobile ? 20 : 24;
+    const pStartY = mobile ? 220 : 270; const pGap = mobile ? 20 : 24;
     [13, 12, 11, 4, 0].forEach((idx, i) => {
       ctx.font = `${i === 0 ? 800 : 500} ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = idx === 13 ? C.gold : (idx >= 10 ? C.purpleL : C.muted);
       ctx.fillText(`${idx + 1}. ${PRIZES[idx]}`, cx, pStartY + i * pGap);
     });
 
-    // Play
     const pbw = 240, pbh = 56;
     const pb = { x: cx - pbw/2, y: pStartY + 5 * pGap + 15, w: pbw, h: pbh };
     this.hits.play = pb;
     ctx.shadowColor = C.purple; ctx.shadowBlur = 12 + anim.playH * 20;
     const g = ctx.createLinearGradient(pb.x, pb.y, pb.x, pb.y + pbh);
-    g.addColorStop(0, anim.playH ? C.purpleL : C.purple);
-    g.addColorStop(1, anim.playH ? C.purple : '#6b21a8');
-    rr(ctx, pb.x, pb.y, pbw, pbh, 16); ctx.fillStyle = g; ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.font = '800 20px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
+    g.addColorStop(0, anim.playH ? C.purpleL : C.purple); g.addColorStop(1, anim.playH ? C.purple : '#6b21a8');
+    rr(ctx, pb.x, pb.y, pbw, pbh, 16); ctx.fillStyle = g; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.font = '800 20px Inter, system-ui, sans-serif'; ctx.fillStyle = '#fff';
     ctx.fillText('💎 HRAŤ', cx, pb.y + pbh/2);
-
     ctx.restore();
   }
 
   _drawCountdown() {
     const { ctx, W, H, anim } = this;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // Players bar
     this._drawPlayersBar();
-    ctx.save();
-    ctx.translate(W/2, H/2);
+    ctx.save(); ctx.translate(W/2, H/2);
     ctx.scale(anim.countdownScale, anim.countdownScale);
-    ctx.font = '900 120px Inter, system-ui, sans-serif';
-    ctx.fillStyle = C.purple; ctx.shadowColor = C.purple; ctx.shadowBlur = 30;
+    ctx.font = '900 120px Inter, system-ui, sans-serif'; ctx.fillStyle = C.purple;
+    ctx.shadowColor = C.purple; ctx.shadowBlur = 30;
     ctx.fillText(this.countdownNum > 0 ? `${this.countdownNum}` : 'GO!', 0, 0);
     ctx.restore();
   }
 
   _drawPlayersBar() {
     const { ctx, W } = this;
-    const mobile = W < 600;
-    const y = mobile ? 18 : 26;
-    const myName = this.user ? '👤 Ty' : '👤 Hráč';
-    const all = [{ name: myName, alive: this.myAlive, score: this.round }, ...this.bots.map(b => ({ name: b.name, alive: b.alive, score: b.score }))];
+    const mobile = W < 600; const y = mobile ? 18 : 26;
+    const myName = '👤 Ty';
+    const all = [{ name: myName, alive: this.myAlive }, ...this.bots.map(b => ({ name: b.name, alive: b.alive }))];
     const gap = mobile ? W / 4.5 : 110;
-    const startX = W / 2 - (all.length - 1) * gap / 2;
+    const startX = W/2 - (all.length - 1) * gap / 2;
     all.forEach((p, i) => {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = `600 ${mobile ? 10 : 12}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = p.alive ? C.text : C.dim;
-      ctx.globalAlpha = p.alive ? 1 : 0.4;
+      ctx.fillStyle = p.alive ? C.text : C.dim; ctx.globalAlpha = p.alive ? 1 : 0.4;
       ctx.fillText(p.name, startX + i * gap, y);
-      if (!p.alive) {
-        ctx.fillStyle = C.red; ctx.font = `700 ${mobile ? 8 : 10}px Inter, system-ui, sans-serif`;
-        ctx.fillText('✕', startX + i * gap + (mobile ? 30 : 35), y);
-      }
+      if (!p.alive) { ctx.fillStyle = C.red; ctx.font = `700 ${mobile ? 8 : 10}px Inter, system-ui, sans-serif`;
+        ctx.fillText('✕', startX + i * gap + (mobile ? 30 : 35), y); }
       ctx.globalAlpha = 1;
     });
   }
 
   _drawQuestion() {
     const { ctx, W, H, anim } = this;
-    const mobile = W < 600;
-    const cx = W / 2;
+    const mobile = W < 600; const cx = W / 2;
     const q = this.questions[this.round];
     if (!q) return;
 
     this._drawPlayersBar();
+    ctx.save(); ctx.globalAlpha = anim.qA; ctx.translate(0, anim.qY);
 
-    ctx.save();
-    ctx.globalAlpha = anim.qA;
-    ctx.translate(0, anim.qY);
-
-    // Prize ladder mini (right side)
+    // Prize ladder (desktop)
     if (!mobile) {
       const lx = W - 120, ly = 60;
-      ctx.font = '600 10px Inter, system-ui, sans-serif';
       ctx.textAlign = 'right';
       for (let i = Math.min(this.round + 3, PRIZES.length - 1); i >= Math.max(0, this.round - 1); i--) {
         const py = ly + (Math.min(this.round + 3, PRIZES.length - 1) - i) * 22;
         const isCurrent = i === this.round;
-        ctx.fillStyle = isCurrent ? C.gold : (i < this.round ? C.dim : C.muted);
         ctx.font = `${isCurrent ? 700 : 500} ${isCurrent ? 12 : 10}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = isCurrent ? C.gold : (i < this.round ? C.dim : C.muted);
         ctx.fillText(`${i + 1}. ${PRIZES[i]}`, lx, py);
-        if (isCurrent) {
-          ctx.fillStyle = C.gold;
-          ctx.fillText('►', lx - ctx.measureText(`${i + 1}. ${PRIZES[i]}`).width - 8, py);
-        }
+        if (isCurrent) { ctx.fillStyle = C.gold; ctx.fillText('►', lx - ctx.measureText(`${i+1}. ${PRIZES[i]}`).width - 8, py); }
       }
       ctx.textAlign = 'center';
     }
 
-    // Round + timer
+    // Prize
     const headerY = mobile ? 48 : 58;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `700 ${mobile ? 12 : 14}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.gold;
+    ctx.font = `700 ${mobile ? 12 : 14}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.gold;
     ctx.fillText(`Za ${PRIZES[Math.min(this.round, PRIZES.length - 1)]}`, cx, headerY);
 
-    // Timer bar
-    const tw = mobile ? Math.min(W - 40, 200) : 240, th = 5;
-    const ty = headerY + 16;
+    // Timer
+    const tw = mobile ? Math.min(W - 40, 200) : 240, th = 5, ty = headerY + 16;
     const pct = Math.max(0, this.timer / ROUND_TIME);
     rr(ctx, cx - tw/2, ty, tw, th, 3); ctx.fillStyle = '#222'; ctx.fill();
-    if (pct > 0) {
-      rr(ctx, cx - tw/2, ty, tw * pct, th, 3);
-      ctx.fillStyle = pct > 0.3 ? C.purple : C.red; ctx.fill();
-    }
-    ctx.font = `700 ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = pct > 0.3 ? C.muted : C.red;
+    if (pct > 0) { rr(ctx, cx - tw/2, ty, tw * pct, th, 3); ctx.fillStyle = pct > 0.3 ? C.purple : C.red; ctx.fill(); }
+    ctx.font = `700 ${mobile ? 11 : 13}px Inter, system-ui, sans-serif`; ctx.fillStyle = pct > 0.3 ? C.muted : C.red;
     ctx.fillText(`${Math.ceil(this.timer)}s`, cx, ty + 16);
 
     // Question
-    const qcw = Math.min(W - 30, 480), qch = mobile ? 80 : 100;
-    const qcy = ty + 40;
+    const qcw = Math.min(W - 30, 480), qch = mobile ? 80 : 100, qcy = ty + 40;
     rr(ctx, cx - qcw/2, qcy, qcw, qch, 16);
     const qbg = ctx.createLinearGradient(cx - qcw/2, qcy, cx + qcw/2, qcy);
     qbg.addColorStop(0, '#0d0d3d'); qbg.addColorStop(0.5, '#141450'); qbg.addColorStop(1, '#0d0d3d');
     ctx.fillStyle = qbg; ctx.fill();
     rr(ctx, cx - qcw/2, qcy, qcw, qch, 16);
     ctx.strokeStyle = hex2rgba(C.purpleL, 0.3); ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font = `700 ${mobile ? 14 : 18}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.text;
-    const words = q.q.split(' ');
-    let line = '', lines = [];
-    for (const w of words) {
-      const t = line ? line + ' ' + w : w;
-      if (ctx.measureText(t).width > qcw - 30 && line) { lines.push(line); line = w; } else line = t;
-    }
+    ctx.font = `700 ${mobile ? 14 : 18}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.text;
+    const words = q.q.split(' '); let line = '', lines = [];
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > qcw - 30 && line) { lines.push(line); line = w; } else line = t; }
     if (line) lines.push(line);
     const lh = mobile ? 20 : 24;
     lines.forEach((l, i) => ctx.fillText(l, cx, qcy + qch/2 - (lines.length - 1) * lh/2 + i * lh));
 
-    // Answers (2x2 diamond shape)
-    const abw = mobile ? (W - 30) / 2 - 5 : 220;
-    const abh = mobile ? 46 : 52;
-    const agap = 8;
-    const astartY = qcy + qch + 18;
-    const astartX = cx - abw - agap/2;
+    // Answers
+    const abw = mobile ? (W - 30) / 2 - 5 : 220, abh = mobile ? 46 : 52, agap = 8;
+    const astartY = qcy + qch + 18, astartX = cx - abw - agap/2;
     const labels = ['A', 'B', 'C', 'D'];
-
     for (let i = 0; i < 4; i++) {
       const col = i % 2, row = Math.floor(i / 2);
-      const ax = astartX + col * (abw + agap);
-      const ay = astartY + row * (abh + agap);
-      const area = { x: ax, y: ay, w: abw, h: abh };
-      this.hits[`a${i}`] = area;
-
-      const hover = this.anim.ansH[i];
-      const isCorrect = i === q.correct;
-      const isMyPick = this.myAnswer === i;
-      const revealing = this.phase === 'reveal';
-
+      const ax = astartX + col * (abw + agap), ay = astartY + row * (abh + agap);
+      this.hits[`a${i}`] = { x: ax, y: ay, w: abw, h: abh };
+      const hover = this.anim.ansH[i], isCorrect = i === q.correct, isMyPick = this.myAnswer === i, revealing = this.phase === 'reveal';
       let bgColor, borderColor, textColor;
       if (revealing) {
-        if (isCorrect) {
-          bgColor = hex2rgba(C.green, 0.25); borderColor = C.green; textColor = C.greenL;
-        } else if (isMyPick) {
-          bgColor = hex2rgba(C.red, 0.2); borderColor = C.red; textColor = C.redL;
-        } else {
-          bgColor = 'rgba(255,255,255,0.02)'; borderColor = hex2rgba(C.purpleL, 0.05); textColor = C.dim;
-        }
-      } else if (isMyPick) {
-        bgColor = hex2rgba(C.purple, 0.25); borderColor = C.purple; textColor = '#fff';
-      } else {
-        bgColor = `rgba(255,255,255,${0.02 + hover * 0.05})`;
-        borderColor = hex2rgba(C.purpleL, 0.12 + hover * 0.2);
-        textColor = `rgba(255,255,255,${0.7 + hover * 0.3})`;
-      }
-
-      rr(ctx, ax, ay, abw, abh, 14);
-      ctx.fillStyle = bgColor; ctx.fill();
-      rr(ctx, ax, ay, abw, abh, 14);
-      ctx.strokeStyle = borderColor; ctx.lineWidth = revealing && isCorrect ? 2 : 1; ctx.stroke();
-      ctx.font = `700 ${mobile ? 13 : 15}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = textColor;
+        if (isCorrect) { bgColor = hex2rgba(C.green, 0.25); borderColor = C.green; textColor = C.greenL; }
+        else if (isMyPick) { bgColor = hex2rgba(C.red, 0.2); borderColor = C.red; textColor = C.redL; }
+        else { bgColor = 'rgba(255,255,255,0.02)'; borderColor = hex2rgba(C.purpleL, 0.05); textColor = C.dim; }
+      } else if (isMyPick) { bgColor = hex2rgba(C.purple, 0.25); borderColor = C.purple; textColor = '#fff'; }
+      else { bgColor = `rgba(255,255,255,${0.02 + hover * 0.05})`; borderColor = hex2rgba(C.purpleL, 0.12 + hover * 0.2); textColor = `rgba(255,255,255,${0.7 + hover * 0.3})`; }
+      rr(ctx, ax, ay, abw, abh, 14); ctx.fillStyle = bgColor; ctx.fill();
+      rr(ctx, ax, ay, abw, abh, 14); ctx.strokeStyle = borderColor; ctx.lineWidth = revealing && isCorrect ? 2 : 1; ctx.stroke();
+      ctx.font = `700 ${mobile ? 13 : 15}px Inter, system-ui, sans-serif`; ctx.fillStyle = textColor;
       ctx.fillText(`${labels[i]}: ${q.answers[i]}`, ax + abw/2, ay + abh/2);
     }
 
@@ -550,56 +490,62 @@ export class MillionaireGame {
       });
     }
 
+    // Leave + Report
+    const btnY = astartY + 2 * (abh + agap) + (this.phase === 'reveal' ? 30 : 14);
+    const lbw = mobile ? 80 : 100, lbh = 30;
+    const leave = { x: cx - lbw - 5, y: btnY, w: lbw, h: lbh };
+    this.hits.leave = leave;
+    rr(ctx, leave.x, leave.y, lbw, lbh, 10);
+    ctx.fillStyle = anim.leaveH ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)'; ctx.fill();
+    rr(ctx, leave.x, leave.y, lbw, lbh, 10);
+    ctx.strokeStyle = anim.leaveH ? C.red : 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.font = `600 ${mobile ? 10 : 11}px Inter, system-ui, sans-serif`; ctx.fillStyle = anim.leaveH ? C.redL : C.dim;
+    ctx.fillText('🚪 Odísť', leave.x + lbw/2, leave.y + lbh/2);
+
+    const reported = this.reportedQ.has(this.round);
+    const report = { x: cx + 5, y: btnY, w: lbw, h: lbh };
+    this.hits.report = report;
+    rr(ctx, report.x, report.y, lbw, lbh, 10);
+    ctx.fillStyle = reported ? 'rgba(239,68,68,0.1)' : (anim.reportH ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)'); ctx.fill();
+    rr(ctx, report.x, report.y, lbw, lbh, 10);
+    ctx.strokeStyle = reported ? C.red : (anim.reportH ? C.gold : 'rgba(255,255,255,0.08)'); ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = reported ? C.redL : (anim.reportH ? C.goldL : C.dim);
+    ctx.fillText(reported ? '⚠️ Nahlásené' : '⚠️ Nahlásiť', report.x + lbw/2, report.y + lbh/2);
+
     ctx.restore();
   }
 
   _drawResult() {
     const { ctx, W, H, anim } = this;
     const mobile = W < 600;
-    ctx.save();
-    ctx.globalAlpha = anim.resultA;
-
+    ctx.save(); ctx.globalAlpha = anim.resultA;
     const cx = W/2, cy = H/2;
     const pw = Math.min(440, W - 20), ph = 440;
     const px = cx - pw/2, py = cy - ph/2;
-
     rr(ctx, px, py, pw, ph, 28);
     const bg = ctx.createLinearGradient(px, py, px, py + ph);
     bg.addColorStop(0, '#0d0d3d'); bg.addColorStop(1, '#050520');
     ctx.fillStyle = bg; ctx.fill();
-    rr(ctx, px, py, pw, ph, 28);
-    ctx.strokeStyle = C.purple; ctx.lineWidth = 2; ctx.stroke();
-
+    rr(ctx, px, py, pw, ph, 28); ctx.strokeStyle = C.purple; ctx.lineWidth = 2; ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    // Who won?
     const myPrize = this.myAlive ? this.round : Math.max(0, this.round - 1);
     const won = this.myAlive;
-
     ctx.font = `900 ${mobile ? 28 : 34}px Inter, system-ui, sans-serif`;
-    ctx.shadowColor = won ? C.gold : C.red; ctx.shadowBlur = 20;
-    ctx.fillStyle = won ? C.gold : C.red;
-    ctx.fillText(won ? '💎 GRATULUJEME!' : '😞 KONIEC HRY', cx, py + 55);
-    ctx.shadowBlur = 0;
-
-    // Prize
-    ctx.font = `800 ${mobile ? 22 : 28}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = C.goldL;
+    ctx.shadowColor = won ? C.gold : C.red; ctx.shadowBlur = 20; ctx.fillStyle = won ? C.gold : C.red;
+    ctx.fillText(won ? '💎 GRATULUJEME!' : '😞 KONIEC HRY', cx, py + 55); ctx.shadowBlur = 0;
+    ctx.font = `800 ${mobile ? 22 : 28}px Inter, system-ui, sans-serif`; ctx.fillStyle = C.goldL;
     ctx.fillText(`Výhra: ${PRIZES[Math.min(myPrize, PRIZES.length - 1)]}`, cx, py + 100);
-    ctx.font = '500 13px Inter, system-ui, sans-serif';
-    ctx.fillStyle = C.muted;
-    ctx.fillText(`Dosiahol si otázku ${this.round + (this.myAlive ? 0 : 0)} z ${this.questions.length}`, cx, py + 130);
+    ctx.font = '500 13px Inter, system-ui, sans-serif'; ctx.fillStyle = C.muted;
+    ctx.fillText(`Dosiahol si otázku ${this.round} z ${this.questions.length}`, cx, py + 130);
 
     // Leaderboard
     const all = [
       { name: '👤 Ty', score: myPrize, alive: this.myAlive },
       ...this.bots.map(b => ({ name: b.name, score: b.score, alive: b.alive })),
     ].sort((a, b) => b.score - a.score);
-
-    ctx.font = '700 14px Inter, system-ui, sans-serif';
-    ctx.fillStyle = C.muted;
+    ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = C.muted;
     ctx.fillText('🏆 Poradie', cx, py + 165);
-
     const medals = ['🥇', '🥈', '🥉', '4.'];
     all.forEach((p, i) => {
       const ly = py + 195 + i * 32;
@@ -614,8 +560,7 @@ export class MillionaireGame {
     this.hits.play = pb;
     rr(ctx, pb.x, pb.y, bbw, bbh, 14);
     ctx.fillStyle = hex2rgba(C.purple, 0.15 + anim.playH * 0.15); ctx.fill();
-    rr(ctx, pb.x, pb.y, bbw, bbh, 14);
-    ctx.strokeStyle = C.purple; ctx.lineWidth = 1.5; ctx.stroke();
+    rr(ctx, pb.x, pb.y, bbw, bbh, 14); ctx.strokeStyle = C.purple; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = C.purpleL;
     ctx.fillText('🔄 Hrať znova', pb.x + bbw/2, pb.y + bbh/2);
 
@@ -623,11 +568,8 @@ export class MillionaireGame {
     this.hits.exit = eb;
     rr(ctx, eb.x, eb.y, bbw, bbh, 14);
     ctx.fillStyle = hex2rgba(C.gold, 0.1 + anim.exitH * 0.1); ctx.fill();
-    rr(ctx, eb.x, eb.y, bbw, bbh, 14);
-    ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = C.goldL;
-    ctx.fillText('🔙 Menu', eb.x + bbw/2, eb.y + bbh/2);
-
+    rr(ctx, eb.x, eb.y, bbw, bbh, 14); ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = C.goldL; ctx.fillText('🔙 Menu', eb.x + bbw/2, eb.y + bbh/2);
     ctx.restore();
   }
 }
