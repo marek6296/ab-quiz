@@ -4,7 +4,7 @@ import { supabase } from './lib/supabase';
 
 
 const S = {
-  wrap: { minHeight: '100vh', background: '#050505', color: '#fff', fontFamily: 'Inter, system-ui, sans-serif' },
+  wrap: { height: '100vh', overflowY: 'auto', background: '#050505', color: '#fff', fontFamily: 'Inter, system-ui, sans-serif' },
   header: { display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' },
   back: { background: 'none', border: '1px solid #333', color: '#888', padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13 },
   title: { fontSize: 22, fontWeight: 900, color: '#a855f7' },
